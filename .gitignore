@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+env/
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Node / web
+node_modules/
+.svelte-kit/
+build/
+dist/
+.turbo/
+*.log
+
+# Math output (generated; publish_files kept only when intentionally committed)
+math/games/*/library/books/
+math/games/*/library/lookup_tables/
+math/games/*/library/forces/
+math/games/*/library/configs/
+
+# OS
+.DS_Store
+Thumbs.db

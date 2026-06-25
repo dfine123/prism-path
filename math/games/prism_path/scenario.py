@@ -35,6 +35,16 @@ PRESETS = {
     # two beasts in the same row near the RIGHT edge, BOTH facing right -> only their own two
     # cells become wild (reel 4 whiffs at the edge; reel 3 reaches reel 4). NOT the whole row.
     "right-pair": {"fill": "L5", "beasts": [(3, 2, "right", 2), (4, 2, "right", 3)]},
+    # --- vertical-facing beasts (fire up/down a column) ---
+    # single beast at the top of the centre column facing DOWN -> fills the column downward
+    "down": {"fill": "L5", "beasts": [(2, 0, "down", 3)]},
+    # single beast at the bottom of the centre column facing UP -> fills the column upward
+    "up": {"fill": "L5", "beasts": [(2, 4, "up", 5)]},
+    # two beasts in the same column facing TOWARD each other -> their paths overlap mid-column (x2*x3=x6)
+    "vertical-overlap": {"fill": "L5", "beasts": [(2, 1, "down", 2), (2, 3, "up", 3)]},
+    # two beasts in the same column near the BOTTOM, BOTH facing down -> only their own two cells
+    # become wild (row 4 whiffs at the edge; row 3 reaches row 4). NOT the whole column.
+    "down-pair": {"fill": "L5", "beasts": [(2, 3, "down", 2), (2, 4, "down", 3)]},
     # all-H1 board + two big beasts overlapping -> blows past the 5000x cap (wincap event)
     "near-max": {"fill": "H1", "beasts": [(1, 2, "right", 50), (3, 2, "left", 50)]},
     # distinct symbol per reel, no beasts -> no line reaches 3-of-a-kind -> zero win

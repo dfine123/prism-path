@@ -6,5 +6,20 @@ import whiff from './scenarios/whiff.json';
 import nearMax from './scenarios/near-max.json';
 import zero from './scenarios/zero.json';
 import rightPair from './scenarios/right-pair.json';
+import down from './scenarios/down.json';
+import up from './scenarios/up.json';
+import verticalOverlap from './scenarios/vertical-overlap.json';
+import downPair from './scenarios/down-pair.json';
 
-export const scenarios = { single, overlap, whiff, nearMax, zero, rightPair } as const;
+export const scenarios = {
+	single,
+	overlap,
+	whiff,
+	nearMax,
+	zero,
+	rightPair,
+	down,
+	up,
+	verticalOverlap,
+	downPair,
+} as const;

@@ -58,6 +58,30 @@
 />
 
 <Story
+	name="down (column fires down)"
+	args={templateArgs({ skipLoadingScreen: true, data: {}, action: play(scenarios.down) })}
+	{template}
+/>
+
+<Story
+	name="up (column fires up)"
+	args={templateArgs({ skipLoadingScreen: true, data: {}, action: play(scenarios.up) })}
+	{template}
+/>
+
+<Story
+	name="vertical-overlap (x6 column)"
+	args={templateArgs({ skipLoadingScreen: true, data: {}, action: play(scenarios.verticalOverlap) })}
+	{template}
+/>
+
+<Story
+	name="down-pair (only their 2 cells)"
+	args={templateArgs({ skipLoadingScreen: true, data: {}, action: play(scenarios.downPair) })}
+	{template}
+/>
+
+<Story
 	name="whiff (edge, no path)"
 	args={templateArgs({ skipLoadingScreen: true, data: {}, action: play(scenarios.whiff) })}
 	{template}

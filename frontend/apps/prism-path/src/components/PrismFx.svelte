@@ -34,6 +34,10 @@
 	const context = getContext();
 	const glow = new GlowFilter({ color: 0x9a6bff, distance: 22, outerStrength: 4, innerStrength: 0 });
 
+	// directional beast bust by facing direction
+	const beastAsset = (d: Direction) =>
+		({ up: 'beastUp', down: 'beastDown', left: 'beastLeft', right: 'beastRight' })[d];
+
 	const key = (reel: number, row: number) => `${reel}-${row}`;
 	const cellX = (reel: number) => getSymbolX(reel);
 	// Math emits client (padded) rows where visible rows are 1..H; board renders 0..H-1 → -1.
@@ -42,10 +46,11 @@
 	// Persisted converted multiplier-wild cells (the beast's wake). Multiplier ACCUMULATES so an
 	// overlap cell grows to the product as a second beast crosses it.
 	let revealed = $state<Record<string, { reel: number; row: number; mult: number }>>({});
-	// Beasts that have dropped and are waiting to fire (rendered static, NO multiplier shown).
-	let dropped = $state<Record<string, { reel: number; row: number }>>({});
+	// Beasts that have dropped and are waiting to fire (rendered facing their direction, NO mult).
+	let dropped = $state<Record<string, { reel: number; row: number; direction: Direction }>>({});
 	// The single beast currently travelling (only one fires at a time; events are sequential).
 	let traveling = $state(false);
+	let travelDir = $state<Direction>('down');
 
 	const tx = new Tween(0, { duration: 165, easing: cubicOut });
 	const ty = new Tween(0, { duration: 165, easing: cubicOut });
@@ -59,9 +64,13 @@
 	};
 
 	context.eventEmitter.subscribeOnMount({
-		// Beast drops onto its cell — multiplier NOT shown yet (revealed only by travelling).
+		// Beast drops onto its cell facing its direction — multiplier NOT shown yet.
 		prismBeastShow: async (e) => {
-			dropped[key(e.position.reel, e.position.row)] = { reel: e.position.reel, row: e.position.row };
+			dropped[key(e.position.reel, e.position.row)] = {
+				reel: e.position.reel,
+				row: e.position.row,
+				direction: e.direction,
+			};
 			dropped = { ...dropped };
 			await waitForTimeout(360);
 		},
@@ -70,6 +79,7 @@
 		prismPathShow: async (e) => {
 			const k = key(e.source.reel, e.source.row);
 			const beastMult = e.cells[0]?.multiplier ?? 1; // every cell carries this beast's own mult
+			travelDir = dropped[k]?.direction ?? e.direction;
 			delete dropped[k];
 			dropped = { ...dropped };
 
@@ -124,10 +134,10 @@
 		/>
 	{/each}
 
-	<!-- beasts that have dropped but not yet fired (no multiplier badge) -->
+	<!-- beasts that have dropped but not yet fired (facing their direction, no multiplier badge) -->
 	{#each Object.values(dropped) as b (b.reel + '-' + b.row)}
 		<Sprite
-			key="prismBeast"
+			key={beastAsset(b.direction)}
 			x={cellX(b.reel)}
 			y={cellY(b.row)}
 			anchor={0.5}
@@ -137,10 +147,10 @@
 		/>
 	{/each}
 
-	<!-- the travelling beast (no multiplier badge; it reveals the cells it passes) -->
+	<!-- the travelling beast (directional bust; reveals the cells it passes) -->
 	{#if traveling}
 		<Sprite
-			key="prismBeast"
+			key={beastAsset(travelDir)}
 			x={tx.current}
 			y={ty.current}
 			anchor={0.5}

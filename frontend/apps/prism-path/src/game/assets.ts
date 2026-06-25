@@ -27,8 +27,12 @@ export default {
 	H4: { type: 'sprite', src: new URL('../../assets/symbols/H4.png', import.meta.url).href },
 	WILD: { type: 'sprite', src: new URL('../../assets/symbols/WILD.png', import.meta.url).href },
 	SCAT: { type: 'sprite', src: new URL('../../assets/symbols/SCAT.png', import.meta.url).href },
-	// Prism Beast overlay sprite (used by PrismFx.svelte)
+	// Prism Beast overlay sprites — directional busts (PrismFx picks one by facing direction).
 	prismBeast: { type: 'sprite', src: new URL('../../assets/symbols/prismBeast.png', import.meta.url).href },
+	beastUp: { type: 'sprite', src: new URL('../../assets/symbols/beastUp.png', import.meta.url).href },
+	beastDown: { type: 'sprite', src: new URL('../../assets/symbols/beastDown.png', import.meta.url).href },
+	beastLeft: { type: 'sprite', src: new URL('../../assets/symbols/beastLeft.png', import.meta.url).href },
+	beastRight: { type: 'sprite', src: new URL('../../assets/symbols/beastRight.png', import.meta.url).href },
 	reelsFrame: {
 		type: 'sprites',
 		src: new URL('../../assets/sprites/reelsFrame/reels_frame.json', import.meta.url).href,

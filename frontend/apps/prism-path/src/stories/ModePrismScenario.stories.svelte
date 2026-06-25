@@ -52,6 +52,12 @@
 />
 
 <Story
+	name="right-pair (only their 2 cells)"
+	args={templateArgs({ skipLoadingScreen: true, data: {}, action: play(scenarios.rightPair) })}
+	{template}
+/>
+
+<Story
 	name="whiff (edge, no path)"
 	args={templateArgs({ skipLoadingScreen: true, data: {}, action: play(scenarios.whiff) })}
 	{template}

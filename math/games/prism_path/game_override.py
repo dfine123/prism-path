@@ -102,18 +102,18 @@ class GameStateOverride(GameExecutables):
                 product *= m
             cell.multiplier = product
 
-        # Emit events: all beasts land first, then paths sweep (reveal already in book).
+        # Emit events (reveal already in book). Each beast carries its OWN multiplier on every cell
+        # it covers; the frontend ACCUMULATES (multiplies) as beasts pass, so an overlap cell visibly
+        # grows to the product (x2 -> x6) when the second beast crosses it. prismPath is ALWAYS
+        # emitted (empty cells for a whiff) so the frontend can animate: drop -> travel square-by-
+        # square revealing each cell's multiplier -> transform away at the edge.
+        # Per beast: drop (prismBeast) immediately followed by travel (prismPath), sequentially.
         for b in beasts_meta:
             prism_beast_event(self, b["position"], b["direction"], b["multiplier"], b["whiff"])
-        for b in beasts_meta:
-            if b["whiff"]:
-                continue
-            cells = []
-            for (cr, crow) in b["path"]:
-                disp = 1
-                for m in coverage[(cr, crow)].values():
-                    disp *= m
-                cells.append({"position": {"reel": cr, "row": crow}, "multiplier": disp})
+            cells = [
+                {"position": {"reel": cr, "row": crow}, "multiplier": b["multiplier"]}
+                for (cr, crow) in b["path"]
+            ]
             prism_path_event(self, b["position"], b["direction"], cells)
 
     def check_repeat(self):

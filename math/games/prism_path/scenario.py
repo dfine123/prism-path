@@ -32,6 +32,9 @@ PRESETS = {
     "overlap": {"fill": "L5", "beasts": [(1, 2, "right", 2), (3, 2, "left", 3)]},
     # beast at the left edge facing out -> empty path (whiff); still a wild on its own cell
     "whiff": {"fill": "L5", "beasts": [(0, 2, "left", 5)]},
+    # two beasts in the same row near the RIGHT edge, BOTH facing right -> only their own two
+    # cells become wild (reel 4 whiffs at the edge; reel 3 reaches reel 4). NOT the whole row.
+    "right-pair": {"fill": "L5", "beasts": [(3, 2, "right", 2), (4, 2, "right", 3)]},
     # all-H1 board + two big beasts overlapping -> blows past the 5000x cap (wincap event)
     "near-max": {"fill": "H1", "beasts": [(1, 2, "right", 50), (3, 2, "left", 50)]},
     # distinct symbol per reel, no beasts -> no line reaches 3-of-a-kind -> zero win

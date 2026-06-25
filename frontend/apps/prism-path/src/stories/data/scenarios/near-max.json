@@ -150,22 +150,11 @@
         "row": 3
       },
       "direction": "right",
-      "multiplier": 50,
+      "multiplier": 2500,
       "whiff": false
     },
     {
       "index": 2,
-      "type": "prismBeast",
-      "position": {
-        "reel": 3,
-        "row": 3
-      },
-      "direction": "left",
-      "multiplier": 50,
-      "whiff": false
-    },
-    {
-      "index": 3,
       "type": "prismPath",
       "source": {
         "reel": 1,
@@ -195,6 +184,17 @@
           "multiplier": 50
         }
       ]
+    },
+    {
+      "index": 3,
+      "type": "prismBeast",
+      "position": {
+        "reel": 3,
+        "row": 3
+      },
+      "direction": "left",
+      "multiplier": 2500,
+      "whiff": false
     },
     {
       "index": 4,

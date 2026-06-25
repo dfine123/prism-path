@@ -21,6 +21,8 @@
 </script>
 
 <script lang="ts">
+	import { Tween } from 'svelte/motion';
+	import { cubicOut } from 'svelte/easing';
 	import { GlowFilter } from 'pixi-filters';
 	import { Container, Sprite, BitmapText } from 'pixi-svelte';
 	import { waitForTimeout } from 'utils-shared/wait';
@@ -30,44 +32,69 @@
 	import { SYMBOL_SIZE } from '../game/constants';
 
 	const context = getContext();
-	// pixi-filters glow for the multiplier-wild conversion (Phase-1 stub; Spine rig replaces later).
 	const glow = new GlowFilter({ color: 0x9a6bff, distance: 22, outerStrength: 4, innerStrength: 0 });
 
-	type Cell = { reel: number; row: number; mult: number; isBeast: boolean };
-	// One overlay per cell (keyed reel-row) so an overlap cell shows a single BEAST/WILD tile and a
-	// single product badge instead of stacked beast+path overlays.
-	let cells = $state<Record<string, Cell>>({});
-
-	const put = (reel: number, row: number, mult: number, isBeast: boolean) => {
-		const key = `${reel}-${row}`;
-		const prev = cells[key];
-		cells[key] = {
-			reel,
-			row,
-			mult: Math.max(mult, prev?.mult ?? 0), // overlap product wins over a single beast's value
-			isBeast: isBeast || (prev?.isBeast ?? false),
-		};
-		cells = { ...cells };
-	};
-
-	// Math emits client (padded) rows where visible rows are 1..H; the board renders visible
-	// rows via getSymbolY(0..H-1). Convert: visibleRow = clientRow - 1.
+	const key = (reel: number, row: number) => `${reel}-${row}`;
 	const cellX = (reel: number) => getSymbolX(reel);
+	// Math emits client (padded) rows where visible rows are 1..H; board renders 0..H-1 → -1.
 	const cellY = (row: number) => getSymbolY(row - 1);
 
+	// Persisted converted multiplier-wild cells (the beast's wake). Multiplier ACCUMULATES so an
+	// overlap cell grows to the product as a second beast crosses it.
+	let revealed = $state<Record<string, { reel: number; row: number; mult: number }>>({});
+	// Beasts that have dropped and are waiting to fire (rendered static, NO multiplier shown).
+	let dropped = $state<Record<string, { reel: number; row: number }>>({});
+	// The single beast currently travelling (only one fires at a time; events are sequential).
+	let traveling = $state(false);
+
+	const tx = new Tween(0, { duration: 165, easing: cubicOut });
+	const ty = new Tween(0, { duration: 165, easing: cubicOut });
+
+	const revealCell = (reel: number, row: number, mult: number) => {
+		const k = key(reel, row);
+		const prev = revealed[k];
+		// accumulate: a second beast over the same cell multiplies (x2 -> x6)
+		revealed[k] = { reel, row, mult: (prev?.mult ?? 1) * mult };
+		revealed = { ...revealed };
+	};
+
 	context.eventEmitter.subscribeOnMount({
-		// Resolve after the stub timing so the book sequencer advances to winInfo, but KEEP the
-		// overlay visible through the win. prismClear (fired on the next reveal) resets it.
-		prismBeastShow: async (emitterEvent) => {
-			put(emitterEvent.position.reel, emitterEvent.position.row, emitterEvent.multiplier, true);
-			await waitForTimeout(emitterEvent.whiff ? 450 : 650);
+		// Beast drops onto its cell — multiplier NOT shown yet (revealed only by travelling).
+		prismBeastShow: async (e) => {
+			dropped[key(e.position.reel, e.position.row)] = { reel: e.position.reel, row: e.position.row };
+			dropped = { ...dropped };
+			await waitForTimeout(360);
 		},
-		prismPathShow: async (emitterEvent) => {
-			for (const c of emitterEvent.cells) put(c.position.reel, c.position.row, c.multiplier, false);
-			await waitForTimeout(850);
+		// Beast travels square-by-square in its facing direction, revealing each cell's multiplier as
+		// it arrives, then transforms away at the edge (revealing the final square).
+		prismPathShow: async (e) => {
+			const k = key(e.source.reel, e.source.row);
+			const beastMult = e.cells[0]?.multiplier ?? 1; // every cell carries this beast's own mult
+			delete dropped[k];
+			dropped = { ...dropped };
+
+			tx.set(cellX(e.source.reel), { duration: 0 });
+			ty.set(cellY(e.source.row), { duration: 0 });
+			traveling = true;
+			await waitForTimeout(70);
+
+			// own cell lights up as the beast departs
+			revealCell(e.source.reel, e.source.row, beastMult);
+
+			// travel the path, revealing each cell on arrival
+			for (const c of e.cells) {
+				await Promise.all([tx.set(cellX(c.position.reel)), ty.set(cellY(c.position.row))]);
+				revealCell(c.position.reel, c.position.row, c.multiplier);
+			}
+
+			// reached the edge (or a whiff with no path): transform away
+			await waitForTimeout(190);
+			traveling = false;
 		},
 		prismClear: () => {
-			cells = {};
+			revealed = {};
+			dropped = {};
+			traveling = false;
 		},
 	});
 </script>
@@ -77,9 +104,10 @@
 	y={context.stateGameDerived.boardLayout().y}
 	pivot={context.stateGameDerived.boardLayout().pivot}
 >
-	{#each Object.values(cells) as cell (cell.reel + '-' + cell.row)}
+	<!-- converted multiplier wilds left in the beast's wake -->
+	{#each Object.values(revealed) as cell (cell.reel + '-' + cell.row)}
 		<Sprite
-			key={cell.isBeast ? 'prismBeast' : 'WILD'}
+			key="WILD"
 			x={cellX(cell.reel)}
 			y={cellY(cell.row)}
 			anchor={0.5}
@@ -92,7 +120,33 @@
 			x={cellX(cell.reel)}
 			y={cellY(cell.row)}
 			text={`${cell.mult}X`}
-			style={{ fontFamily: 'gold', fontSize: cell.isBeast ? 60 : 52 }}
+			style={{ fontFamily: 'gold', fontSize: 54 }}
 		/>
 	{/each}
+
+	<!-- beasts that have dropped but not yet fired (no multiplier badge) -->
+	{#each Object.values(dropped) as b (b.reel + '-' + b.row)}
+		<Sprite
+			key="prismBeast"
+			x={cellX(b.reel)}
+			y={cellY(b.row)}
+			anchor={0.5}
+			width={SYMBOL_SIZE}
+			height={SYMBOL_SIZE}
+			filters={[glow]}
+		/>
+	{/each}
+
+	<!-- the travelling beast (no multiplier badge; it reveals the cells it passes) -->
+	{#if traveling}
+		<Sprite
+			key="prismBeast"
+			x={tx.current}
+			y={ty.current}
+			anchor={0.5}
+			width={SYMBOL_SIZE}
+			height={SYMBOL_SIZE}
+			filters={[glow]}
+		/>
+	{/if}
 </Container>

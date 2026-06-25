@@ -20,7 +20,9 @@ if __name__ == "__main__":
     profiling = False
 
     num_sim_args = {
-        "base": int(2000),     # Phase 1: small; correctness, not RTP
+        "base": int(2000),     # validation sims; final RTP tuned by the optimizer later
+        "bonus": int(800),     # Buy Bonus (free spins)
+        "super": int(800),     # Super buy (premium entry)
     }
 
     config = GameConfig()

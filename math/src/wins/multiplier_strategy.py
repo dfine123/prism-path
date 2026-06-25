@@ -45,7 +45,10 @@ def apply_prism_product_mult(board: Board, win_amount: float, positions: List[Di
     product = 1
     for mult in seen.values():
         product *= mult
-    product = max(product, 1)
+    # Clamp: on a saturated sticky free-spins board a line can cross many distinct beasts; the win
+    # is capped at wincap anyway, so bound the product well above any meaningful value to avoid
+    # float overflow / absurd display while never affecting an actual (capped) payout.
+    product = min(max(product, 1), 100_000)
     return (round(win_amount * product, 2), product)
 
 

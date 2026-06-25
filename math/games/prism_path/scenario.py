@@ -72,11 +72,13 @@ def build_scenario(fill="L5", beasts=None, zero=False):
     else:
         board = [[gs.symbol_storage.create_symbol(fill) for _ in range(height)] for r in range(width)]
 
+    forced_beasts = []
     for (reel, row, direction, mult) in beasts:
         beast = gs.symbol_storage.create_symbol("WILD")
-        beast.multiplier = int(mult)
         beast.direction = direction
+        beast.multiplier = None  # hidden at reveal; the forced value is applied after reveal
         board[reel][row] = beast
+        forced_beasts.append((beast, int(mult)))
 
     gs.board = board
     pad = "L1" if zero else fill
@@ -88,7 +90,9 @@ def build_scenario(fill="L5", beasts=None, zero=False):
     gs.get_special_symbols_on_board()
 
     # Resolution pipeline (same order as run_spin, minus reel draw / repeat / freespins).
-    reveal_event(gs)
+    reveal_event(gs)  # beast direction is serialized; multiplier stays hidden
+    for beast, mult in forced_beasts:
+        beast.multiplier = mult  # apply the forced multiplier AFTER reveal so resolution honors it
     gs.resolve_prism_beasts()
     gs.evaluate_lines_board()
     gs.win_manager.update_gametype_wins(gs.gametype)

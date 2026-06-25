@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { recordBookEvent, checkIsMultipleRevealEvents, type BookEventHandlerMap } from 'utils-book';
 import { stateBet, stateUi } from 'state-shared';
 import { sequence } from 'utils-shared/sequence';
+import { waitForTimeout } from 'utils-shared/wait';
 
 import { eventEmitter } from './eventEmitter';
 import { playBookEvent } from './utils';
@@ -46,7 +47,6 @@ const animateSymbols = async ({ positions }: { positions: Position[] }) => {
 
 export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContext> = {
 	reveal: async (bookEvent: BookEventOfType<'reveal'>, { bookEvents }: BookEventContext) => {
-		eventEmitter.broadcast({ type: 'prismClear' }); // reset any beast/path overlays from a prior spin
 		const isBonusGame = checkIsMultipleRevealEvents({ bookEvents });
 		if (isBonusGame) {
 			eventEmitter.broadcast({ type: 'stopButtonEnable' });
@@ -61,22 +61,28 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		eventEmitter.broadcast({ type: 'soundScatterCounterClear' });
 	},
 	prismBeast: async (bookEvent: BookEventOfType<'prismBeast'>) => {
-		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });
-		await eventEmitter.broadcastAsync({
-			type: 'prismBeastShow',
-			position: bookEvent.position,
-			direction: bookEvent.direction,
-			multiplier: bookEvent.multiplier,
-			whiff: bookEvent.whiff,
-		});
+		// The beast already sits on the board facing its direction (from the reveal). A short
+		// "charge" beat before it travels and starts replacing symbols.
+		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
+		await waitForTimeout(280);
 	},
 	prismPath: async (bookEvent: BookEventOfType<'prismPath'>) => {
-		await eventEmitter.broadcastAsync({
-			type: 'prismPathShow',
-			source: bookEvent.source,
-			direction: bookEvent.direction,
-			cells: bookEvent.cells,
-		});
+		// Travel the path (own cell first, then to the edge): REPLACE each covered cell's symbol
+		// with a directional multiplier wild, one square at a time, ACCUMULATING the multiplier so
+		// an overlap cell grows to the product (x2 -> x6) when a second beast crosses it.
+		for (const cell of bookEvent.cells) {
+			const reelSymbol = stateGame.board[cell.position.reel]?.reelState.symbols[cell.position.row];
+			if (!reelSymbol) continue;
+			const prevMult = reelSymbol.rawSymbol.multiplier ?? 1;
+			reelSymbol.rawSymbol = {
+				name: 'WILD',
+				wild: true,
+				direction: bookEvent.direction,
+				multiplier: prevMult * cell.multiplier,
+			};
+			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
+			await waitForTimeout(170);
+		}
 	},
 	winInfo: async (bookEvent: BookEventOfType<'winInfo'>) => {
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });

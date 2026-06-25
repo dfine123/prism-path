@@ -21,7 +21,8 @@ def json_ready_sym(symbol: object, special_attributes: list = None):
 def reveal_event(gamestate):
     """Display the initial board drawn from reelstrips."""
     board_client = []
-    special_attributes = list(gamestate.config.special_symbols.keys())
+    # include "direction" so a drawn beast serializes the way it faces (lands facing its path)
+    special_attributes = list(gamestate.config.special_symbols.keys()) + ["direction"]
     for reel, _ in enumerate(gamestate.board):
         board_client.append([])
         for row in range(len(gamestate.board[reel])):

@@ -2,11 +2,13 @@ import { type SpinningReelSymbolState } from 'utils-slots';
 import type config from './config';
 
 export type SymbolName = keyof typeof config.symbols;
+export type Direction = 'up' | 'down' | 'left' | 'right';
 export type RawSymbol = {
 	name: SymbolName;
 	multiplier?: number;
 	scatter?: boolean;
 	wild?: boolean;
+	direction?: Direction; // Prism Beast: which way it faces / fires
 };
 export type BetMode = keyof typeof config.betModes;
 export type GameType = keyof typeof config.paddingReels;

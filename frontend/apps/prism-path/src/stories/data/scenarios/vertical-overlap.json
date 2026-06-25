@@ -62,7 +62,7 @@
           {
             "name": "WILD",
             "wild": true,
-            "multiplier": 2
+            "direction": "down"
           },
           {
             "name": "L5"
@@ -70,7 +70,7 @@
           {
             "name": "WILD",
             "wild": true,
-            "multiplier": 3
+            "direction": "up"
           },
           {
             "name": "L5"
@@ -165,6 +165,13 @@
         {
           "position": {
             "reel": 2,
+            "row": 2
+          },
+          "multiplier": 2
+        },
+        {
+          "position": {
+            "reel": 2,
             "row": 3
           },
           "multiplier": 2
@@ -205,6 +212,13 @@
       },
       "direction": "up",
       "cells": [
+        {
+          "position": {
+            "reel": 2,
+            "row": 4
+          },
+          "multiplier": 3
+        },
         {
           "position": {
             "reel": 2,

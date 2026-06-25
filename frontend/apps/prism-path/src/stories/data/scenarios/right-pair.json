@@ -88,7 +88,7 @@
           {
             "name": "WILD",
             "wild": true,
-            "multiplier": 2
+            "direction": "right"
           },
           {
             "name": "L5"
@@ -113,7 +113,7 @@
           {
             "name": "WILD",
             "wild": true,
-            "multiplier": 3
+            "direction": "right"
           },
           {
             "name": "L5"
@@ -164,10 +164,17 @@
       "cells": [
         {
           "position": {
+            "reel": 3,
+            "row": 3
+          },
+          "multiplier": 2
+        },
+        {
+          "position": {
             "reel": 4,
             "row": 3
           },
-          "multiplier": 6
+          "multiplier": 2
         }
       ]
     },
@@ -179,7 +186,7 @@
         "row": 3
       },
       "direction": "right",
-      "multiplier": 6,
+      "multiplier": 3,
       "whiff": true
     },
     {
@@ -190,7 +197,15 @@
         "row": 3
       },
       "direction": "right",
-      "cells": []
+      "cells": [
+        {
+          "position": {
+            "reel": 4,
+            "row": 3
+          },
+          "multiplier": 3
+        }
+      ]
     },
     {
       "index": 5,

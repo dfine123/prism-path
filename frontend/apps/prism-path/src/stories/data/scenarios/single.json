@@ -65,7 +65,7 @@
           {
             "name": "WILD",
             "wild": true,
-            "multiplier": 3
+            "direction": "right"
           },
           {
             "name": "L5"
@@ -160,6 +160,13 @@
       },
       "direction": "right",
       "cells": [
+        {
+          "position": {
+            "reel": 2,
+            "row": 3
+          },
+          "multiplier": 3
+        },
         {
           "position": {
             "reel": 3,

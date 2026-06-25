@@ -12,10 +12,15 @@ class GameStateOverride(GameExecutables):
         super().reset_book()
 
     def assign_special_sym_function(self):
-        # Beast multiplier + direction are assigned at FIRING time (resolve_prism_beasts), not at
-        # draw — so the static reveal shows plain wilds and each beast dramatically reveals its
-        # multiplier when it lands (prismBeast). No per-symbol draw-time function is needed.
-        self.special_symbol_functions = {}
+        # A drawn Prism Beast faces a direction at DRAW, so it lands facing the way it will fire
+        # (direction is serialized into the reveal board). Its MULTIPLIER stays hidden until it
+        # travels (assigned at firing in resolve_prism_beasts).
+        self.special_symbol_functions = {"WILD": [self.assign_beast_direction]}
+
+    def assign_beast_direction(self, symbol) -> None:
+        """Give a drawn beast its facing direction (revealed on the board); keep multiplier hidden."""
+        symbol.direction = get_random_outcome(self.config.beast_dir_weights)
+        symbol.multiplier = None
 
     # ---- Prism Path feature resolution ---------------------------------------------------
 
@@ -110,10 +115,11 @@ class GameStateOverride(GameExecutables):
         # Per beast: drop (prismBeast) immediately followed by travel (prismPath), sequentially.
         for b in beasts_meta:
             prism_beast_event(self, b["position"], b["direction"], b["multiplier"], b["whiff"])
-            cells = [
-                {"position": {"reel": cr, "row": crow}, "multiplier": b["multiplier"]}
-                for (cr, crow) in b["path"]
-            ]
+            # Route = own cell FIRST, then the path to the edge; each carries this beast's own
+            # multiplier. The frontend replaces each covered symbol with a directional multiplier
+            # wild and ACCUMULATES (a second beast over a cell multiplies it -> product).
+            route = [b["position"]] + [{"reel": cr, "row": crow} for (cr, crow) in b["path"]]
+            cells = [{"position": pos, "multiplier": b["multiplier"]} for pos in route]
             prism_path_event(self, b["position"], b["direction"], cells)
 
     def check_repeat(self):

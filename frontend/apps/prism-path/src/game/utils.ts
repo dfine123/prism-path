@@ -52,6 +52,8 @@ export const convertTorResumableBet = (betToResume: Bet) => {
 export const getSymbolX = (reelIndex: number) => SYMBOL_SIZE * (reelIndex + REEL_PADDING);
 export const getSymbolY = (symbolIndexOfBoard: number) => (symbolIndexOfBoard + 0.5) * SYMBOL_SIZE;
 
+const BEAST_ASSET = { up: 'beastUp', down: 'beastDown', left: 'beastLeft', right: 'beastRight' } as const;
+
 export const getSymbolInfo = ({
 	rawSymbol,
 	state,
@@ -59,5 +61,10 @@ export const getSymbolInfo = ({
 	rawSymbol: RawSymbol;
 	state: SymbolState;
 }) => {
-	return SYMBOL_INFO_MAP[rawSymbol.name][state];
+	const info = SYMBOL_INFO_MAP[rawSymbol.name][state];
+	// A WILD (Prism Beast) renders the directional bust matching the way it faces / fires.
+	if (rawSymbol.name === 'WILD' && rawSymbol.direction) {
+		return { ...info, assetKey: BEAST_ASSET[rawSymbol.direction] };
+	}
+	return info;
 };

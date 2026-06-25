@@ -75,8 +75,10 @@ class GameConfig(Config):
         self.paylines = {i + 1: list(line) for i, line in enumerate(PAYLINES_40)}
 
         self.include_padding = True
-        # WILD = Prism Beast (wild + multiplier carrier); SCAT = scatter (free spins, deferred).
-        self.special_symbols = {"wild": ["WILD"], "scatter": ["SCAT"], "multiplier": ["WILD"]}
+        # WILD = Prism Beast (wild; carries a multiplier via beast_mults set at firing — NOT the
+        # "multiplier" special-flag, so it shows no multiplier on the board until it travels).
+        # SCAT = scatter (free spins, deferred).
+        self.special_symbols = {"wild": ["WILD"], "scatter": ["SCAT"]}
 
         # ---- Prism Path feature tuning (resolver reads these) ----
         self.mult_combine = "product"  # overlap multiplies the lane

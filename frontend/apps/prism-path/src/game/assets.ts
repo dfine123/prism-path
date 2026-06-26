@@ -18,6 +18,7 @@ export default {
 	// `../../assets/...` resolves to the dev-served /assets/* (i.e. static/assets/*).
 	// --- Prism Path generated UI art ---
 	bgBase: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_base.png', import.meta.url).href, preload: true },
+	prismFrameEdge: { type: 'sprite', src: new URL('../../assets/ui/prismFrameEdge.png', import.meta.url).href },
 	L1: { type: 'sprite', src: new URL('../../assets/symbols/L1.png', import.meta.url).href },
 	L2: { type: 'sprite', src: new URL('../../assets/symbols/L2.png', import.meta.url).href },
 	L3: { type: 'sprite', src: new URL('../../assets/symbols/L3.png', import.meta.url).href },

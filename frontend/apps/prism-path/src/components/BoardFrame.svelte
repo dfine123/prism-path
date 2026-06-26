@@ -72,7 +72,7 @@
 />
 
 <Sprite
-	key="frame_edge.png"
+	key="prismFrameEdge"
 	anchor={0.5}
 	x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT}
 	y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT}

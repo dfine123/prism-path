@@ -14,13 +14,12 @@ export default {
 		preload: true,
 	},
 	// --- Prism Path placeholder symbol sprites (config slots: final art = file swap) ---
-	// Keys match the math reveal board names exactly (L1-L5/H1-H4/WILD/SCAT). At runtime
+	// Keys match the math reveal board names exactly (L2-L5/H1-H4/WILD/SCAT). At runtime
 	// `../../assets/...` resolves to the dev-served /assets/* (i.e. static/assets/*).
 	// --- Prism Path generated UI art ---
 	bgBase: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_base.png', import.meta.url).href, preload: true },
 	prismFrameEdge: { type: 'sprite', src: new URL('../../assets/ui/prismFrameEdge.png', import.meta.url).href },
 	logo: { type: 'sprite', src: new URL('../../assets/ui/logo.png', import.meta.url).href },
-	L1: { type: 'sprite', src: new URL('../../assets/symbols/L1.png', import.meta.url).href },
 	L2: { type: 'sprite', src: new URL('../../assets/symbols/L2.png', import.meta.url).href },
 	L3: { type: 'sprite', src: new URL('../../assets/symbols/L3.png', import.meta.url).href },
 	L4: { type: 'sprite', src: new URL('../../assets/symbols/L4.png', import.meta.url).href },

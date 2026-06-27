@@ -14,10 +14,9 @@ from src.config.distributions import Distribution
 from src.config.betmode import BetMode
 
 
-# Paytable in payoutMultiplier-int units (800 = 8.0x). L1-L5 [3,4,5] -> [25,50,100];
+# Paytable in payoutMultiplier-int units (800 = 8.0x). L2-L5 [3,4,5] -> [25,50,100];
 # H1-H4 -> [50,150,500]. WILD has NO own-symbol pay (substitutes + carries multipliers).
 PAYTABLE_PM = {
-    "L1": [25, 50, 100],
     "L2": [25, 50, 100],
     "L3": [25, 50, 100],
     "L4": [25, 50, 100],

@@ -5,7 +5,7 @@
 const mk = (names: string) => names.trim().split(/\s+/).map((name) => ({ name }));
 
 // Cosmetic scroll-fill for the pre-reveal reel spin (never affects outcomes). No WILD/SCAT.
-const FILL = mk('L1 H1 L3 L5 H2 L2 L4 H3 L1 H4 L5 L2 H1 L3 L4 H2 L5 L1 H3 L4 L2 H4 L3 L5 H1');
+const FILL = mk('H1 L3 L5 H2 L2 L4 H3 L5 H4 L5 L2 H1 L3 L4 H2 L5 L4 H3 L4 L2 H4 L3 L5 H1 L2');
 const PADDING_REELS = [FILL, FILL, FILL, FILL, FILL];
 
 export default {
@@ -67,7 +67,6 @@ export default {
 		'40': [0, 4, 0, 4, 0],
 	},
 	symbols: {
-		L1: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },
 		L2: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },
 		L3: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },
 		L4: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },

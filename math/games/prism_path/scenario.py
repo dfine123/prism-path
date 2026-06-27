@@ -67,7 +67,7 @@ def build_scenario(fill="L5", beasts=None, zero=False):
     height = config.num_rows[0]
 
     if zero:
-        cols = ["L1", "L2", "L3", "L4", "L5"]
+        cols = ["L2", "L3", "L4", "L5", "H1"]
         board = [[gs.symbol_storage.create_symbol(cols[r % len(cols)]) for _ in range(height)] for r in range(width)]
     else:
         board = [[gs.symbol_storage.create_symbol(fill) for _ in range(height)] for r in range(width)]
@@ -81,7 +81,7 @@ def build_scenario(fill="L5", beasts=None, zero=False):
         forced_beasts.append((beast, int(mult)))
 
     gs.board = board
-    pad = "L1" if zero else fill
+    pad = "L2" if zero else fill
     gs.top_symbols = [gs.symbol_storage.create_symbol(pad) for _ in range(width)]
     gs.bottom_symbols = [gs.symbol_storage.create_symbol(pad) for _ in range(width)]
     gs.reel_positions = [0] * width

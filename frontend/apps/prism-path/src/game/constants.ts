@@ -79,7 +79,7 @@ export const zIndexes = {
 // getSymbolInfo (utils.ts) does an unguarded SYMBOL_INFO_MAP[name][state], so EVERY symbol
 // must define all six SYMBOL_STATES. SymbolSprite fires `oncomplete` on mount, so the
 // win/land states resolve the animation loop instantly with no spine timeline.
-const spriteAll = (assetKey: string, sizeRatios = { width: 1, height: 1 }) => {
+const spriteAll = (assetKey: string, sizeRatios = { width: 0.88, height: 0.88 }) => {
 	const s = { type: 'sprite', assetKey, sizeRatios } as const;
 	return { static: s, spin: s, land: s, win: s, postWinStatic: s, explosion: s };
 };
@@ -93,8 +93,8 @@ export const SYMBOL_INFO_MAP = {
 	H2: spriteAll('H2'),
 	H3: spriteAll('H3'),
 	H4: spriteAll('H4'),
-	WILD: spriteAll('WILD', { width: 1.1, height: 1.1 }),
-	SCAT: spriteAll('SCAT', { width: 1.1, height: 1.1 }),
+	WILD: spriteAll('WILD', { width: 1.0, height: 1.0 }),
+	SCAT: spriteAll('SCAT', { width: 1.0, height: 1.0 }),
 } as const;
 
 export const SCATTER_LAND_SOUND_MAP = {

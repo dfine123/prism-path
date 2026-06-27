@@ -5,9 +5,10 @@
 </script>
 
 <script lang="ts">
-	import { Sprite, SpineProvider, SpineTrack } from 'pixi-svelte';
+	import { Graphics, Sprite, SpineProvider, SpineTrack } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
+	import { BOARD_SIZES, SYMBOL_SIZE } from '../game/constants';
 
 	const context = getContext();
 	const SPINE_SCALE = { width: 0.62, height: 0.66 };
@@ -62,13 +63,24 @@
 	</SpineProvider>
 {/if}
 
-<Sprite
-	key="frame_bg.png"
-	anchor={0.5}
+<!-- Board backing: mid-dark grey panel + light gridlines aligned to the 5x5 cells -->
+<Graphics
 	x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT}
 	y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT}
-	width={context.stateGameDerived.boardLayout().width * SPRITE_SCALE.width}
-	height={context.stateGameDerived.boardLayout().height * SPRITE_SCALE.height}
+	draw={(g) => {
+		const PW = BOARD_SIZES.width * SPRITE_SCALE.width;
+		const PH = BOARD_SIZES.height * SPRITE_SCALE.height;
+		g.roundRect(-PW / 2, -PH / 2, PW, PH, 22).fill({ color: 0x2c2c34 });
+		const W = BOARD_SIZES.width;
+		const H = BOARD_SIZES.height;
+		for (let i = 0; i <= 5; i++) {
+			const gx = -W / 2 + i * SYMBOL_SIZE;
+			g.moveTo(gx, -H / 2).lineTo(gx, H / 2);
+			const gy = -H / 2 + i * SYMBOL_SIZE;
+			g.moveTo(-W / 2, gy).lineTo(W / 2, gy);
+		}
+		g.stroke({ width: 2, color: 0x6f6f7e, alpha: 0.5 });
+	}}
 />
 
 <Sprite

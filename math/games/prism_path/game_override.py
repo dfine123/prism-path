@@ -78,28 +78,29 @@ class GameStateOverride(GameExecutables):
     def resolve_prism_beasts(self) -> None:
         """Fire newly-drawn Prism Beasts. Runs after the board is drawn and before line eval.
 
-        Newly drawn beasts (special_syms_on_board['wild']) fire up to the per-gametype cap; each gets
-        a feature-unique id, a multiplier (MULT_SET) and a direction, and covers its own cell + path
-        to the edge. Coverage MERGES into sticky_cells (so prior sticky beasts + new beasts on a cell
-        stack by distinct id -> product), then the whole accumulated state is written to the board.
+        A NEW beast is a freshly-drawn WILD whose cell is NOT already part of the sticky board.
+        Critically:
+          * EVERY new beast fires — there is no cap that could leave a drawn WILD un-resolved
+            (an un-fired WILD would render as a stuck "beast that never activated"). Volatility is
+            tuned via reel WILD density, not by silently dropping beasts.
+          * Sticky wilds already on the board are NOT re-fired. They keep their accumulated
+            multiplier and render straight from the reveal (which serializes direction+multiplier);
+            re-firing them would re-animate them every spin and inflate their multiplier.
+        Each new beast gets a feature-unique id, a multiplier and a direction, covers its own cell +
+        path to the edge, and MERGES into sticky_cells (distinct beasts on a cell stack -> product).
         """
-        beast_positions = list(self.special_syms_on_board.get("wild", []))
-        if not beast_positions:
-            # still ensure any sticky wilds are on the board (free game re-draws)
+        all_wilds = list(self.special_syms_on_board.get("wild", []))
+        new_beasts = sorted(
+            [p for p in all_wilds if (p["reel"], p["row"]) not in self.sticky_cells],
+            key=lambda p: (p["reel"], p["row"]),
+        )
+        if not new_beasts:
+            # no new beasts -> still ensure sticky wilds are stamped onto the freshly drawn board
             self._write_sticky_to_board()
             return
 
-        beast_positions = sorted(beast_positions, key=lambda p: (p["reel"], p["row"]))
-        cap = self.config.max_beasts[self.gametype]
-        firing = beast_positions[:cap]
-
-        for p in beast_positions[cap:]:  # extras beyond cap -> plain wild (no mult / no path)
-            extra = self.board[p["reel"]][p["row"]]
-            extra.multiplier = 1
-            extra.direction = None
-
         beasts_meta = []
-        for p in firing:
+        for p in new_beasts:
             reel, row = p["reel"], p["row"]
             cell = self.board[reel][row]
             mult = int(cell.multiplier) if (cell.multiplier and cell.multiplier > 1) else get_random_outcome(

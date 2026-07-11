@@ -48,6 +48,9 @@
 				.sort((a, b) => a.reel - b.reel)
 				.map(cellPos);
 			if (pts.length === 0) return resolve();
+			// paylines read left-to-right: launch the line FROM the board's left edge (tucked
+			// just under the frame) into the first winning symbol
+			pts.unshift({ x: -SYMBOL_SIZE * 0.04, y: pts[0].y });
 			const start = now();
 			const total = DRAW_MS + HOLD_MS + FADE_MS;
 			line = { show: true, pts, prog: 0, alpha: 1, phase: 0 };

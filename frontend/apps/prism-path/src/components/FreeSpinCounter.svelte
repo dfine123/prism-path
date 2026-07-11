@@ -11,6 +11,7 @@
 
 	import { getContext } from '../game/context';
 	import { SYMBOL_SIZE } from '../game/constants';
+	import { prismStyle } from '../game/fonts';
 	import { anchorToPivot, BitmapText, Container, Sprite, type Sizes } from 'pixi-svelte';
 
 	const context = getContext();
@@ -71,21 +72,14 @@
 		>
 			<BitmapText
 				text={'FREE SPIN'}
-				style={{
-					fontFamily: 'gold',
-					fontSize,
-					wordWrap: false,
-				}}
+				style={prismStyle(fontSize, { wordWrap: false })}
 				onresize={(sizes) => (titleSizes = sizes)}
 			/>
 			<BitmapText
 				text={`${current} OF ${total}`}
 				{...counterPosition}
 				anchor={{ x: 0.5, y: 0 }}
-				style={{
-					fontFamily: 'gold',
-					fontSize,
-				}}
+				style={prismStyle(fontSize)}
 				onresize={(sizes) => (counterSizes = sizes)}
 			/>
 		</Container>

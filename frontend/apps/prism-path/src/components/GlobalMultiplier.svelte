@@ -23,6 +23,7 @@
 	import BoardContainer from './BoardContainer.svelte';
 	import { getContext } from '../game/context';
 	import { SYMBOL_SIZE } from '../game/constants';
+	import { prismStyle } from '../game/fonts';
 
 	type AnimationName = 'static' | 'win' | 'reset' | 'increment';
 
@@ -92,20 +93,14 @@
 						<BitmapText
 							anchor={0.5}
 							text={`${Math.round(previousMultiplier.current)}×`}
-							style={{
-								fontFamily: 'gold',
-								fontSize: SYMBOL_SIZE * 5.2,
-							}}
+							style={prismStyle(SYMBOL_SIZE * 5.2)}
 						/>
 					</SpineSlot>
 					<SpineSlot slotName="slot_multi_next">
 						<BitmapText
 							anchor={0.5}
 							text={`${multiplier}×`}
-							style={{
-								fontFamily: 'gold',
-								fontSize: SYMBOL_SIZE * 5.2,
-							}}
+							style={prismStyle(SYMBOL_SIZE * 5.2)}
 						/>
 					</SpineSlot>
 				</SpineEventEmitterProvider>

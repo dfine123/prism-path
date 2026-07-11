@@ -52,21 +52,13 @@ export default {
 			scale: 2,
 		},
 	},
-	goldFont: {
+	// Prism display font (Lilita One, SIL OFL — license in fonts/prism/OFL.txt). Loaded as a
+	// web font; PixiJS registers the family as "Prism" (from the filename) and BitmapText
+	// generates its atlas dynamically from the style (black fill + white stroke).
+	prismFont: {
 		type: 'font',
-		src: new URL('../../assets/fonts/goldFont/mm_gold.xml', import.meta.url).href,
-	},
-	goldBlur: {
-		type: 'font',
-		src: new URL('../../assets/fonts/goldBlur/miningfont_gold_blur.xml', import.meta.url).href,
-	},
-	silverFont: {
-		type: 'font',
-		src: new URL('../../assets/fonts/silverFont/mm_silver.xml', import.meta.url).href,
-	},
-	purpleFont: {
-		type: 'font',
-		src: new URL('../../assets/fonts/purpleFont/mm_purple.xml', import.meta.url).href,
+		src: new URL('../../assets/fonts/prism/prism.ttf', import.meta.url).href,
+		preload: true,
 	},
 	bigwin: {
 		type: 'spine',

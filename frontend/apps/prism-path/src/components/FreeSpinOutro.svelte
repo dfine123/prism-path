@@ -17,6 +17,7 @@
 	import { stateUrlDerived } from 'state-shared';
 
 	import { getContext } from '../game/context';
+	import { prismStyle } from '../game/fonts';
 	import FreeSpinAnimation from './FreeSpinAnimation.svelte';
 	import PressToContinue from './PressToContinue.svelte';
 	import WinCoins from './WinCoins.svelte';
@@ -83,10 +84,7 @@
 							<SpineSlot slotName="slot_number">
 								<ResponsiveBitmapText
 									anchor={0.5}
-									style={{
-										fontFamily: 'gold',
-										fontSize: sizes.width * 0.08,
-									}}
+									style={prismStyle(sizes.width * 0.08)}
 									text={bookEventAmountToCurrencyString(countUpAmount)}
 									maxWidth={sizes.width}
 								/>

@@ -20,6 +20,7 @@
 	import PressToContinue from './PressToContinue.svelte';
 	import { SYMBOL_SIZE } from '../game/constants';
 	import { getContext } from '../game/context';
+	import { prismStyle } from '../game/fonts';
 
 	const context = getContext();
 
@@ -69,13 +70,7 @@
 									anchor={0.5}
 									maxWidth={2130}
 									text={bookEventAmountToCurrencyString(countUpAmount)}
-									style={{
-										fontFamily: 'gold',
-										fontSize: SYMBOL_SIZE * 3.6,
-										align: 'center',
-										fontWeight: 'bold',
-										letterSpacing: 0,
-									}}
+									style={prismStyle(SYMBOL_SIZE * 3.6, { align: 'center', letterSpacing: 0 })}
 								/>
 							</WinAnimation>
 						{:else}
@@ -84,13 +79,7 @@
 								maxWidth={context.stateLayoutDerived.canvasSizes().width /
 									context.stateLayoutDerived.mainLayout().scale}
 								text={bookEventAmountToCurrencyString(countUpAmount)}
-								style={{
-									fontFamily: 'gold',
-									fontSize: SYMBOL_SIZE,
-									align: 'center',
-									fontWeight: 'bold',
-									letterSpacing: 0,
-								}}
+								style={prismStyle(SYMBOL_SIZE, { align: 'center', letterSpacing: 0 })}
 							/>
 						{/if}
 					</Container>

@@ -13,6 +13,7 @@
 	import { BitmapText, SpineProvider, SpineSlot, SpineTrack, Sprite } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
+	import { prismStyle } from '../game/fonts';
 	import PressToContinue from './PressToContinue.svelte';
 	import FreeSpinAnimation from './FreeSpinAnimation.svelte';
 
@@ -64,11 +65,7 @@
 					<BitmapText
 						anchor={{ x: 0.5, y: 0.5 }}
 						text={freeSpinsFromEvent}
-						style={{
-							fontFamily: 'gold',
-							fontSize: sizes.width * 0.1,
-							fontWeight: 'bold',
-						}}
+						style={prismStyle(sizes.width * 0.1)}
 					/>
 				</SpineSlot>
 			</SpineProvider>

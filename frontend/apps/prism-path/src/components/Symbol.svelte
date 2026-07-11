@@ -5,6 +5,7 @@
 	import { getSymbolInfo } from '../game/utils';
 	import type { SymbolState, RawSymbol } from '../game/types';
 	import { getContext } from '../game/context';
+	import { prismStyle } from '../game/fonts';
 	import { BitmapText } from 'pixi-svelte';
 
 	type Props = {
@@ -61,9 +62,6 @@
 		x={props.x}
 		y={props.y}
 		text={`${props.rawSymbol.multiplier}X`}
-		style={{
-			fontFamily: 'gold',
-			fontSize: 50,
-		}}
+		style={prismStyle(50)}
 	/>
 {/if}

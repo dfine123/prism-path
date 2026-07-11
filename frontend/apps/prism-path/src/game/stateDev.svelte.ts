@@ -10,17 +10,21 @@ export type FrameOption = {
 
 export const FRAME_OPTIONS: FrameOption[] = [
 	{ key: 'prismFrameEdge', label: 'Current', scaleW: 1.14, scaleH: 1.15 },
-	{ key: 'board1', label: '1 Crystal', scaleW: 1.18, scaleH: 1.19 },
+	// CHOSEN: crystal. Fit measured from the art's inner opening (79.8% x 73.3% of the
+	// image) so the opening = board minus a 4px lip per side -> 1.233 x 1.342.
+	{ key: 'board1', label: '1 Crystal', scaleW: 1.233, scaleH: 1.342 },
 	{ key: 'board2', label: '2 Gemstud', scaleW: 1.18, scaleH: 1.19 },
 	{ key: 'board3', label: '3 Gold', scaleW: 1.18, scaleH: 1.19 },
 	{ key: 'board4', label: '4 Minimal', scaleW: 1.18, scaleH: 1.19 },
 ];
 
+const BOOT_FRAME = 1; // crystal (user-chosen)
+
 export const stateDev = $state({
-	frameIndex: 0,
+	frameIndex: BOOT_FRAME,
 	// live-tunable copy of the selected option's fit
-	scaleW: FRAME_OPTIONS[0].scaleW,
-	scaleH: FRAME_OPTIONS[0].scaleH,
+	scaleW: FRAME_OPTIONS[BOOT_FRAME].scaleW,
+	scaleH: FRAME_OPTIONS[BOOT_FRAME].scaleH,
 	panelOpen: true,
 });
 

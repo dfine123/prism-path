@@ -70,13 +70,15 @@
 	/>
 {/if}
 
-<!-- Board backing: mid-dark grey panel + light gridlines aligned to the 5x5 cells -->
+<!-- Board backing: mid-dark grey panel + light gridlines aligned to the 5x5 cells.
+     Sized off the BOARD (fixed margin), NOT the frame scale — the panel must stay tucked
+     under the frame border whatever frame/fit is selected. -->
 <Graphics
 	x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT}
 	y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT}
 	draw={(g) => {
-		const PW = BOARD_SIZES.width * SPRITE_SCALE.width;
-		const PH = BOARD_SIZES.height * SPRITE_SCALE.height;
+		const PW = BOARD_SIZES.width * 1.06;
+		const PH = BOARD_SIZES.height * 1.06;
 		g.roundRect(-PW / 2, -PH / 2, PW, PH, 22).fill({ color: 0x2c2c34 });
 		const W = BOARD_SIZES.width;
 		const H = BOARD_SIZES.height;

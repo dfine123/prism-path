@@ -84,6 +84,44 @@
 </script>
 
 {#if line.show}
+	<!-- contrast plate: near-black outline UNDER the light (normal blend — additive black is
+	     invisible), so the gradient line pops against the grey board and bright symbols -->
+	<Graphics
+		draw={(g) => {
+			const s = line;
+			if (!s.show || s.alpha <= 0.01 || s.pts.length === 0) return;
+			const pts = s.pts;
+			const cum = [0];
+			for (let i = 1; i < pts.length; i++) {
+				cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+			}
+			const totalLen = Math.max(cum[cum.length - 1], 1);
+			const drawnLen = totalLen * s.prog;
+			g.moveTo(pts[0].x, pts[0].y);
+			let end = pts[pts.length - 1];
+			for (let i = 1; i < pts.length; i++) {
+				if (cum[i] <= drawnLen) {
+					g.lineTo(pts[i].x, pts[i].y);
+				} else {
+					const t = clamp01((drawnLen - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 0.001));
+					end = { x: lerp(pts[i - 1].x, pts[i].x, t), y: lerp(pts[i - 1].y, pts[i].y, t) };
+					g.lineTo(end.x, end.y);
+					break;
+				}
+			}
+			// soft feathered edge + solid outline
+			g.stroke({ width: LINE_W * 2.5, color: 0x0b0814, alpha: 0.5 * s.alpha, cap: 'round', join: 'round' });
+			g.moveTo(pts[0].x, pts[0].y);
+			for (let i = 1; i < pts.length; i++) {
+				if (cum[i] <= drawnLen) g.lineTo(pts[i].x, pts[i].y);
+				else {
+					g.lineTo(end.x, end.y);
+					break;
+				}
+			}
+			g.stroke({ width: LINE_W * 1.8, color: 0x0b0814, alpha: 0.92 * s.alpha, cap: 'round', join: 'round' });
+		}}
+	/>
 	<Graphics
 		blendMode="add"
 		draw={(g) => {

@@ -586,23 +586,23 @@
           "positions": [
             {
               "reel": 0,
-              "row": 2
+              "row": 1
             },
             {
               "reel": 1,
-              "row": 1
+              "row": 2
             },
             {
               "reel": 2,
-              "row": 2
-            },
-            {
-              "reel": 3,
               "row": 1
             },
             {
-              "reel": 4,
+              "reel": 3,
               "row": 2
+            },
+            {
+              "reel": 4,
+              "row": 1
             }
           ],
           "meta": {
@@ -620,23 +620,23 @@
           "positions": [
             {
               "reel": 0,
-              "row": 4
+              "row": 5
             },
             {
               "reel": 1,
-              "row": 5
+              "row": 4
             },
             {
               "reel": 2,
-              "row": 4
-            },
-            {
-              "reel": 3,
               "row": 5
             },
             {
-              "reel": 4,
+              "reel": 3,
               "row": 4
+            },
+            {
+              "reel": 4,
+              "row": 5
             }
           ],
           "meta": {
@@ -658,7 +658,7 @@
             },
             {
               "reel": 1,
-              "row": 3
+              "row": 1
             },
             {
               "reel": 2,
@@ -666,7 +666,7 @@
             },
             {
               "reel": 3,
-              "row": 3
+              "row": 1
             },
             {
               "reel": 4,
@@ -692,7 +692,7 @@
             },
             {
               "reel": 1,
-              "row": 3
+              "row": 5
             },
             {
               "reel": 2,
@@ -700,7 +700,7 @@
             },
             {
               "reel": 3,
-              "row": 3
+              "row": 5
             },
             {
               "reel": 4,

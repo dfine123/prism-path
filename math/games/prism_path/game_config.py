@@ -47,10 +47,10 @@ PAYLINES_15 = [
     [4, 3, 2, 3, 4],  # 9  shallow Λ from bottom
     [2, 1, 0, 1, 2],  # 10 V touching the top
     [2, 3, 4, 3, 2],  # 11 Λ touching the bottom
-    [1, 0, 1, 0, 1],  # 12 zigzag upper
-    [3, 4, 3, 4, 3],  # 13 zigzag lower
-    [1, 2, 1, 2, 1],  # 14 zigzag mid-upper
-    [3, 2, 3, 2, 3],  # 15 zigzag mid-lower
+    [0, 1, 0, 1, 0],  # 12 zigzag hugging the top row
+    [4, 3, 4, 3, 4],  # 13 zigzag hugging the bottom row
+    [1, 0, 1, 0, 1],  # 14 zigzag upper
+    [3, 4, 3, 4, 3],  # 15 zigzag lower
 ]
 
 

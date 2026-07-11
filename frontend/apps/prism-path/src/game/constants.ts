@@ -93,8 +93,9 @@ export const SYMBOL_INFO_MAP = {
 	H2: spriteAll('H2'),
 	H3: spriteAll('H3'),
 	H4: spriteAll('H4'),
-	WILD: spriteAll('WILD', { width: 1.0, height: 1.0 }),
-	SCAT: spriteAll('SCAT', { width: 1.0, height: 1.0 }),
+	// same ratio as every other symbol — the set reads as ONE proportionate family
+	WILD: spriteAll('WILD'),
+	SCAT: spriteAll('SCAT'),
 } as const;
 
 export const SCATTER_LAND_SOUND_MAP = {

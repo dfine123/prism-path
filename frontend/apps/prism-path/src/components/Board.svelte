@@ -14,6 +14,7 @@
 <script lang="ts">
 	import { waitForResolve } from 'utils-shared/wait';
 	import { BoardContext } from 'components-shared';
+	import { Container, Rectangle } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
 	import BoardContainer from './BoardContainer.svelte';
@@ -60,7 +61,16 @@
 		<BoardContainer>
 			<BoardBase />
 			<StickyDragonMarkers />
-			<WinLines />
+			<!-- win lines clip EXACTLY at the board rect so the line slides out from UNDER the
+			     frame border (its start sits behind the frame, off the visible board) -->
+			<Container>
+				<Rectangle
+					isMask
+					width={context.stateGameDerived.boardLayout().width}
+					height={context.stateGameDerived.boardLayout().height}
+				/>
+				<WinLines />
+			</Container>
 			<PrismBeastTravel />
 		</BoardContainer>
 	</BoardContext>

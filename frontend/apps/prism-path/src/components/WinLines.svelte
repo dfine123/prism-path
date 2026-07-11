@@ -30,20 +30,20 @@
 	const board = () => context.stateGame.board;
 
 	// ---- feel tunables ----
-	const DRAW_MS = 260; // sweep-on (left -> right through the winning cells)
-	const HOLD_MS = 620; // streaming hold (matches the symbol breath underneath)
-	const FADE_MS = 150; // release
+	const DRAW_MS = 185; // sweep-on (left -> right through the winning cells)
+	const HOLD_MS = 500; // streaming hold (matches the symbol breath underneath)
+	const FADE_MS = 120; // release
 	const LINE_W = 11; // core line width (px)
-	const FLOW_HZ = 0.8; // gradient stream speed while held
+	const FLOW_HZ = 1.15; // gradient stream speed while held (flowy)
 	const CHUNK = 13; // px per gradient chunk
-	const POP_MS = 170; // value pop-in (impact right as the sweep completes)
+	const POP_MS = 150; // value pop-in (impact right as the sweep completes)
 	const POP_FONT = 40;
 	const MULT_FONT = 32;
 	const MULT_Y = 40; // the xN sits under the value before merging into it
-	const MULT_BEAT_MS = 170; // read beat: value + xN visible together
-	const MERGE_MS = 300; // xN collapses in while the value rolls to the full amount
-	const PUNCH_MS = 170; // impact punch when the full value lands
-	const HOLD_MULT_MS = 960; // longer hold for multiplied lines (pop+beat+merge+punch)
+	const MULT_BEAT_MS = 140; // read beat: value + xN visible together
+	const MERGE_MS = 260; // xN collapses in while the value rolls to the full amount
+	const PUNCH_MS = 150; // impact punch when the full value lands
+	const HOLD_MULT_MS = 820; // longer hold for multiplied lines (pop+beat+merge+punch)
 
 	let line = $state({
 		show: false,
@@ -74,9 +74,9 @@
 			// the value sits at the centroid of the WINNING cells (before the edge anchor)
 			const cx = cells.reduce((s, p) => s + p.x, 0) / cells.length;
 			const cy = cells.reduce((s, p) => s + p.y, 0) / cells.length;
-			// paylines read left-to-right: launch the line FROM the board's left edge (tucked
-			// just under the frame) into the first winning symbol
-			const pts = [{ x: -SYMBOL_SIZE * 0.04, y: cells[0].y }, ...cells];
+			// paylines read left-to-right: the line launches from BEHIND the frame border (the
+			// board-rect mask clips it, so it slides out from under the frame into the board)
+			const pts = [{ x: -SYMBOL_SIZE * 0.6, y: cells[0].y }, ...cells];
 
 			const hasMult = multiplier > 1;
 			const holdMs = hasMult ? HOLD_MULT_MS : HOLD_MS;

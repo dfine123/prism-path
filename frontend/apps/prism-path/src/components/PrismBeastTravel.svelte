@@ -49,12 +49,11 @@
 
 	// ---- feel tunables (dial these) ----
 	const DRAGON_SCALE = 1.36; // projectile is bigger than the wilds it leaves
-	const WINDUP_MS = 155; // anticipation: rear back before the push
+	const WINDUP_MS = 120; // anticipation: a coiled charge IN PLACE (no pull-back — pure push)
 	const PER_CELL_MS = 78; // flow speed
 	const TRAVEL_MIN_MS = 175;
 	const BURST_MS = 400; // head pushes off the edge; ribbon holds the line then drains
 	const STRETCH = 0.6; // squash-stretch amount at peak flow (the "push")
-	const REAR_BACK = 0.2; // how far it pulls back during wind-up (x symbol)
 	const EXIT_PUSH = 1.5; // head flies fully OFF the board on the burst (x symbol)
 	// ribbon
 	const TRAIL_W_HEAD = 0.56;
@@ -144,12 +143,13 @@
 				trail.phase = (el / 1000) * TRAIL_FLOW_HZ;
 
 				if (el < WINDUP_MS) {
-					// ANTICIPATION — fade in, pull back opposite the fire direction, coil up.
+					// ANTICIPATION — a coiled charge IN PLACE: fade in + compress along the fire
+					// axis (loading the spring), then everything releases FORWARD. No pull-back.
 					const wp = EASE.load(clamp01(el / WINDUP_MS));
 					dragon.alpha = wp;
-					dragon.x = origin.x - dv.x * REAR_BACK * SYMBOL_SIZE * wp;
-					dragon.y = origin.y - dv.y * REAR_BACK * SYMBOL_SIZE * wp;
-					applyStretch(-0.12 * wp);
+					dragon.x = origin.x;
+					dragon.y = origin.y;
+					applyStretch(-0.16 * wp);
 					glowAlpha = 0.5 * wp;
 				} else if (el < WINDUP_MS + travelMs) {
 					// PUSH + FLOW — launch along the path, gradient ribbon streaming behind.

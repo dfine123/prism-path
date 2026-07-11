@@ -27,12 +27,20 @@
 
 <Button {...buttonProps}>
 	{#snippet children({ center, hovered, pressed })}
+		<!-- press = quick shrink (a button must answer the finger); hover = prism-lit border -->
+		{@const pressScale = pressed ? 0.92 : 1}
 		<UiSprite
 			{...center}
 			anchor={0.5}
-			width={buttonProps.sizes.width}
-			height={buttonProps.sizes.height}
-			backgroundColor={variant === 'dark' ? 0x000000 : 0xffffff}
+			width={buttonProps.sizes.width * pressScale}
+			height={buttonProps.sizes.height * pressScale}
+			backgroundColor={variant === 'dark' ? (pressed ? 0x241a3a : hovered ? 0x18101f : 0x000000) : 0xffffff}
+			{...!buttonProps.disabled && hovered
+				? {
+						borderWidth: 3,
+						borderColor: 0xbfe9ff,
+					}
+				: {}}
 			{...buttonProps.disabled
 				? {
 						backgroundColor: 0xaaaaaa,

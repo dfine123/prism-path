@@ -4,7 +4,6 @@ import { recordBookEvent, checkIsMultipleRevealEvents, type BookEventHandlerMap 
 import { stateBet, stateUi } from 'state-shared';
 import { sequence } from 'utils-shared/sequence';
 import { waitForTimeout } from 'utils-shared/wait';
-import { bookEventAmountToCurrencyString } from 'utils-shared/amount';
 
 import { eventEmitter } from './eventEmitter';
 import { playBookEvent } from './utils';
@@ -91,7 +90,9 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 				eventEmitter.broadcastAsync({
 					type: 'winLinePlay',
 					positions: win.positions,
-					label: bookEventAmountToCurrencyString(win.win),
+					amount: win.win,
+					baseAmount: win.meta?.winWithoutMult ?? win.win,
+					multiplier: win.meta?.lineMultiplier ?? 1,
 				}),
 				animateSymbols({ positions: win.positions }),
 			]);

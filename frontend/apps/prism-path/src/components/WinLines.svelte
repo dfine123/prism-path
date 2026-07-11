@@ -2,14 +2,23 @@
 	import type { Position } from '../game/types';
 
 	// Awaitable win-line presentation: sweeps a prism-light line through the winning cells,
-	// pops the line's WIN VALUE at the centroid on the impact frame, holds while streaming,
+	// pops the line's WIN VALUE at the centroid on the impact frame (with its beast multiplier,
+	// which collapses into the number as it rolls up to the full value), holds while streaming,
 	// then fades. The winInfo handler awaits one full lifecycle per line, so lines play
 	// strictly sequentially.
-	export type EmitterEventWinLines = { type: 'winLinePlay'; positions: Position[]; label: string };
+	export type EmitterEventWinLines = {
+		type: 'winLinePlay';
+		positions: Position[];
+		amount: number; // final line win (multiplier applied)
+		baseAmount: number; // line win before the beast multiplier
+		multiplier: number; // product of distinct beasts on the line (1 = none)
+	};
 </script>
 
 <script lang="ts">
 	import { BitmapText, Container, Graphics } from 'pixi-svelte';
+
+	import { bookEventAmountToCurrencyString } from 'utils-shared/amount';
 
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
@@ -27,8 +36,14 @@
 	const LINE_W = 11; // core line width (px)
 	const FLOW_HZ = 0.8; // gradient stream speed while held
 	const CHUNK = 13; // px per gradient chunk
-	const POP_MS = 170; // value plaque pop-in (impact right as the sweep completes)
-	const POP_FONT = 36;
+	const POP_MS = 170; // value pop-in (impact right as the sweep completes)
+	const POP_FONT = 40;
+	const MULT_FONT = 32;
+	const MULT_Y = 40; // the xN sits under the value before merging into it
+	const MULT_BEAT_MS = 170; // read beat: value + xN visible together
+	const MERGE_MS = 300; // xN collapses in while the value rolls to the full amount
+	const PUNCH_MS = 170; // impact punch when the full value lands
+	const HOLD_MULT_MS = 960; // longer hold for multiplied lines (pop+beat+merge+punch)
 
 	let line = $state({
 		show: false,
@@ -37,9 +52,12 @@
 		alpha: 0,
 		phase: 0,
 	});
-	// the per-line WIN VALUE plaque (standard slots pattern: value pops at the line's centre)
-	let pop = $state({ x: 0, y: 0, scale: 0, alpha: 0, textW: 0, textH: 0 });
+	// the per-line WIN VALUE (standard slots pattern: value pops at the line's centre; a beast
+	// multiplier pops with it, then collapses into the number as it rolls to the full value)
+	let pop = $state({ x: 0, y: 0, scale: 0, alpha: 0 });
+	let multFx = $state({ y: MULT_Y, scale: 0, alpha: 0 });
 	let label = $state('');
+	let multLabel = $state('');
 
 	const now = () => performance.now();
 
@@ -49,21 +67,28 @@
 		return { x: getSymbolX(p.reel), y };
 	};
 
-	const play = (positions: Position[], winLabel: string) =>
+	const play = (positions: Position[], amount: number, baseAmount: number, multiplier: number) =>
 		new Promise<void>((resolve) => {
 			const cells = [...positions].sort((a, b) => a.reel - b.reel).map(cellPos);
 			if (cells.length === 0) return resolve();
-			// the value plaque sits at the centroid of the WINNING cells (before the edge anchor)
+			// the value sits at the centroid of the WINNING cells (before the edge anchor)
 			const cx = cells.reduce((s, p) => s + p.x, 0) / cells.length;
 			const cy = cells.reduce((s, p) => s + p.y, 0) / cells.length;
 			// paylines read left-to-right: launch the line FROM the board's left edge (tucked
 			// just under the frame) into the first winning symbol
 			const pts = [{ x: -SYMBOL_SIZE * 0.04, y: cells[0].y }, ...cells];
+
+			const hasMult = multiplier > 1;
+			const holdMs = hasMult ? HOLD_MULT_MS : HOLD_MS;
+			const mergeStart = POP_MS + MULT_BEAT_MS; // within the hold phase
 			const start = now();
-			const total = DRAW_MS + HOLD_MS + FADE_MS;
+			const total = DRAW_MS + holdMs + FADE_MS;
+
 			line = { show: true, pts, prog: 0, alpha: 1, phase: 0 };
-			label = winLabel;
-			pop = { x: cx, y: cy, scale: 0, alpha: 0, textW: pop.textW, textH: pop.textH };
+			label = bookEventAmountToCurrencyString(hasMult ? baseAmount : amount);
+			multLabel = hasMult ? `×${multiplier}` : '';
+			pop = { x: cx, y: cy, scale: 0, alpha: 0 };
+			multFx = { y: MULT_Y, scale: 0, alpha: 0 };
 
 			const frame = () => {
 				const el = now() - start;
@@ -71,24 +96,55 @@
 				if (el < DRAW_MS) {
 					line.prog = EASE.settle(clamp01(el / DRAW_MS));
 					line.alpha = 1;
-				} else if (el < DRAW_MS + HOLD_MS) {
+				} else if (el < DRAW_MS + holdMs) {
 					line.prog = 1;
 					line.alpha = 1;
-					// value plaque: IMPACT pop as the sweep completes, then a gentle breathe
-					const pu = clamp01((el - DRAW_MS) / POP_MS);
+					const hu = el - DRAW_MS;
+
+					// value: IMPACT pop as the sweep completes
+					const pu = clamp01(hu / POP_MS);
 					if (pu < 1) {
 						pop.scale = EASE.impact(pu);
 						pop.alpha = clamp01(pu * 2.5);
-					} else {
+					} else if (!hasMult) {
 						pop.scale = 1 + 0.025 * Math.sin(line.phase * Math.PI * 2.4);
 						pop.alpha = 1;
 					}
+
+					if (hasMult) {
+						// xN pops just after the value (read order: value, then its multiplier)
+						const mpu = clamp01((hu - 90) / POP_MS);
+						if (hu < mergeStart) {
+							multFx.scale = EASE.impact(mpu);
+							multFx.alpha = clamp01(mpu * 2.5);
+						} else if (hu < mergeStart + MERGE_MS) {
+							// MERGE: xN collapses INTO the number while it rolls to the full value
+							const mu = clamp01((hu - mergeStart) / MERGE_MS);
+							multFx.y = MULT_Y * (1 - EASE.load(mu));
+							multFx.scale = 1 - 0.7 * mu;
+							multFx.alpha = 1 - EASE.collapse(mu);
+							label = bookEventAmountToCurrencyString(
+								Math.round(lerp(baseAmount, amount, EASE.settle(mu))),
+							);
+						} else {
+							// PUNCH: the full value lands with an impact beat, then breathes
+							multFx.alpha = 0;
+							label = bookEventAmountToCurrencyString(amount);
+							const qu = clamp01((hu - mergeStart - MERGE_MS) / PUNCH_MS);
+							pop.scale =
+								qu < 1
+									? 1 + 0.24 * Math.sin(Math.PI * qu)
+									: 1 + 0.025 * Math.sin(line.phase * Math.PI * 2.4);
+							pop.alpha = 1;
+						}
+					}
 				} else {
 					line.prog = 1;
-					const fu = clamp01((el - DRAW_MS - HOLD_MS) / FADE_MS);
+					const fu = clamp01((el - DRAW_MS - holdMs) / FADE_MS);
 					line.alpha = 1 - EASE.collapse(fu);
 					pop.alpha = line.alpha;
 					pop.scale = 1 - 0.08 * fu;
+					multFx.alpha = 0;
 				}
 				if (el < total) {
 					requestAnimationFrame(frame);
@@ -97,6 +153,7 @@
 					line.alpha = 0;
 					pop.alpha = 0;
 					pop.scale = 0;
+					multFx.alpha = 0;
 					resolve();
 				}
 			};
@@ -104,8 +161,8 @@
 		});
 
 	context.eventEmitter.subscribeOnMount({
-		winLinePlay: async ({ positions, label: winLabel }) => {
-			await play(positions, winLabel);
+		winLinePlay: async ({ positions, amount, baseAmount, multiplier }) => {
+			await play(positions, amount, baseAmount, multiplier);
 		},
 	});
 </script>
@@ -205,26 +262,16 @@
 		}}
 	/>
 
-	<!-- the line's WIN VALUE: pops at the centroid on the sweep's impact frame -->
+	<!-- the line's WIN VALUE: bare number pops at the centroid on the sweep's impact frame;
+	     its beast multiplier pops beneath, then collapses in as the value rolls to the total -->
 	{#if pop.alpha > 0.01}
 		<Container x={pop.x} y={pop.y} scale={pop.scale} alpha={pop.alpha}>
-			<Graphics
-				draw={(g) => {
-					const w = pop.textW + 30;
-					const h = pop.textH + 14;
-					g.roundRect(-w / 2, -h / 2, w, h, 12).fill({ color: 0x0b0814, alpha: 0.88 });
-					g.roundRect(-w / 2, -h / 2, w, h, 12).stroke({ width: 2, color: 0xffffff, alpha: 0.85 });
-				}}
-			/>
-			<BitmapText
-				anchor={0.5}
-				text={label}
-				style={prismStyle(POP_FONT)}
-				onresize={(sizes) => {
-					pop.textW = sizes.width;
-					pop.textH = sizes.height;
-				}}
-			/>
+			<BitmapText anchor={0.5} text={label} style={prismStyle(POP_FONT)} />
+			{#if multLabel && multFx.alpha > 0.01}
+				<Container y={multFx.y} scale={multFx.scale} alpha={multFx.alpha}>
+					<BitmapText anchor={0.5} text={multLabel} style={prismStyle(MULT_FONT)} />
+				</Container>
+			{/if}
 		</Container>
 	{/if}
 {/if}

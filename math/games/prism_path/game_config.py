@@ -1,6 +1,6 @@
 """Prism Path — game configuration (inherits src/config/config.py).
 
-5x5 board, 40 lines. Signature feature: the rare Prism Beast wild (symbol ``WILD``) lands
+5x5 board, 15 lines. Signature feature: the rare Prism Beast wild (symbol ``WILD``) lands
 facing a random direction and fires a path of multiplier-wilds to the board edge. Two beasts
 touching the same winning line MULTIPLY (per-beast-once, overlap = product) — FROZEN rule.
 
@@ -27,16 +27,26 @@ PAYTABLE_PM = {
     "H4": [50, 150, 500],
 }
 
-# 40 distinct paylines over a 5x5 grid (row indices 0..4 per reel), left-to-right.
-PAYLINES_40 = [
-    [0, 0, 0, 0, 0], [1, 1, 1, 1, 1], [2, 2, 2, 2, 2], [3, 3, 3, 3, 3], [4, 4, 4, 4, 4],
-    [0, 1, 2, 3, 4], [4, 3, 2, 1, 0], [0, 1, 2, 1, 0], [4, 3, 2, 3, 4], [1, 2, 3, 2, 1],
-    [3, 2, 1, 2, 3], [0, 0, 1, 0, 0], [4, 4, 3, 4, 4], [1, 1, 2, 1, 1], [3, 3, 2, 3, 3],
-    [2, 2, 1, 2, 2], [2, 2, 3, 2, 2], [0, 1, 0, 1, 0], [4, 3, 4, 3, 4], [1, 0, 1, 0, 1],
-    [3, 4, 3, 4, 3], [0, 2, 4, 2, 0], [4, 2, 0, 2, 4], [1, 2, 1, 2, 1], [3, 2, 3, 2, 3],
-    [0, 0, 2, 0, 0], [4, 4, 2, 4, 4], [2, 1, 0, 1, 2], [2, 3, 4, 3, 2], [0, 1, 1, 1, 0],
-    [4, 3, 3, 3, 4], [1, 1, 0, 1, 1], [3, 3, 4, 3, 3], [0, 2, 0, 2, 0], [4, 2, 4, 2, 4],
-    [1, 3, 1, 3, 1], [3, 1, 3, 1, 3], [2, 0, 2, 0, 2], [2, 4, 2, 4, 2], [0, 4, 0, 4, 0],
+# 15 paylines over a 5x5 grid (row indices 0..4 per reel), left-to-right — per the reference
+# set (5 straights, 2 full diagonals, V/Λ pairs, zigzags). A line pays on 3, 4 or 5 matching
+# symbols from the leftmost reel (kind-tiered paytable) — partial activation is native to the
+# lines evaluator.
+PAYLINES_15 = [
+    [0, 0, 0, 0, 0],  # 1  top row
+    [1, 1, 1, 1, 1],  # 2
+    [2, 2, 2, 2, 2],  # 3  middle row
+    [3, 3, 3, 3, 3],  # 4
+    [4, 4, 4, 4, 4],  # 5  bottom row
+    [0, 1, 2, 3, 4],  # 6  diagonal down
+    [4, 3, 2, 1, 0],  # 7  diagonal up
+    [0, 1, 2, 1, 0],  # 8  shallow V from top
+    [4, 3, 2, 3, 4],  # 9  shallow Λ from bottom
+    [2, 1, 0, 1, 2],  # 10 V touching the top
+    [2, 3, 4, 3, 2],  # 11 Λ touching the bottom
+    [1, 0, 1, 0, 1],  # 12 zigzag upper
+    [3, 4, 3, 4, 3],  # 13 zigzag lower
+    [1, 2, 1, 2, 1],  # 14 zigzag mid-upper
+    [3, 2, 3, 2, 3],  # 15 zigzag mid-lower
 ]
 
 
@@ -69,9 +79,9 @@ class GameConfig(Config):
             for kind, pm in zip((3, 4, 5), vals):
                 self.paytable[(kind, sym)] = pm / 100.0
 
-        # 40 paylines, keyed 1..40
-        assert len({tuple(line) for line in PAYLINES_40}) == 40, "paylines must be 40 unique lines"
-        self.paylines = {i + 1: list(line) for i, line in enumerate(PAYLINES_40)}
+        # 15 paylines, keyed 1..15
+        assert len({tuple(line) for line in PAYLINES_15}) == 15, "paylines must be 15 unique lines"
+        self.paylines = {i + 1: list(line) for i, line in enumerate(PAYLINES_15)}
 
         self.include_padding = True
         # WILD = Prism Beast (wild; carries a multiplier via beast_mults, not the multiplier flag).

@@ -122,23 +122,11 @@
 				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: LINE_W * 0.36, color: 0xffffff, alpha: 0.85 * s.alpha, cap: 'round' });
 			}
 
-			// sweep head spark while drawing on
+			// sweep head spark while drawing on (the line + symbol breath carry the rest)
 			if (s.prog < 1) {
 				const h = pointAtLen(drawnLen);
 				g.circle(h.x, h.y, LINE_W * 1.5).fill({ color: 0xffffff, alpha: 0.85 * s.alpha });
 				g.circle(h.x, h.y, LINE_W * 2.6).fill({ color: paletteAt(-s.phase), alpha: 0.3 * s.alpha });
-			}
-
-			// joint pulse at each winning cell: rings bloom as the sweep passes, then breathe
-			for (let i = 0; i < pts.length; i++) {
-				const reached = clamp01((drawnLen - cum[i]) / (SYMBOL_SIZE * 0.5) + 1);
-				if (reached <= 0.02) continue;
-				const bloom = EASE.impact(clamp01(reached));
-				const breathe = 1 + 0.07 * Math.sin(s.phase * Math.PI * 2 + i * 0.9);
-				const r = SYMBOL_SIZE * 0.46 * bloom * breathe;
-				const col = paletteAt(i / Math.max(pts.length - 1, 1) * 0.8 - s.phase);
-				g.circle(pts[i].x, pts[i].y, r).stroke({ width: 3.5, color: col, alpha: 0.55 * s.alpha });
-				g.circle(pts[i].x, pts[i].y, r * 0.82).stroke({ width: 1.5, color: 0xffffff, alpha: 0.35 * s.alpha });
 			}
 		}}
 	/>

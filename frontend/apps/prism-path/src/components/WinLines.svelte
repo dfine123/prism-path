@@ -22,7 +22,7 @@
 
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
-	import { SYMBOL_SIZE } from '../game/constants';
+	import { SYMBOL_SIZE, CELL_W } from '../game/constants';
 	import { prismStyle } from '../game/fonts';
 	import { EASE, clamp01, lerp, paletteAt, lerpColor } from '../game/motion';
 
@@ -76,7 +76,7 @@
 			const cy = cells.reduce((s, p) => s + p.y, 0) / cells.length;
 			// paylines read left-to-right: the line launches from BEHIND the frame border (the
 			// board-rect mask clips it, so it slides out from under the frame into the board)
-			const pts = [{ x: -SYMBOL_SIZE * 0.6, y: cells[0].y }, ...cells];
+			const pts = [{ x: -CELL_W * 0.6, y: cells[0].y }, ...cells];
 
 			const hasMult = multiplier > 1;
 			const holdMs = hasMult ? HOLD_MULT_MS : HOLD_MS;

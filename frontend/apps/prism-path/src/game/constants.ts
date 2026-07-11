@@ -1,6 +1,11 @@
 import type { RawSymbol, SymbolState } from './types';
 
-export const SYMBOL_SIZE = 96;
+export const SYMBOL_SIZE = 96; // CELL HEIGHT (and the square symbol render size)
+
+// The chosen crystal frame's opening is LANDSCAPE (aspect 1.2155) — the board conforms to
+// the frame, so cells are rectangles: width = height * opening aspect. Symbols stay square
+// (SYMBOL_SIZE) inside the wider cells; only the lattice stretches.
+export const CELL_W = SYMBOL_SIZE * 1.2155; // ~116.7
 
 // exact half-cell: symbol x = (reel + 0.5) * SYMBOL_SIZE = the true cell centre
 // (was 0.53 — a template fudge that pushed every symbol ~3px right of the gridlines)
@@ -18,7 +23,7 @@ export const INITIAL_BOARD: RawSymbol[][] = [
 export const BOARD_DIMENSIONS = { x: INITIAL_BOARD.length, y: INITIAL_BOARD[0].length - 2 };
 
 export const BOARD_SIZES = {
-	width: SYMBOL_SIZE * BOARD_DIMENSIONS.x,
+	width: CELL_W * BOARD_DIMENSIONS.x,
 	height: SYMBOL_SIZE * BOARD_DIMENSIONS.y,
 };
 

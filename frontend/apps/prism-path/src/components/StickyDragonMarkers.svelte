@@ -15,7 +15,7 @@
 
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
-	import { SYMBOL_SIZE } from '../game/constants';
+	import { SYMBOL_SIZE, CELL_W } from '../game/constants';
 	import { paletteAt } from '../game/motion';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 
@@ -54,19 +54,20 @@
 				const x = getSymbolX(m.reel);
 				const y = (m.row - 0.5) * SYMBOL_SIZE;
 				const breathe = 0.8 + 0.2 * Math.sin(t * Math.PI * 1.8 + i * 1.3);
-				const s = SYMBOL_SIZE * (0.94 + 0.02 * Math.sin(t * Math.PI * 1.8 + i * 1.3));
+				const pulse = 0.94 + 0.02 * Math.sin(t * Math.PI * 1.8 + i * 1.3);
+				const w = CELL_W * pulse; // rectangular cells
+				const h2 = SYMBOL_SIZE * pulse;
 				const col = paletteAt(t * 0.35 + i * 0.21);
 				// soft outer bloom -> saturated border -> crisp inner edge
-				g.roundRect(x - s / 2, y - s / 2, s, s, 14).stroke({ width: 11, color: col, alpha: 0.18 * breathe });
-				g.roundRect(x - s / 2, y - s / 2, s, s, 14).stroke({ width: 4.5, color: col, alpha: 0.85 * breathe });
-				g.roundRect(x - s / 2, y - s / 2, s, s, 14).stroke({ width: 1.5, color: 0xffffff, alpha: 0.55 * breathe });
+				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 11, color: col, alpha: 0.18 * breathe });
+				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 4.5, color: col, alpha: 0.85 * breathe });
+				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 1.5, color: 0xffffff, alpha: 0.55 * breathe });
 				// corner sparks (one per corner, twinkling out of phase)
-				const h = s / 2;
 				const corners = [
-					[x - h, y - h],
-					[x + h, y - h],
-					[x + h, y + h],
-					[x - h, y + h],
+					[x - w / 2, y - h2 / 2],
+					[x + w / 2, y - h2 / 2],
+					[x + w / 2, y + h2 / 2],
+					[x - w / 2, y + h2 / 2],
 				];
 				for (let k = 0; k < 4; k++) {
 					const tw = (Math.sin(t * Math.PI * 3 + i * 1.7 + k * 1.9) + 1) / 2;

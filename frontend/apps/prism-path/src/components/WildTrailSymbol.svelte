@@ -5,7 +5,7 @@
 	import { onMount } from 'svelte';
 	import { Graphics } from 'pixi-svelte';
 
-	import { SYMBOL_SIZE } from '../game/constants';
+	import { SYMBOL_SIZE, CELL_W } from '../game/constants';
 	import { EASE, clamp01, paletteAt } from '../game/motion';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 	import type { SymbolState } from '../game/types';
@@ -72,7 +72,9 @@
 	blendMode="add"
 	draw={(g) => {
 		const phase = trailClock.t * FLOW_HZ;
-		const L = SYMBOL_SIZE;
+		// beam spans the FULL cell along the fire axis (cells are rectangular) so adjacent
+		// trail cells keep tiling into one continuous line
+		const L = horizontal ? CELL_W : SYMBOL_SIZE;
 		const breathe = 0.92 + 0.08 * Math.sin(phase * Math.PI * 1.6);
 		// hot on activation -> settles to rest; win boost eases in AND out
 		const settleIn = 1 + 0.6 * (1 - EASE.settle(clamp01((performance.now() - born) / 450)));

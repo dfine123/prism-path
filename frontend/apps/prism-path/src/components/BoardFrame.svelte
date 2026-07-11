@@ -8,7 +8,7 @@
 	import { Graphics, Sprite } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
-	import { BOARD_SIZES, SYMBOL_SIZE } from '../game/constants';
+	import { BOARD_SIZES, SYMBOL_SIZE, CELL_W } from '../game/constants';
 	import { paletteAt } from '../game/motion';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 	import { stateDev, FRAME_OPTIONS } from '../game/stateDev.svelte';
@@ -17,6 +17,10 @@
 	// frame candidate + fit come from the DEV picker (DevFramePanel) until a frame is locked
 	const SPRITE_SCALE = $derived({ width: stateDev.scaleW, height: stateDev.scaleH });
 	const frameKey = $derived(FRAME_OPTIONS[stateDev.frameIndex].key);
+	const frameOff = $derived({
+		x: FRAME_OPTIONS[stateDev.frameIndex].offX ?? 0,
+		y: FRAME_OPTIONS[stateDev.frameIndex].offY ?? 0,
+	});
 	// frame/grid sit EXACTLY on the board centre — the symbols' lattice and the drawn grid
 	// must share one origin (was *1.01, a template fudge shifting the grid ~7px off-lattice)
 	const POSITION_ADJUSTMENT = 1;
@@ -83,7 +87,7 @@
 		const W = BOARD_SIZES.width;
 		const H = BOARD_SIZES.height;
 		for (let i = 0; i <= 5; i++) {
-			const gx = -W / 2 + i * SYMBOL_SIZE;
+			const gx = -W / 2 + i * CELL_W; // rectangular cells: wider than tall
 			g.moveTo(gx, -H / 2).lineTo(gx, H / 2);
 			const gy = -H / 2 + i * SYMBOL_SIZE;
 			g.moveTo(-W / 2, gy).lineTo(W / 2, gy);
@@ -95,8 +99,8 @@
 <Sprite
 	key={frameKey}
 	anchor={0.5}
-	x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT}
-	y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT}
+	x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT + frameOff.x}
+	y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT + frameOff.y}
 	width={context.stateGameDerived.boardLayout().width * SPRITE_SCALE.width}
 	height={context.stateGameDerived.boardLayout().height * SPRITE_SCALE.height}
 />

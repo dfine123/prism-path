@@ -27,7 +27,7 @@
 
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
-	import { SYMBOL_SIZE } from '../game/constants';
+	import { SYMBOL_SIZE, CELL_W } from '../game/constants';
 	import { EASE, clamp01, lerp, paletteAt } from '../game/motion';
 
 	const context = getContext();
@@ -102,8 +102,9 @@
 			const last = cellPts[cellPts.length - 1];
 			// ONE polyline: seat -> every covered cell -> off the board (the exit is part of
 			// the same motion, not a second push)
+			// off-board distance in CELL units along the travel axis (cells are rectangular)
 			const exit = {
-				x: last.x + dv.x * EXIT_PUSH * SYMBOL_SIZE,
+				x: last.x + dv.x * EXIT_PUSH * CELL_W,
 				y: last.y + dv.y * EXIT_PUSH * SYMBOL_SIZE,
 			};
 			const pts = [...cellPts, exit];

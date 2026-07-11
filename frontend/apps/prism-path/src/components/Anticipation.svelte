@@ -7,7 +7,7 @@
 
 	import { getContext } from '../game/context';
 	import type { Reel } from '../game/stateGame.svelte';
-	import { REEL_PADDING, SYMBOL_SIZE } from '../game/constants';
+	import { REEL_PADDING, SYMBOL_SIZE, CELL_W } from '../game/constants';
 	import { EASE, clamp01, paletteAt } from '../game/motion';
 
 	type Props = {
@@ -54,7 +54,7 @@
 	const colX = $derived(
 		context.stateGameDerived.boardLayout().x -
 			context.stateGameDerived.boardLayout().width * 0.5 +
-			(props.reel.reelIndex + REEL_PADDING) * SYMBOL_SIZE,
+			(props.reel.reelIndex + REEL_PADDING) * CELL_W,
 	);
 	const colY = $derived(context.stateGameDerived.boardLayout().y);
 </script>
@@ -68,7 +68,7 @@
 			const secs = t / 1000;
 			const H = context.stateGameDerived.boardLayout().height * 1.02;
 			const pulse = 0.75 + 0.25 * Math.sin(secs * Math.PI * 2.4);
-			const W = SYMBOL_SIZE * 0.98;
+			const W = CELL_W * 0.98;
 			const col = paletteAt(secs * 0.3);
 			// column glow: halo -> body -> hot edges
 			g.rect(-W * 0.62, -H / 2, W * 1.24, H).fill({ color: col, alpha: 0.05 * envelope * pulse });

@@ -6,7 +6,7 @@
 	import { Graphics } from 'pixi-svelte';
 
 	import { SYMBOL_SIZE } from '../game/constants';
-	import { paletteAt } from '../game/motion';
+	import { EASE, clamp01, paletteAt } from '../game/motion';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 	import type { SymbolState } from '../game/types';
 
@@ -41,7 +41,31 @@
 	const horizontal = $derived(props.direction === 'left' || props.direction === 'right');
 	// gradient streams IN the fire direction
 	const flowSign = $derived(props.direction === 'left' || props.direction === 'up' ? -1 : 1);
-	const winBoost = $derived(props.state === 'win' ? 1.4 : 1);
+
+	// ACTIVATION settle-in: the cell lands HOT (the ribbon's energy) and flows down to its
+	// resting glow — never a snap.
+	const born = performance.now();
+
+	// WIN boost is a smoothed value: pops IN fast (impact) and RETRACTS slowly (settle) —
+	// a step function here reads as the cell "snapping back".
+	let boost = $state(1);
+	$effect(() => {
+		const target = props.state === 'win' ? 1.4 : 1;
+		const from = boost;
+		if (Math.abs(target - from) < 0.005) return;
+		const rising = target > from;
+		const dur = rising ? 150 : 380;
+		const ease = rising ? EASE.impact : EASE.settle;
+		const start = performance.now();
+		let raf = 0;
+		const frame = () => {
+			const u = Math.min(1, (performance.now() - start) / dur);
+			boost = from + (target - from) * ease(u);
+			if (u < 1) raf = requestAnimationFrame(frame);
+		};
+		raf = requestAnimationFrame(frame);
+		return () => cancelAnimationFrame(raf);
+	});
 </script>
 
 <Graphics
@@ -50,8 +74,11 @@
 		const phase = trailClock.t * FLOW_HZ;
 		const L = SYMBOL_SIZE;
 		const breathe = 0.92 + 0.08 * Math.sin(phase * Math.PI * 1.6);
-		const W = SYMBOL_SIZE * W_BASE * (1 + (winBoost - 1) * 0.35);
-		const aMul = breathe * winBoost;
+		// hot on activation -> settles to rest; win boost eases in AND out
+		const settleIn = 1 + 0.6 * (1 - EASE.settle(clamp01((performance.now() - born) / 450)));
+		const hot = boost * settleIn;
+		const W = SYMBOL_SIZE * W_BASE * (1 + (hot - 1) * 0.35);
+		const aMul = breathe * hot;
 		for (let i = 0; i < SEGS; i++) {
 			const u0 = i / SEGS;
 			const u1 = (i + 1) / SEGS;

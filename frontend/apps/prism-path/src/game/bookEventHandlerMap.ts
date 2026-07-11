@@ -80,9 +80,16 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		});
 	},
 	winInfo: async (bookEvent: BookEventOfType<'winInfo'>) => {
-		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });
-		await sequence(bookEvent.wins, async (win) => {
-			await animateSymbols({ positions: win.positions });
+		// Lines play strictly SEQUENTIALLY, ordered by value ascending so the presentation
+		// escalates and ends on the biggest hit. Per line: the prism win-line sweeps through
+		// the winning cells while those symbols breathe — both awaited so nothing overlaps.
+		const wins = [...bookEvent.wins].sort((a, b) => (a.win ?? 0) - (b.win ?? 0));
+		await sequence(wins, async (win) => {
+			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });
+			await Promise.all([
+				eventEmitter.broadcastAsync({ type: 'winLinePlay', positions: win.positions }),
+				animateSymbols({ positions: win.positions }),
+			]);
 		});
 	},
 	setTotalWin: async (bookEvent: BookEventOfType<'setTotalWin'>) => {

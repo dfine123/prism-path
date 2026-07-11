@@ -20,6 +20,7 @@
 	import BoardMask from './BoardMask.svelte';
 	import BoardBase from './BoardBase.svelte';
 	import PrismBeastTravel from './PrismBeastTravel.svelte';
+	import WinLines from './WinLines.svelte';
 
 	const context = getContext();
 
@@ -57,6 +58,7 @@
 	<BoardContext animate={true}>
 		<BoardContainer>
 			<BoardBase />
+			<WinLines />
 			<PrismBeastTravel />
 		</BoardContainer>
 	</BoardContext>

@@ -27,10 +27,14 @@
 		return releaseTrailClock;
 	});
 
-	// the symbol pipeline awaits oncomplete for land/win states (sprites resolve instantly)
-	onMount(() => props.oncomplete?.());
+	// The symbol pipeline awaits oncomplete. On WIN the trail brightens (winBoost) and holds
+	// for the same beat as the sprite breath so an all-wild line still paces the sequence.
+	const WIN_HOLD_MS = 780;
 	$effect(() => {
-		props.state;
+		if (props.state === 'win') {
+			const id = setTimeout(() => props.oncomplete?.(), WIN_HOLD_MS);
+			return () => clearTimeout(id);
+		}
 		props.oncomplete?.();
 	});
 

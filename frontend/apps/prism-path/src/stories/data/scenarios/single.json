@@ -149,7 +149,8 @@
       },
       "direction": "right",
       "multiplier": 3,
-      "whiff": false
+      "whiff": false,
+      "sticky": false
     },
     {
       "index": 2,
@@ -181,7 +182,9 @@
           },
           "multiplier": 3
         }
-      ]
+      ],
+      "sticky": false,
+      "multiplier": 3
     },
     {
       "index": 3,

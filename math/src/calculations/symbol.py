@@ -48,6 +48,9 @@ class Symbol:
         # the PRODUCT strategy can multiply DISTINCT intersecting beasts (per-beast-once).
         "direction",
         "beast_mults",
+        # STICKY dragon: persists for the whole free-spins feature, re-lands in its cell
+        # every spin (fresh direction, same multiplier) — serialized in the reveal.
+        "sticky",
     )
 
     def __init__(self, defn: SymbolDefinition):

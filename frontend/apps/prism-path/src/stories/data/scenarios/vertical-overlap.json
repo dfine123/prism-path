@@ -151,7 +151,8 @@
       },
       "direction": "down",
       "multiplier": 2,
-      "whiff": false
+      "whiff": false,
+      "sticky": false
     },
     {
       "index": 2,
@@ -190,7 +191,9 @@
           },
           "multiplier": 2
         }
-      ]
+      ],
+      "sticky": false,
+      "multiplier": 2
     },
     {
       "index": 3,
@@ -201,7 +204,8 @@
       },
       "direction": "up",
       "multiplier": 3,
-      "whiff": false
+      "whiff": false,
+      "sticky": false
     },
     {
       "index": 4,
@@ -240,7 +244,9 @@
           },
           "multiplier": 3
         }
-      ]
+      ],
+      "sticky": false,
+      "multiplier": 3
     },
     {
       "index": 5,

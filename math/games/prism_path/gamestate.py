@@ -25,17 +25,19 @@ class GameState(GameStateOverride):
         self.imprint_wins()
 
     def run_freespin(self):
-        # FREE SPINS: beasts/wilds are STICKY. Clear the feature state once, then each spin draw a
-        # fresh board, re-stamp the accumulated sticky wilds onto it, reveal, fire new beasts (which
-        # overlap-multiply the sticky wilds), and evaluate. The board fills over the feature.
+        # FREE SPINS: per-spin dragons; STICKY DRAGONS persist. Each spin: fresh board, sticky
+        # dragons re-land in their cells (fresh direction, same multiplier), SUPER guarantees at
+        # least one dragon, reveal, then every dragon fires a fresh path (paths pay this spin
+        # only and never persist).
         self.reset_fs_spin()
         self.reset_prism_feature()
         while self.fs < self.tot_fs:
             self.update_freespin()
             self.draw_board(emit_event=False)   # draw new symbols; defer the reveal
-            self.apply_sticky_cells()           # re-apply prior sticky wilds onto the new board
-            reveal_event(self)                  # reveal = new symbols + accumulated sticky wilds
-            self.resolve_prism_beasts()         # new beasts fire + merge into the sticky board
+            self.stamp_sticky_dragons()         # returning sticky dragons land in their cells
+            self.ensure_dragon_guarantee()      # SUPER: at least one dragon every spin
+            reveal_event(self)                  # reveal = new symbols + seated sticky dragons
+            self.resolve_prism_beasts()         # every dragon fires its path for THIS spin
 
             self.evaluate_lines_board()
 

@@ -20,6 +20,7 @@
 	import { scenarios } from './data/scenarios';
 	import baseBooks from './data/base_books';
 	import bonusBooks from './data/bonus_books';
+	import superBooks from './data/super_books';
 
 	setContext();
 
@@ -72,6 +73,12 @@
 <Story
 	name="Play bonus free spins (random)"
 	args={templateArgs({ skipLoadingScreen: true, data: {}, action: playRandom(bonusBooks) })}
+	{template}
+/>
+
+<Story
+	name="Play SUPER bonus (guaranteed dragons, random)"
+	args={templateArgs({ skipLoadingScreen: true, data: {}, action: playRandom(superBooks) })}
 	{template}
 />
 

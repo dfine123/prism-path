@@ -36,10 +36,13 @@ def write_ts(name, books):
 
 base = read_books("books_base.jsonl.zst")
 bonus = read_books("books_bonus.jsonl.zst")
+superb = read_books("books_super.jsonl.zst")
 out_base = sample(base, 400)
 out_bonus = sample(bonus, 120)
+out_super = sample(superb, 80)
 write_ts("base_books.ts", out_base)
 write_ts("bonus_books.ts", out_bonus)
+write_ts("super_books.ts", out_super)
 
 rev = next(e for e in out_base[0]["events"] if e["type"] == "reveal")
 print("wrote base", len(out_base), "bonus", len(out_bonus))

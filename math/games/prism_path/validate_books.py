@@ -68,7 +68,9 @@ def validate_book(bk):
                 if cell.get("name") == "WILD":
                     m = cell.get("multiplier")
                     wilds[(reel, row)] = m if isinstance(m, (int, float)) else 0
-        # prismPath coverage until the next reveal
+        # coverage until the next reveal: prismPath cells resolve trail wilds; a prismBeast
+        # position resolves its own cell (a STICKY dragon stays seated — its path excludes
+        # the seat, but the beast event itself is the resolution)
         covered = set()
         for f in events[i + 1:]:
             if f["type"] == "reveal":
@@ -77,6 +79,9 @@ def validate_book(bk):
                 for c in f.get("cells", []):
                     pos = c["position"]
                     covered.add((pos["reel"], pos["row"]))
+            if f["type"] == "prismBeast":
+                pos = f["position"]
+                covered.add((pos["reel"], pos["row"]))
         for (reel, row), m in wilds.items():
             if m <= 1 and (reel, row) not in covered:
                 out.append(

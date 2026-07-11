@@ -1,9 +1,11 @@
 """Prism Path — custom game-state overrides: Prism Beast assignment + path resolution.
 
-Base game: beasts fire once per spin (sticky_cells reset each spin).
-Free game: beasts (and the multiplier wilds they leave) are STICKY — sticky_cells + a feature-wide
-beast-id counter persist across spins, so new beasts overlap-multiply prior wilds (per-beast-once,
-distinct beasts multiply) and the board fills up over the feature.
+Every spin is SELF-CONTAINED: dragons fire, their wild paths pay this spin and clear.
+FREE GAME: a landing dragon may become STICKY — it stays for the rest of the feature,
+re-lands in the SAME cell every spin with a FRESH direction (same multiplier, its identity),
+and fires a fresh path each spin. Paths never persist across spins.
+SUPER buy additionally guarantees at least one dragon on every free spin (injected if the
+draw holds none) and carries a higher sticky chance (config.sticky_dragon_chance).
 """
 
 from game_executables import GameExecutables
@@ -16,14 +18,11 @@ class GameStateOverride(GameExecutables):
 
     def reset_book(self):
         super().reset_book()
-        # per base-round prism state (free game re-resets these once at feature start)
-        self.next_beast_id = 0
-        self.sticky_cells = {}  # (reel,row) -> {"beast_mults": {id: mult}, "direction": str}
+        self.sticky_dragons = []  # [{"reel","row","mult"}] — persists across FREE spins only
 
     def reset_prism_feature(self):
-        """Clear sticky wilds + beast ids at the START of a free-spins feature."""
-        self.next_beast_id = 0
-        self.sticky_cells = {}
+        """Clear sticky dragons at the START of a free-spins feature."""
+        self.sticky_dragons = []
 
     def assign_special_sym_function(self):
         # A drawn Prism Beast faces a direction at DRAW (serialized into the reveal so it lands
@@ -34,7 +33,49 @@ class GameStateOverride(GameExecutables):
         symbol.direction = get_random_outcome(self.config.beast_dir_weights)
         symbol.multiplier = None
 
-    # ---- Prism Path feature resolution ---------------------------------------------------
+    # ---- feature helpers ------------------------------------------------------------------
+
+    def _sticky_chance(self) -> float:
+        if self.gametype != self.config.freegame_type:
+            return 0.0
+        return float(self.config.sticky_dragon_chance.get(self.betmode, 0.0))
+
+    def _guarantee_dragon(self) -> bool:
+        if self.gametype != self.config.freegame_type:
+            return False
+        return bool(self.config.guarantee_dragon.get(self.betmode, False))
+
+    def stamp_sticky_dragons(self) -> None:
+        """Re-land every sticky dragon on a freshly drawn free-spin board: SAME cell, FRESH
+        direction, its own multiplier (serialized in the reveal -> the client shows the
+        returning dragon seated with its badge)."""
+        for d in self.sticky_dragons:
+            sym = self.symbol_storage.create_symbol("WILD")
+            sym.direction = get_random_outcome(self.config.beast_dir_weights)
+            sym.multiplier = int(d["mult"])
+            sym.sticky = True
+            self.board[d["reel"]][d["row"]] = sym
+
+    def ensure_dragon_guarantee(self) -> None:
+        """SUPER: if the board holds no dragon at all after the draw (+sticky stamp), inject
+        one at a random non-scatter cell (direction assigned; multiplier hidden until fire)."""
+        if not self._guarantee_dragon():
+            return
+        candidates = {}
+        for reel in range(self.config.num_reels):
+            for row in range(self.config.num_rows[reel]):
+                cell = self.board[reel][row]
+                if cell.name == "WILD":
+                    return  # guarantee already satisfied
+                if cell.name != "SCAT":
+                    candidates[(reel, row)] = 1
+        reel, row = get_random_outcome(candidates)
+        sym = self.symbol_storage.create_symbol("WILD")
+        sym.direction = get_random_outcome(self.config.beast_dir_weights)
+        sym.multiplier = None
+        self.board[reel][row] = sym
+
+    # ---- Prism Path feature resolution ------------------------------------------------------
 
     def _beast_path_positions(self, reel: int, row: int, direction: str) -> list:
         """Cells from the beast to the grid edge in the facing direction (own cell EXCLUDED).
@@ -56,82 +97,98 @@ class GameStateOverride(GameExecutables):
                 cells.append((c, row))
         return cells
 
-    def _write_sticky_to_board(self) -> None:
-        """Stamp every accumulated sticky cell onto the current board as an actual WILD symbol whose
-        displayed multiplier is the PRODUCT of the distinct beasts covering it (so it renders as a
-        directional wild, not the underlying symbol)."""
-        for (reel, row), entry in self.sticky_cells.items():
-            product = 1
-            for m in entry["beast_mults"].values():
-                product *= m
-            wild_sym = self.symbol_storage.create_symbol("WILD")
-            wild_sym.wild = True
-            wild_sym.beast_mults = dict(entry["beast_mults"])
-            wild_sym.multiplier = product
-            wild_sym.direction = entry.get("direction")
-            self.board[reel][row] = wild_sym
-
-    def apply_sticky_cells(self) -> None:
-        """Re-apply prior sticky wilds onto a freshly drawn (free-spin) board so they persist."""
-        self._write_sticky_to_board()
-
     def resolve_prism_beasts(self) -> None:
-        """Fire newly-drawn Prism Beasts. Runs after the board is drawn and before line eval.
+        """Fire EVERY dragon on the board (never drop one — an un-fired dragon renders as a
+        stuck beast). Per-spin coverage only.
 
-        A NEW beast is a freshly-drawn WILD whose cell is NOT already part of the sticky board.
-        Critically:
-          * EVERY new beast fires — there is no cap that could leave a drawn WILD un-resolved
-            (an un-fired WILD would render as a stuck "beast that never activated"). Volatility is
-            tuned via reel WILD density, not by silently dropping beasts.
-          * Sticky wilds already on the board are NOT re-fired. They keep their accumulated
-            multiplier and render straight from the reveal (which serializes direction+multiplier);
-            re-firing them would re-animate them every spin and inflate their multiplier.
-        Each new beast gets a feature-unique id, a multiplier and a direction, covers its own cell +
-        path to the edge, and MERGES into sticky_cells (distinct beasts on a cell stack -> product).
+        Sticky dragons keep their multiplier and STAY seated: their own cell is a wild
+        carrying their multiplier, and their prismPath cells EXCLUDE the own cell so the
+        client leaves the dragon in place. New dragons roll a multiplier; in the free game
+        they may become sticky (capped at config.max_sticky_dragons). Distinct dragons
+        crossing on a cell multiply (per-beast-once product via beast_mults).
         """
-        all_wilds = list(self.special_syms_on_board.get("wild", []))
-        new_beasts = sorted(
-            [p for p in all_wilds if (p["reel"], p["row"]) not in self.sticky_cells],
-            key=lambda p: (p["reel"], p["row"]),
+        self.get_special_symbols_on_board()  # refresh after sticky stamp / guarantee injection
+        all_wilds = sorted(
+            self.special_syms_on_board.get("wild", []), key=lambda p: (p["reel"], p["row"])
         )
-        if not new_beasts:
-            # no new beasts -> still ensure sticky wilds are stamped onto the freshly drawn board
-            self._write_sticky_to_board()
+        if not all_wilds:
             return
 
+        sticky_pos = {(d["reel"], d["row"]): d for d in self.sticky_dragons}
+        coverage = {}  # (reel,row) -> {"beast_mults": {id: mult}, "direction": str, "sticky": bool}
         beasts_meta = []
-        for p in new_beasts:
+        beast_id = 0
+        for p in all_wilds:
             reel, row = p["reel"], p["row"]
             cell = self.board[reel][row]
-            mult = int(cell.multiplier) if (cell.multiplier and cell.multiplier > 1) else get_random_outcome(
-                self.config.beast_mult_weights[self.gametype]
-            )
-            direction = cell.direction if cell.direction else get_random_outcome(self.config.beast_dir_weights)
-            cell.multiplier = mult
-            cell.direction = direction
+            returning = sticky_pos.get((reel, row))
+            if returning is not None:
+                mult = int(returning["mult"])
+                is_sticky = True
+            else:
+                mult = int(cell.multiplier) if (cell.multiplier and cell.multiplier > 1) else get_random_outcome(
+                    self.config.beast_mult_weights[self.gametype]
+                )
+                is_sticky = False
+                chance = self._sticky_chance()
+                if chance > 0 and len(self.sticky_dragons) < self.config.max_sticky_dragons:
+                    if get_random_outcome({True: chance, False: 1.0 - chance}):
+                        self.sticky_dragons.append({"reel": reel, "row": row, "mult": mult})
+                        sticky_pos[(reel, row)] = self.sticky_dragons[-1]
+                        is_sticky = True
 
-            beast_id = self.next_beast_id
-            self.next_beast_id += 1
+            direction = cell.direction if cell.direction else get_random_outcome(self.config.beast_dir_weights)
+            cell.direction = direction
+            cell.multiplier = mult
+
             path = self._beast_path_positions(reel, row, direction)
             whiff = len(path) == 0
             for (cr, crow) in [(reel, row)] + path:
-                entry = self.sticky_cells.setdefault((cr, crow), {"beast_mults": {}, "direction": None})
+                entry = coverage.setdefault(
+                    (cr, crow), {"beast_mults": {}, "direction": direction, "sticky": False}
+                )
                 entry["beast_mults"][beast_id] = mult
-            # own cell carries this beast's facing direction for the bust
-            self.sticky_cells[(reel, row)]["direction"] = direction
+            coverage[(reel, row)]["sticky"] = is_sticky
+            coverage[(reel, row)]["direction"] = direction
             beasts_meta.append(
-                {"position": {"reel": reel, "row": row}, "direction": direction, "multiplier": mult, "whiff": whiff, "path": path}
+                {
+                    "position": {"reel": reel, "row": row},
+                    "direction": direction,
+                    "multiplier": mult,
+                    "whiff": whiff,
+                    "path": path,
+                    "sticky": is_sticky,
+                }
             )
+            beast_id += 1
 
-        # write the full accumulated state (sticky + new) onto the board for line evaluation
-        self._write_sticky_to_board()
+        # write the per-spin coverage onto the board for line evaluation
+        for (reel, row), entry in coverage.items():
+            product = 1
+            for m in entry["beast_mults"].values():
+                product *= m
+            sym = self.symbol_storage.create_symbol("WILD")
+            sym.wild = True
+            sym.beast_mults = dict(entry["beast_mults"])
+            sym.multiplier = product
+            sym.direction = entry["direction"]
+            sym.sticky = entry["sticky"]
+            self.board[reel][row] = sym
 
-        # Emit per new beast: drop (prismBeast) then travel (prismPath = own cell first, then path).
+        # events: per dragon, drop (prismBeast) then travel (prismPath). Sticky dragons stay
+        # seated -> their route EXCLUDES the own cell; non-sticky routes include it (the cell
+        # converts to a trail wild as the dragon departs).
         for b in beasts_meta:
-            prism_beast_event(self, b["position"], b["direction"], b["multiplier"], b["whiff"])
-            route = [b["position"]] + [{"reel": cr, "row": crow} for (cr, crow) in b["path"]]
+            prism_beast_event(
+                self, b["position"], b["direction"], b["multiplier"], b["whiff"], sticky=b["sticky"]
+            )
+            route = ([] if b["sticky"] else [b["position"]]) + [
+                {"reel": cr, "row": crow} for (cr, crow) in b["path"]
+            ]
             cells = [{"position": pos, "multiplier": b["multiplier"]} for pos in route]
-            prism_path_event(self, b["position"], b["direction"], cells)
+            prism_path_event(
+                self, b["position"], b["direction"], cells, sticky=b["sticky"], multiplier=b["multiplier"]
+            )
 
     def check_repeat(self):
         super().check_repeat()

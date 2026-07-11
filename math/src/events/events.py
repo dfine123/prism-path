@@ -21,9 +21,10 @@ def json_ready_sym(symbol: object, special_attributes: list = None):
 def reveal_event(gamestate):
     """Display the initial board drawn from reelstrips."""
     board_client = []
-    # include "direction" (a drawn beast serializes the way it faces) and "multiplier" (so STICKY
-    # free-spin wilds reveal their accumulated multiplier; freshly drawn beasts have multiplier=None)
-    special_attributes = list(gamestate.config.special_symbols.keys()) + ["direction", "multiplier"]
+    # include "direction" (a drawn beast serializes the way it faces), "multiplier" (a returning
+    # STICKY dragon reveals its multiplier badge; freshly drawn beasts have multiplier=None) and
+    # "sticky" (the client renders a sticky dragon as a seated dragon, never a trail cell)
+    special_attributes = list(gamestate.config.special_symbols.keys()) + ["direction", "multiplier", "sticky"]
     for reel, _ in enumerate(gamestate.board):
         board_client.append([])
         for row in range(len(gamestate.board[reel])):
@@ -259,11 +260,12 @@ def tumble_board_event(gamestate):
     gamestate.book.add_event(event)
 
 
-def prism_beast_event(gamestate, position, direction, multiplier, whiff, include_padding_index=True):
+def prism_beast_event(gamestate, position, direction, multiplier, whiff, sticky=False, include_padding_index=True):
     """Prism Path: a beast (multiplier wild) lands and faces a direction.
 
     position is in game coords (unpadded row 0..H-1); we add the +1 client padding
     offset here so it lines up with the padded ``reveal`` board the frontend renders.
+    ``sticky``: this dragon stays seated on its cell for the rest of the feature.
     """
     off = 1 if (include_padding_index and gamestate.config.include_padding) else 0
     event = {
@@ -273,15 +275,17 @@ def prism_beast_event(gamestate, position, direction, multiplier, whiff, include
         "direction": direction,
         "multiplier": int(multiplier),
         "whiff": bool(whiff),
+        "sticky": bool(sticky),
     }
     gamestate.book.add_event(event)
 
 
-def prism_path_event(gamestate, source, direction, cells, include_padding_index=True):
+def prism_path_event(gamestate, source, direction, cells, sticky=False, multiplier=1, include_padding_index=True):
     """Prism Path: the beast's path sweeps to the grid edge, converting cells to
     multiplier wilds. ``cells`` is a list of {"position": {reel,row}, "multiplier": int}
     in game coords; the multiplier on each cell is the FINAL displayed value (the product
-    when two beasts cover the same cell). Padding offset applied here.
+    when two beasts cover the same cell). For a STICKY dragon the cells EXCLUDE its own
+    cell (the client keeps the dragon seated there). Padding offset applied here.
     """
     off = 1 if (include_padding_index and gamestate.config.include_padding) else 0
     out_cells = []
@@ -298,6 +302,8 @@ def prism_path_event(gamestate, source, direction, cells, include_padding_index=
         "source": {"reel": int(source["reel"]), "row": int(source["row"]) + off},
         "direction": direction,
         "cells": out_cells,
+        "sticky": bool(sticky),
+        "multiplier": int(multiplier),
     }
     gamestate.book.add_event(event)
 

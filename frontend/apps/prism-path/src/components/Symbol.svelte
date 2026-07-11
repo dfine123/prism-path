@@ -22,9 +22,11 @@
 	const symbolInfo = $derived(getSymbolInfo({ rawSymbol: props.rawSymbol, state: props.state }));
 	const isSprite = $derived(symbolInfo.type === 'sprite');
 	// A beast-created wild (has a multiplier) renders as the ANIMATED PRISM TRAIL, not a dragon.
-	// A freshly-landed beast (direction but no multiplier yet) stays a dragon until it fires.
+	// A freshly-landed beast (direction but no multiplier yet) stays a dragon until it fires,
+	// and a STICKY dragon ALWAYS renders as a seated dragon (with its multiplier badge).
 	const isTrailWild = $derived(
 		props.rawSymbol.name === 'WILD' &&
+			!props.rawSymbol.sticky &&
 			!!props.rawSymbol.direction &&
 			(props.rawSymbol.multiplier ?? 0) > 1,
 	);

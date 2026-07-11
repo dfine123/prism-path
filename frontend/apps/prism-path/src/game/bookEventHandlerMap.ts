@@ -67,15 +67,18 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		await waitForTimeout(110);
 	},
 	prismPath: async (bookEvent: BookEventOfType<'prismPath'>) => {
-		// Hand the whole flight to the PrismBeastTravel overlay: the dragon pushes off, flows along
-		// the path trailing prismatic afterimages, and drops an (accumulating) multiplier wild into
-		// each cell as it passes. Awaiting broadcastAsync pauses the book until the flight lands.
+		// Hand the whole flight to the PrismBeastTravel overlay. Non-sticky: the dragon pushes
+		// off, flows along the path and exits the board. STICKY: the dragon stays seated on its
+		// cell (lunge + light comet fires the path). Awaiting pauses the book until it lands.
 		await eventEmitter.broadcastAsync({
 			type: 'prismBeastTravel',
 			beast: {
 				direction: bookEvent.direction as 'up' | 'down' | 'left' | 'right',
-				whiff: (bookEvent.cells?.length ?? 0) <= 1,
-				cells: bookEvent.cells,
+				whiff: (bookEvent.cells?.length ?? 0) === 0,
+				sticky: !!bookEvent.sticky,
+				multiplier: bookEvent.multiplier ?? bookEvent.cells?.[0]?.multiplier ?? 2,
+				origin: bookEvent.source,
+				cells: bookEvent.cells ?? [],
 			},
 		});
 	},

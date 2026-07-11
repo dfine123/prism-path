@@ -9,6 +9,7 @@ export type RawSymbol = {
 	scatter?: boolean;
 	wild?: boolean;
 	direction?: Direction; // Prism Beast: which way it faces / fires
+	sticky?: boolean; // STICKY dragon: stays seated for the whole feature (renders as a dragon)
 };
 export type BetMode = keyof typeof config.betModes;
 export type GameType = keyof typeof config.paddingReels;

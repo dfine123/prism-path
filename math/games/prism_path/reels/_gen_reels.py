@@ -33,10 +33,10 @@ def write_reel(filename: str, counts: dict, base_seed: int) -> None:
     print(f"wrote {filename}: {length} rows x 5 reels")
 
 
-# Rarer beasts/scatters: base beast is RARE (~4%); free a bit denser but not saturating; scatters
-# sparse so free-spin triggers + retriggers stay rare (sticky feature escalates without always capping).
+# Base dragon is RARE (~4%/cell-slot); FREE reels carry ENHANCED dragon density (the bonus's
+# hook is "more dragons", 6%). Scatters sparse so triggers + retriggers stay rare.
 BR0 = {"L2": 7, "L3": 8, "L4": 9, "L5": 10, "H1": 4, "H2": 4, "H3": 3, "H4": 2, "WILD": 2, "SCAT": 1}
-FR0 = {"L2": 8, "L3": 8, "L4": 9, "L5": 10, "H1": 4, "H2": 4, "H3": 3, "H4": 1, "WILD": 2, "SCAT": 1}
+FR0 = {"L2": 8, "L3": 8, "L4": 9, "L5": 9, "H1": 4, "H2": 4, "H3": 3, "H4": 1, "WILD": 3, "SCAT": 1}
 
 if __name__ == "__main__":
     assert sum(BR0.values()) == 50 and sum(FR0.values()) == 50

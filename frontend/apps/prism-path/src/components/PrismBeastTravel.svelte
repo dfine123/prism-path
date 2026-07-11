@@ -1,18 +1,25 @@
 <script lang="ts" module>
-	// The Prism Beast travel overlay. The math emits, per new beast, a prismBeast (land/charge)
-	// then a prismPath (own cell -> path to the edge). This overlay owns the *feel*: the dragon
-	// winds up, PUSHES off with a squash-stretch, FLOWS along the path streaming an animated
-	// prismatic gradient ribbon behind it, drops a multiplier wild into each cell as it passes,
-	// and finally pushes OFF the board edge while the ribbon (spanning the full wild line)
-	// drains away after it.
+	import type { Position } from '../game/types';
+
+	// The Prism Beast travel overlay. Per dragon the math emits prismBeast (land/charge) then
+	// prismPath (the fired path). This overlay owns the *feel*:
+	//   NON-STICKY — the dragon winds up, PUSHES off with a squash-stretch, FLOWS along the
+	//   path streaming a prismatic gradient ribbon, converts each covered cell to a trail
+	//   wild, and pushes fully OFF the board while the ribbon drains after it.
+	//   STICKY — the dragon STAYS SEATED on its cell: it winds up, LUNGES toward its firing
+	//   direction while the light ribbon shoots the path (revealing trail wilds), then
+	//   settles back onto its seat with its multiplier badge. Next spin it fires again.
 	export type BeastTravelDir = 'up' | 'down' | 'left' | 'right';
 	export type BeastTravel = {
 		direction: BeastTravelDir;
 		whiff: boolean;
-		cells: { position: { reel: number; row: number }; multiplier: number }[];
+		sticky: boolean;
+		multiplier: number;
+		origin: Position;
+		cells: { position: Position; multiplier: number }[];
 	};
 	export type EmitterEventPrismBeast =
-		| { type: 'prismBeastCharge'; position: { reel: number; row: number } }
+		| { type: 'prismBeastCharge'; position: Position }
 		| { type: 'prismBeastTravel'; beast: BeastTravel };
 </script>
 
@@ -39,6 +46,7 @@
 		left: { x: -1, y: 0 },
 		right: { x: 1, y: 0 },
 	};
+
 	// ---- feel tunables (dial these) ----
 	const DRAGON_SCALE = 1.36; // projectile is bigger than the wilds it leaves
 	const WINDUP_MS = 155; // anticipation: rear back before the push
@@ -47,44 +55,58 @@
 	const BURST_MS = 400; // head pushes off the edge; ribbon holds the line then drains
 	const STRETCH = 0.6; // squash-stretch amount at peak flow (the "push")
 	const REAR_BACK = 0.2; // how far it pulls back during wind-up (x symbol)
-	const EXIT_PUSH = 1.5; // head flies fully OFF the board on the burst (x symbol)
+	const EXIT_PUSH = 1.5; // non-sticky head flies fully OFF the board on the burst (x symbol)
+	const LUNGE = 0.34; // sticky dragon's forward lunge while firing (x symbol)
 	// ribbon
-	const TRAIL_W_HEAD = 0.56; // ribbon width at the head (x symbol)
-	const TRAIL_W_TAIL = 0.16; // ribbon width at the tail (x symbol)
-	const TRAIL_FLOW_HZ = 0.9; // how fast the gradient streams along the ribbon
-	const TRAIL_TUCK = 0.2; // ribbon tucks this far under the head (x symbol)
+	const TRAIL_W_HEAD = 0.56;
+	const TRAIL_W_TAIL = 0.16;
+	const TRAIL_FLOW_HZ = 0.9;
+	const TRAIL_TUCK = 0.2;
 
 	let visible = $state(false);
 	let asset = $state<string>('beastDown');
 	let dragon = $state({ x: 0, y: 0, sx: 1, sy: 1, alpha: 0 });
 	let glowAlpha = $state(0);
 	let flash = $state({ x: 0, y: 0, r: 0, alpha: 0 });
-	// the gradient ribbon: tail..head in board coords; phase streams the gradient; drain
-	// wipes it tail-first once the dragon exits (0 = full line, 1 = fully drained).
 	let trail = $state({ show: false, tailX: 0, tailY: 0, headX: 0, headY: 0, phase: 0, alpha: 0, drain: 0 });
 
 	const now = () => performance.now();
 
-	const cellPos = (reel: number, row: number) => {
-		const sym = board()[reel]?.reelState?.symbols?.[row];
-		const y = sym && typeof sym.symbolY === 'function' ? sym.symbolY() : (row - 0.5) * SYMBOL_SIZE;
-		return { x: getSymbolX(reel), y };
+	const cellPos = (p: Position) => {
+		const sym = board()[p.reel]?.reelState?.symbols?.[p.row];
+		const y = sym && typeof sym.symbolY === 'function' ? sym.symbolY() : (p.row - 0.5) * SYMBOL_SIZE;
+		return { x: getSymbolX(p.reel), y };
 	};
 
-	// Drop a multiplier wild into a cell (accumulating so an overlap grows to the product).
+	// Convert a path cell to a trail wild (accumulating so an overlap grows to the product).
+	// A seated STICKY dragon crossed by another dragon's path keeps its dragon rendering.
 	const revealCell = (reel: number, row: number, direction: string, mult: number) => {
 		const reelSymbol = board()[reel]?.reelState?.symbols?.[row];
 		if (!reelSymbol) return;
 		const prev = reelSymbol.rawSymbol.multiplier ?? 1;
+		const wasSticky = !!reelSymbol.rawSymbol.sticky;
+		reelSymbol.rawSymbol = {
+			name: 'WILD',
+			wild: true,
+			direction: wasSticky ? reelSymbol.rawSymbol.direction : direction,
+			multiplier: prev * mult,
+			sticky: wasSticky,
+		};
+		reelSymbol.symbolState = 'land';
+		context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
+	};
+
+	// Seat a sticky dragon: same cell, this spin's direction, its own multiplier badge.
+	const seatStickyDragon = (p: Position, direction: string, mult: number) => {
+		const reelSymbol = board()[p.reel]?.reelState?.symbols?.[p.row];
+		if (!reelSymbol) return;
 		reelSymbol.rawSymbol = {
 			name: 'WILD',
 			wild: true,
 			direction,
-			// accumulate: an overlap cell grows to the PRODUCT (x2 crossed by x3 -> x6)
-			multiplier: prev * mult,
+			multiplier: mult,
+			sticky: true,
 		};
-		reelSymbol.symbolState = 'land';
-		context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
 	};
 
 	const runTravel = (beast: BeastTravel) =>
@@ -93,14 +115,24 @@
 			asset = BEAST_ASSET[dir] ?? 'beastDown';
 			const dv = DIRV[dir];
 			const horizontal = dv.x !== 0;
-			const pts = beast.cells.map((c) => cellPos(c.position.reel, c.position.row));
-			const mults = beast.cells.map((c) => c.multiplier);
+			const origin = cellPos(beast.origin);
+			const pathPts = beast.cells.map((c) => cellPos(c.position));
+			// polyline: sticky prepends the seat (its path EXCLUDES the own cell);
+			// non-sticky cells already start at the own cell
+			const pts = beast.sticky ? [origin, ...pathPts] : pathPts;
+			// pts index -> cells index to reveal when the head reaches it (null = the seat)
+			const revealIdx: (number | null)[] = beast.sticky
+				? [null, ...beast.cells.map((_, i) => i)]
+				: beast.cells.map((_, i) => i);
 			const N = pts.length;
-			const origin = pts[0];
-			const travelMs = Math.max(TRAVEL_MIN_MS, PER_CELL_MS * Math.max(1, N - 1));
-			const total = WINDUP_MS + travelMs + BURST_MS;
+			const stickyWhiff = beast.sticky && pathPts.length === 0;
+			const travelMs = stickyWhiff
+				? 220
+				: Math.max(TRAVEL_MIN_MS, PER_CELL_MS * Math.max(1, N - 1));
+			const burstMs = beast.sticky ? 320 : BURST_MS;
+			const total = WINDUP_MS + travelMs + burstMs;
 			const start = now();
-			let revealed = new Set<number>();
+			const revealed = new Set<number>();
 
 			visible = true;
 			dragon = { x: origin.x, y: origin.y, sx: DRAGON_SCALE, sy: DRAGON_SCALE, alpha: 0 };
@@ -108,9 +140,8 @@
 			flash = { x: origin.x, y: origin.y, r: 0, alpha: 0 };
 			trail = { show: false, tailX: origin.x, tailY: origin.y, headX: origin.x, headY: origin.y, phase: 0, alpha: 0, drain: 0 };
 
-			// point at eased progress p in [0,1] along the polyline (origin -> ... -> edge cell)
 			const posAt = (p: number) => {
-				if (N === 1) return { x: origin.x + dv.x * p * SYMBOL_SIZE * 0.6, y: origin.y + dv.y * p * SYMBOL_SIZE * 0.6 };
+				if (N <= 1) return { x: origin.x + dv.x * p * SYMBOL_SIZE * 0.6, y: origin.y + dv.y * p * SYMBOL_SIZE * 0.6 };
 				const f = clamp01(p) * (N - 1);
 				const i = Math.min(N - 2, Math.floor(f));
 				const t = f - i;
@@ -124,6 +155,16 @@
 				dragon.sy = DRAGON_SCALE * (horizontal ? perp : along);
 			};
 
+			const revealUpTo = (ptsIndex: number) => {
+				for (let i = 0; i <= Math.min(ptsIndex, N - 1); i++) {
+					const ci = revealIdx[i];
+					if (ci === null || ci === undefined || revealed.has(ci)) continue;
+					revealed.add(ci);
+					const c = beast.cells[ci];
+					revealCell(c.position.reel, c.position.row, dir, c.multiplier);
+				}
+			};
+
 			const frame = () => {
 				const el = now() - start;
 				trail.phase = (el / 1000) * TRAIL_FLOW_HZ;
@@ -134,77 +175,83 @@
 					dragon.alpha = wp;
 					dragon.x = origin.x - dv.x * REAR_BACK * SYMBOL_SIZE * wp;
 					dragon.y = origin.y - dv.y * REAR_BACK * SYMBOL_SIZE * wp;
-					applyStretch(-0.12 * wp); // coil = slight squash
+					applyStretch(-0.12 * wp);
 					glowAlpha = 0.5 * wp;
 				} else if (el < WINDUP_MS + travelMs) {
-					// PUSH + FLOW — launch along the path, gradient ribbon streaming behind.
-					if (!revealed.has(0)) {
-						revealCell(beast.cells[0].position.reel, beast.cells[0].position.row, dir, mults[0]);
-						revealed.add(0);
-					}
 					const elFlow = el - WINDUP_MS;
 					const tp = clamp01(elFlow / travelMs);
-					const p = EASE.glide(tp);
-					const pos = posAt(p);
-					dragon.x = pos.x;
-					dragon.y = pos.y;
-					dragon.alpha = 1;
-					glowAlpha = 0.85;
-					// stretch envelope peaks mid-flow -> reads as a push that eases out
-					applyStretch(STRETCH * Math.sin(Math.PI * tp));
-					// ribbon: origin -> just behind the head, fading in over the first beats
-					trail.show = true;
-					trail.alpha = clamp01(elFlow / 90);
-					trail.headX = pos.x - dv.x * TRAIL_TUCK * SYMBOL_SIZE;
-					trail.headY = pos.y - dv.y * TRAIL_TUCK * SYMBOL_SIZE;
-					// drop a wild into each cell the head has reached
-					if (N > 1) {
-						const reachedUpto = Math.floor(p * (N - 1) + 0.001);
-						for (let i = 1; i <= Math.min(reachedUpto, N - 1); i++) {
-							if (!revealed.has(i)) {
-								revealCell(beast.cells[i].position.reel, beast.cells[i].position.row, dir, mults[i]);
-								revealed.add(i);
-							}
-						}
+					if (beast.sticky && elFlow < 32) {
+						// the seat keeps its dragon (badge on) from the moment it fires
+						seatStickyDragon(beast.origin, dir, beast.multiplier);
+					}
+					if (beast.sticky) {
+						// STICKY: lunge out (impact), hold while the light fires, ease back home
+						const lu = tp < 0.25 ? EASE.impact(tp / 0.25) : tp > 0.8 ? 1 - EASE.settle((tp - 0.8) / 0.2) : 1;
+						dragon.x = origin.x + dv.x * LUNGE * SYMBOL_SIZE * lu;
+						dragon.y = origin.y + dv.y * LUNGE * SYMBOL_SIZE * lu;
+						dragon.alpha = 1;
+						applyStretch(0.35 * lu);
+						glowAlpha = 0.85;
+					} else {
+						// NON-STICKY: push + flow along the path
+						const p = EASE.glide(tp);
+						const pos = posAt(p);
+						dragon.x = pos.x;
+						dragon.y = pos.y;
+						dragon.alpha = 1;
+						applyStretch(STRETCH * Math.sin(Math.PI * tp));
+						glowAlpha = 0.85;
+					}
+					if (!stickyWhiff) {
+						// ribbon head sweeps the polyline in both modes (the light does the firing)
+						const p = EASE.glide(tp);
+						const head = posAt(p);
+						trail.show = true;
+						trail.alpha = clamp01(elFlow / 90);
+						trail.headX = head.x - dv.x * TRAIL_TUCK * SYMBOL_SIZE;
+						trail.headY = head.y - dv.y * TRAIL_TUCK * SYMBOL_SIZE;
+						revealUpTo(Math.floor(p * Math.max(N - 1, 1) + 0.001));
 					}
 				} else {
-					// BURST — the head pushes fully OFF the board; the ribbon holds the completed
-					// wild line, then DRAINS tail-first after the dragon; ring flash at the edge.
-					const bp = clamp01((el - WINDUP_MS - travelMs) / BURST_MS);
+					// BURST / SETTLE
+					const bp = clamp01((el - WINDUP_MS - travelMs) / burstMs);
 					const edge = posAt(1);
-					const ee = EASE.settle(bp);
-					dragon.x = edge.x + dv.x * EXIT_PUSH * SYMBOL_SIZE * ee;
-					dragon.y = edge.y + dv.y * EXIT_PUSH * SYMBOL_SIZE * ee;
-					dragon.alpha = 1 - EASE.collapse(clamp01(bp / 0.7)); // head gone by ~70% of burst
-					applyStretch(STRETCH * (1 - bp)); // stay stretched as it exits, relax as it fades
-					glowAlpha = 0.85 * (1 - EASE.collapse(clamp01(bp / 0.7)));
-					// ribbon spans the FULL wild line (stops at the last wild cell), then drains
-					trail.headX = edge.x + dv.x * 0.18 * SYMBOL_SIZE;
-					trail.headY = edge.y + dv.y * 0.18 * SYMBOL_SIZE;
-					trail.drain = EASE.collapse(clamp01((bp - 0.3) / 0.7));
-					trail.alpha = 1 - EASE.collapse(clamp01((bp - 0.45) / 0.55));
-					flash = {
-						x: edge.x,
-						y: edge.y,
-						r: EASE.impact(clamp01(bp / 0.6)) * SYMBOL_SIZE * 1.15,
-						alpha: (1 - clamp01(bp / 0.6)) * 0.85,
-					};
-					// make sure every cell is dropped
-					for (let i = 0; i < N; i++) {
-						if (!revealed.has(i)) {
-							revealCell(beast.cells[i].position.reel, beast.cells[i].position.row, dir, mults[i]);
-							revealed.add(i);
-						}
+					if (beast.sticky) {
+						// settle home; the seated board dragon takes over as the overlay fades
+						dragon.x = origin.x;
+						dragon.y = origin.y;
+						dragon.alpha = 1 - EASE.collapse(bp);
+						applyStretch(0.35 * (1 - bp) * 0.3);
+						glowAlpha = 0.85 * (1 - bp);
+					} else {
+						const ee = EASE.settle(bp);
+						dragon.x = edge.x + dv.x * EXIT_PUSH * SYMBOL_SIZE * ee;
+						dragon.y = edge.y + dv.y * EXIT_PUSH * SYMBOL_SIZE * ee;
+						dragon.alpha = 1 - EASE.collapse(clamp01(bp / 0.7));
+						applyStretch(STRETCH * (1 - bp));
+						glowAlpha = 0.85 * (1 - EASE.collapse(clamp01(bp / 0.7)));
 					}
+					if (!stickyWhiff) {
+						trail.headX = edge.x + dv.x * 0.18 * SYMBOL_SIZE;
+						trail.headY = edge.y + dv.y * 0.18 * SYMBOL_SIZE;
+						trail.drain = EASE.collapse(clamp01((bp - 0.3) / 0.7));
+						trail.alpha = 1 - EASE.collapse(clamp01((bp - 0.45) / 0.55));
+						flash = {
+							x: edge.x,
+							y: edge.y,
+							r: EASE.impact(clamp01(bp / 0.6)) * SYMBOL_SIZE * (beast.sticky ? 0.8 : 1.15),
+							alpha: (1 - clamp01(bp / 0.6)) * (beast.sticky ? 0.6 : 0.85),
+						};
+					}
+					revealUpTo(N - 1);
 				}
 
 				if (el < total) {
 					requestAnimationFrame(frame);
 				} else {
-					// safety: guarantee every cell is a resolved wild before we hand back control
-					for (let i = 0; i < N; i++) {
-						if (!revealed.has(i)) revealCell(beast.cells[i].position.reel, beast.cells[i].position.row, dir, mults[i]);
-					}
+					// safety: every cell resolved + sticky seat in place before handing back control
+					revealUpTo(N - 1);
+					if (beast.sticky) seatStickyDragon(beast.origin, dir, beast.multiplier);
 					dragon.alpha = 0;
 					glowAlpha = 0;
 					flash = { ...flash, alpha: 0 };
@@ -242,10 +289,8 @@
 				const t0 = i / N;
 				const t1 = (i + 1) / N;
 				const midT = (t0 + t1) / 2;
-				// drain wipes tail-first: segments behind the drain front vanish softly
 				const drainMul = clamp01((midT - s.drain) * 6 + 0.12);
 				if (drainMul <= 0.01) continue;
-				// tapered width (thin tail -> wide head) with a subtle traveling pulse
 				const w =
 					SYMBOL_SIZE *
 					(TRAIL_W_TAIL + (TRAIL_W_HEAD - TRAIL_W_TAIL) * EASE.load(midT)) *
@@ -259,9 +304,9 @@
 				if (horiz) {
 					const xa = Math.min(x0, x1) - 1;
 					const wseg = Math.abs(x1 - x0) + 2;
-					g.rect(xa, y0 - w * 0.95, wseg, w * 1.9).fill({ color: col, alpha: a * 0.2 }); // outer glow
-					g.rect(xa, y0 - w * 0.5, wseg, w).fill({ color: col, alpha: a * 0.72 }); // gradient body
-					g.rect(xa, y0 - w * 0.17, wseg, w * 0.34).fill({ color: 0xffffff, alpha: a * 0.8 }); // hot core
+					g.rect(xa, y0 - w * 0.95, wseg, w * 1.9).fill({ color: col, alpha: a * 0.2 });
+					g.rect(xa, y0 - w * 0.5, wseg, w).fill({ color: col, alpha: a * 0.72 });
+					g.rect(xa, y0 - w * 0.17, wseg, w * 0.34).fill({ color: 0xffffff, alpha: a * 0.8 });
 				} else {
 					const ya = Math.min(y0, y1) - 1;
 					const hseg = Math.abs(y1 - y0) + 2;
@@ -270,14 +315,12 @@
 					g.rect(x0 - w * 0.17, ya, w * 0.34, hseg).fill({ color: 0xffffff, alpha: a * 0.8 });
 				}
 			}
-			// rounded luminous cap where the ribbon meets the head
 			const capT = clamp01(1 - s.drain);
 			if (capT > 0.02) {
 				const capR = SYMBOL_SIZE * TRAIL_W_HEAD * 0.55;
 				g.circle(s.headX, s.headY, capR).fill({ color: paletteAt(0.9 - s.phase), alpha: 0.5 * s.alpha * capT });
 				g.circle(s.headX, s.headY, capR * 0.5).fill({ color: 0xffffff, alpha: 0.65 * s.alpha * capT });
 			}
-			// drifting sparkle motes along the ribbon (deterministic twinkle)
 			for (let k = 0; k < 7; k++) {
 				const u = (0.13 + k * 0.145 + s.phase * 0.55) % 1;
 				const drainMul = clamp01((u - s.drain) * 6 + 0.12);

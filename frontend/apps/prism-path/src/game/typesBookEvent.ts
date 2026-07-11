@@ -81,6 +81,7 @@ type BookEventPrismBeast = {
 	direction: Direction;
 	multiplier: number;
 	whiff: boolean;
+	sticky?: boolean;
 };
 
 type BookEventPrismPath = {
@@ -89,6 +90,8 @@ type BookEventPrismPath = {
 	source: Position;
 	direction: Direction;
 	cells: { position: Position; multiplier: number }[];
+	sticky?: boolean;
+	multiplier?: number;
 };
 
 // customised

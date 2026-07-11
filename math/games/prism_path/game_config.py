@@ -4,8 +4,10 @@
 facing a random direction and fires a path of multiplier-wilds to the board edge. Two beasts
 touching the same winning line MULTIPLY (per-beast-once, overlap = product) — FROZEN rule.
 
-Modes: base + free spins (STICKY beasts/wilds) + Buy Bonus + a premium "Super" buy.
-RTP is tuned at the final generation (optimizer); the values here are the model + guides.
+Modes: base + free spins + Buy Bonus (100x: 8 spins, enhanced dragon density) + Super buy
+(300x: a dragon is GUARANTEED every spin + higher STICKY-dragon chance). A sticky dragon
+stays for the whole feature: it re-lands in its cell every spin with a fresh direction and
+fires a fresh path (paths never persist across spins). RTP is tuned at the final generation.
 """
 
 import os
@@ -95,10 +97,13 @@ class GameConfig(Config):
             self.basegame_type: {2: 5, 3: 3, 5: 2},
             self.freegame_type: {2: 10, 3: 3, 5: 1, 10: 1},  # mostly x2 so the sticky fill escalates gradually
         }
-        self.max_beasts = {self.basegame_type: 2, self.freegame_type: 3}
-        # FREE-SPINS HOOK: beasts (and the multiplier wilds they leave) are STICKY — they persist
-        # across the feature and new beasts overlap-multiply them as the board fills.
-        self.sticky_wilds_in_freegame = True
+        # FREE-SPINS HOOK: STICKY DRAGONS. In the free game a landing dragon may become sticky —
+        # it stays for the whole feature, re-lands in the SAME cell every spin with a FRESH
+        # direction (same multiplier), firing a fresh path each spin. Paths never persist.
+        # SUPER additionally guarantees at least one dragon on every free spin.
+        self.sticky_dragon_chance = {"base": 0.15, "bonus": 0.15, "super": 0.35}  # by betmode, free game only
+        self.guarantee_dragon = {"base": False, "bonus": False, "super": True}
+        self.max_sticky_dragons = 2
 
         # Free spins: scatter count -> number of spins.
         self.freespin_triggers = {

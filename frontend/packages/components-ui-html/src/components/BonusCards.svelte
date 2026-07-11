@@ -20,7 +20,7 @@
 
 {#each props.list as betModeData}
 	{#if betModeData.type !== 'default'}
-		<BonusCard>
+		<BonusCard image={betModeData.assets?.dialogImage}>
 			{#snippet title()}
 				<div class="title">
 					{betModeData.text.title}

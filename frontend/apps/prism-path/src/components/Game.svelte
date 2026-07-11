@@ -10,7 +10,10 @@
 	import { UI, UiGameName } from 'components-ui-pixi';
 	import { GameVersion, Modals } from 'components-ui-html';
 
+	import { stateMeta } from 'state-shared';
+
 	import { getContext } from '../game/context';
+	import { PRISM_BET_MODE_META } from '../game/betModeMeta';
 	import EnableSound from './EnableSound.svelte';
 	import EnableGameActor from './EnableGameActor.svelte';
 	import ResumeBet from './ResumeBet.svelte';
@@ -27,6 +30,10 @@
 	import Transition from './Transition.svelte';
 
 	const context = getContext();
+
+	// Prism Path bet modes (BASE / DRAGON BONUS 100x / SUPER DRAGON BONUS 300x) drive the
+	// buy modal cards and the RGS bet mode string.
+	stateMeta.betModeMeta = PRISM_BET_MODE_META;
 
 	onMount(() => (context.stateLayout.showLoadingScreen = true));
 

@@ -26,3 +26,28 @@ export const DUR = {
 // clamp + eased-lerp helpers for hand-driven (rAF) animations.
 export const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+// ---- prism light palette (single source: beast trail, wild cells, win fx) ----
+export const PRISM_TINTS = [0xff5db1, 0x2bb8e8, 0x3cc85a, 0x9b3ce8, 0xffd25e];
+
+export const lerpColor = (a: number, b: number, t: number) => {
+	const ar = (a >> 16) & 255,
+		ag = (a >> 8) & 255,
+		ab = a & 255;
+	const br = (b >> 16) & 255,
+		bg = (b >> 8) & 255,
+		bb = b & 255;
+	return (
+		(Math.round(ar + (br - ar) * t) << 16) |
+		(Math.round(ag + (bg - ag) * t) << 8) |
+		Math.round(ab + (bb - ab) * t)
+	);
+};
+
+// sample the prism palette at any real u (wraps smoothly, period 1)
+export const paletteAt = (u: number) => {
+	const P = PRISM_TINTS.length;
+	const f = (((u % 1) + 1) % 1) * P;
+	const i = Math.floor(f) % P;
+	return lerpColor(PRISM_TINTS[i], PRISM_TINTS[(i + 1) % P], f - Math.floor(f));
+};

@@ -22,7 +22,7 @@
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
 	import { SYMBOL_SIZE } from '../game/constants';
-	import { EASE, clamp01, lerp } from '../game/motion';
+	import { EASE, clamp01, lerp, paletteAt } from '../game/motion';
 
 	const context = getContext();
 	const board = () => context.stateGame.board;
@@ -39,9 +39,6 @@
 		left: { x: -1, y: 0 },
 		right: { x: 1, y: 0 },
 	};
-	// prism hues the gradient flows through (refraction spectrum, matches the gem set)
-	const PRISM_TINTS = [0xff5db1, 0x2bb8e8, 0x3cc85a, 0x9b3ce8, 0xffd25e];
-
 	// ---- feel tunables (dial these) ----
 	const DRAGON_SCALE = 1.36; // projectile is bigger than the wilds it leaves
 	const WINDUP_MS = 155; // anticipation: rear back before the push
@@ -72,23 +69,6 @@
 		const sym = board()[reel]?.reelState?.symbols?.[row];
 		const y = sym && typeof sym.symbolY === 'function' ? sym.symbolY() : (row - 0.5) * SYMBOL_SIZE;
 		return { x: getSymbolX(reel), y };
-	};
-
-	// ---- gradient helpers (animated prismatic flow) ----
-	const lerpColor = (a: number, b: number, t: number) => {
-		const ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
-		const br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
-		return (
-			(Math.round(ar + (br - ar) * t) << 16) |
-			(Math.round(ag + (bg - ag) * t) << 8) |
-			Math.round(ab + (bb - ab) * t)
-		);
-	};
-	const paletteAt = (u: number) => {
-		const P = PRISM_TINTS.length;
-		const f = (((u % 1) + 1) % 1) * P;
-		const i = Math.floor(f) % P;
-		return lerpColor(PRISM_TINTS[i], PRISM_TINTS[(i + 1) % P], f - Math.floor(f));
 	};
 
 	// Drop a multiplier wild into a cell (accumulating so an overlap grows to the product).

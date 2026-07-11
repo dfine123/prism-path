@@ -15,6 +15,10 @@ export default {
 	bgBase: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_base.png', import.meta.url).href, preload: true },
 	bgFeature: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_feature.png', import.meta.url).href, preload: true },
 
+	// FX textures (generated: gaussian bokeh orb + 4-point star glint for ambient motes)
+	mote: { type: 'sprite', src: new URL('../../assets/fx/mote.png', import.meta.url).href, preload: true },
+	moteStar: { type: 'sprite', src: new URL('../../assets/fx/moteStar.png', import.meta.url).href, preload: true },
+
 	// UI art
 	prismFrameEdge: { type: 'sprite', src: new URL('../../assets/ui/prismFrameEdge.png', import.meta.url).href },
 	// board-frame CANDIDATES (dev toggle via DevFramePanel; unused ones removed once locked)

@@ -52,15 +52,17 @@ export function createEnhanceBoardSpin<TReel extends Reel<any, any>>({
 		};
 
 		board.reduce((previousPaddingSize, reel, reelIndex) => {
-			const noStop = globalHasAnticipation && reelIndex >= firstAnticipatedReelIndex;
+			const inAnticipationZone = globalHasAnticipation && reelIndex >= firstAnticipatedReelIndex;
 			const isAnticipated = (revealEvent.anticipation?.[reelIndex] || 0) > 0;
-			const spinType = getSpinType({ noStop, isAnticipated });
+			const spinType = getSpinType({ noStop: inAnticipationZone, isAnticipated });
 			const symbols = revealEvent.board[reelIndex] as TRawSymbol[];
 			const paddingReel = paddingBoard?.[reelIndex];
 			const paddingPosition = revealEvent?.paddingPositions?.[reelIndex];
 
 			const paddingSize = reel.prepareToSpin({
-				noStop,
+				// Prism Path: anticipation stays PACED (spinType above) but is SKIPPABLE —
+				// a click slams every reel, anticipated ones included (template locked them)
+				noStop: false,
 				spinType,
 				symbols,
 				// @ts-ignore Ignored because paddingReel is not required by createCascadingReel

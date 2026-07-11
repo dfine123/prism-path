@@ -2,7 +2,9 @@ import type { RawSymbol, SymbolState } from './types';
 
 export const SYMBOL_SIZE = 96;
 
-export const REEL_PADDING = 0.53;
+// exact half-cell: symbol x = (reel + 0.5) * SYMBOL_SIZE = the true cell centre
+// (was 0.53 — a template fudge that pushed every symbol ~3px right of the gridlines)
+export const REEL_PADDING = 0.5;
 
 // initial board (padded top and bottom: 5 visible + 2 pad = 7 entries per reel -> BOARD_DIMENSIONS 5x5)
 export const INITIAL_BOARD: RawSymbol[][] = [

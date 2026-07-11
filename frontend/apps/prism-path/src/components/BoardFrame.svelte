@@ -14,7 +14,9 @@
 
 	const context = getContext();
 	const SPRITE_SCALE = { width: 1.14, height: 1.15 };
-	const POSITION_ADJUSTMENT = 1.01;
+	// frame/grid sit EXACTLY on the board centre — the symbols' lattice and the drawn grid
+	// must share one origin (was *1.01, a template fudge shifting the grid ~7px off-lattice)
+	const POSITION_ADJUSTMENT = 1;
 
 	// FREE-GAME frame glow — code-drawn animated prism halo around the whole board
 	// (replaces the template "reelhouse" spine).

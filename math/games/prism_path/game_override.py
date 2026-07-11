@@ -175,16 +175,15 @@ class GameStateOverride(GameExecutables):
             sym.sticky = entry["sticky"]
             self.board[reel][row] = sym
 
-        # events: per dragon, drop (prismBeast) then travel (prismPath). Sticky dragons stay
-        # seated -> their route EXCLUDES the own cell; non-sticky routes include it (the cell
-        # converts to a trail wild as the dragon departs).
+        # events: per dragon, drop (prismBeast) then travel (prismPath). EVERY dragon (sticky
+        # included) animates the full travel — the route includes its own cell, which converts
+        # to a trail wild as it departs. Stickiness is signalled client-side by a persistent
+        # glowing border on the landing square (the dragon re-lands there next spin).
         for b in beasts_meta:
             prism_beast_event(
                 self, b["position"], b["direction"], b["multiplier"], b["whiff"], sticky=b["sticky"]
             )
-            route = ([] if b["sticky"] else [b["position"]]) + [
-                {"reel": cr, "row": crow} for (cr, crow) in b["path"]
-            ]
+            route = [b["position"]] + [{"reel": cr, "row": crow} for (cr, crow) in b["path"]]
             cells = [{"position": pos, "multiplier": b["multiplier"]} for pos in route]
             prism_path_event(
                 self, b["position"], b["direction"], cells, sticky=b["sticky"], multiplier=b["multiplier"]

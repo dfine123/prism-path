@@ -54,6 +54,10 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		}
 
 		stateGame.gameType = bookEvent.gameType;
+		// back in the base game -> any sticky-dragon markers from a finished feature are stale
+		if (bookEvent.gameType === 'basegame') {
+			eventEmitter.broadcast({ type: 'stickyMarkerClear' });
+		}
 		await stateGameDerived.enhancedBoard.spin({
 			revealEvent: bookEvent,
 			paddingBoard: config.paddingReels[bookEvent.gameType],
@@ -63,6 +67,11 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 	prismBeast: async (bookEvent: BookEventOfType<'prismBeast'>) => {
 		// The beast has landed facing its direction (from the reveal). A brief charge beat of
 		// anticipation before it pushes off — the travel overlay carries the full wind-up.
+		// A STICKY dragon claims its square: persistent glowing border for the rest of the
+		// feature (the dragon re-lands there every spin).
+		if (bookEvent.sticky) {
+			eventEmitter.broadcast({ type: 'stickyMarkerAdd', position: bookEvent.position });
+		}
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
 		await waitForTimeout(110);
 	},
@@ -148,6 +157,7 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 	freeSpinEnd: async (bookEvent: BookEventOfType<'freeSpinEnd'>) => {
 		const winLevelData = winLevelMap[bookEvent.winLevel as WinLevel];
 
+		eventEmitter.broadcast({ type: 'stickyMarkerClear' }); // feature over -> markers off
 		await eventEmitter.broadcastAsync({ type: 'uiHide' });
 		stateGame.gameType = 'basegame';
 		eventEmitter.broadcast({ type: 'boardFrameGlowHide' });

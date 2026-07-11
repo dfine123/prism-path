@@ -55,8 +55,7 @@
 	const BURST_MS = 400; // head pushes off the edge; ribbon holds the line then drains
 	const STRETCH = 0.6; // squash-stretch amount at peak flow (the "push")
 	const REAR_BACK = 0.2; // how far it pulls back during wind-up (x symbol)
-	const EXIT_PUSH = 1.5; // non-sticky head flies fully OFF the board on the burst (x symbol)
-	const LUNGE = 0.34; // sticky dragon's forward lunge while firing (x symbol)
+	const EXIT_PUSH = 1.5; // head flies fully OFF the board on the burst (x symbol)
 	// ribbon
 	const TRAIL_W_HEAD = 0.56;
 	const TRAIL_W_TAIL = 0.16;
@@ -78,35 +77,20 @@
 		return { x: getSymbolX(p.reel), y };
 	};
 
-	// Convert a path cell to a trail wild (accumulating so an overlap grows to the product).
-	// A seated STICKY dragon crossed by another dragon's path keeps its dragon rendering.
+	// Convert a covered cell to a trail wild (accumulating so an overlap grows to the product).
+	// Stickiness is signalled by the glowing square marker (StickyDragonMarkers), not the cell.
 	const revealCell = (reel: number, row: number, direction: string, mult: number) => {
 		const reelSymbol = board()[reel]?.reelState?.symbols?.[row];
 		if (!reelSymbol) return;
 		const prev = reelSymbol.rawSymbol.multiplier ?? 1;
-		const wasSticky = !!reelSymbol.rawSymbol.sticky;
-		reelSymbol.rawSymbol = {
-			name: 'WILD',
-			wild: true,
-			direction: wasSticky ? reelSymbol.rawSymbol.direction : direction,
-			multiplier: prev * mult,
-			sticky: wasSticky,
-		};
-		reelSymbol.symbolState = 'land';
-		context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
-	};
-
-	// Seat a sticky dragon: same cell, this spin's direction, its own multiplier badge.
-	const seatStickyDragon = (p: Position, direction: string, mult: number) => {
-		const reelSymbol = board()[p.reel]?.reelState?.symbols?.[p.row];
-		if (!reelSymbol) return;
 		reelSymbol.rawSymbol = {
 			name: 'WILD',
 			wild: true,
 			direction,
-			multiplier: mult,
-			sticky: true,
+			multiplier: prev * mult,
 		};
+		reelSymbol.symbolState = 'land';
+		context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
 	};
 
 	const runTravel = (beast: BeastTravel) =>
@@ -116,21 +100,12 @@
 			const dv = DIRV[dir];
 			const horizontal = dv.x !== 0;
 			const origin = cellPos(beast.origin);
-			const pathPts = beast.cells.map((c) => cellPos(c.position));
-			// polyline: sticky prepends the seat (its path EXCLUDES the own cell);
-			// non-sticky cells already start at the own cell
-			const pts = beast.sticky ? [origin, ...pathPts] : pathPts;
-			// pts index -> cells index to reveal when the head reaches it (null = the seat)
-			const revealIdx: (number | null)[] = beast.sticky
-				? [null, ...beast.cells.map((_, i) => i)]
-				: beast.cells.map((_, i) => i);
+			// EVERY dragon (sticky included) plays the same full travel — the route includes its
+			// own cell (cells[0]); stickiness is signalled by the glowing square marker instead.
+			const pts = beast.cells.length > 0 ? beast.cells.map((c) => cellPos(c.position)) : [origin];
 			const N = pts.length;
-			const stickyWhiff = beast.sticky && pathPts.length === 0;
-			const travelMs = stickyWhiff
-				? 220
-				: Math.max(TRAVEL_MIN_MS, PER_CELL_MS * Math.max(1, N - 1));
-			const burstMs = beast.sticky ? 320 : BURST_MS;
-			const total = WINDUP_MS + travelMs + burstMs;
+			const travelMs = Math.max(TRAVEL_MIN_MS, PER_CELL_MS * Math.max(1, N - 1));
+			const total = WINDUP_MS + travelMs + BURST_MS;
 			const start = now();
 			const revealed = new Set<number>();
 
@@ -155,12 +130,11 @@
 				dragon.sy = DRAGON_SCALE * (horizontal ? perp : along);
 			};
 
-			const revealUpTo = (ptsIndex: number) => {
-				for (let i = 0; i <= Math.min(ptsIndex, N - 1); i++) {
-					const ci = revealIdx[i];
-					if (ci === null || ci === undefined || revealed.has(ci)) continue;
-					revealed.add(ci);
-					const c = beast.cells[ci];
+			const revealUpTo = (idx: number) => {
+				for (let i = 0; i <= Math.min(idx, beast.cells.length - 1); i++) {
+					if (revealed.has(i)) continue;
+					revealed.add(i);
+					const c = beast.cells[i];
 					revealCell(c.position.reel, c.position.row, dir, c.multiplier);
 				}
 			};
@@ -178,80 +152,50 @@
 					applyStretch(-0.12 * wp);
 					glowAlpha = 0.5 * wp;
 				} else if (el < WINDUP_MS + travelMs) {
+					// PUSH + FLOW — launch along the path, gradient ribbon streaming behind.
 					const elFlow = el - WINDUP_MS;
 					const tp = clamp01(elFlow / travelMs);
-					if (beast.sticky && elFlow < 32) {
-						// the seat keeps its dragon (badge on) from the moment it fires
-						seatStickyDragon(beast.origin, dir, beast.multiplier);
-					}
-					if (beast.sticky) {
-						// STICKY: lunge out (impact), hold while the light fires, ease back home
-						const lu = tp < 0.25 ? EASE.impact(tp / 0.25) : tp > 0.8 ? 1 - EASE.settle((tp - 0.8) / 0.2) : 1;
-						dragon.x = origin.x + dv.x * LUNGE * SYMBOL_SIZE * lu;
-						dragon.y = origin.y + dv.y * LUNGE * SYMBOL_SIZE * lu;
-						dragon.alpha = 1;
-						applyStretch(0.35 * lu);
-						glowAlpha = 0.85;
-					} else {
-						// NON-STICKY: push + flow along the path
-						const p = EASE.glide(tp);
-						const pos = posAt(p);
-						dragon.x = pos.x;
-						dragon.y = pos.y;
-						dragon.alpha = 1;
-						applyStretch(STRETCH * Math.sin(Math.PI * tp));
-						glowAlpha = 0.85;
-					}
-					if (!stickyWhiff) {
-						// ribbon head sweeps the polyline in both modes (the light does the firing)
-						const p = EASE.glide(tp);
-						const head = posAt(p);
-						trail.show = true;
-						trail.alpha = clamp01(elFlow / 90);
-						trail.headX = head.x - dv.x * TRAIL_TUCK * SYMBOL_SIZE;
-						trail.headY = head.y - dv.y * TRAIL_TUCK * SYMBOL_SIZE;
-						revealUpTo(Math.floor(p * Math.max(N - 1, 1) + 0.001));
-					}
+					const p = EASE.glide(tp);
+					const pos = posAt(p);
+					dragon.x = pos.x;
+					dragon.y = pos.y;
+					dragon.alpha = 1;
+					applyStretch(STRETCH * Math.sin(Math.PI * tp));
+					glowAlpha = 0.85;
+					trail.show = true;
+					trail.alpha = clamp01(elFlow / 90);
+					trail.headX = pos.x - dv.x * TRAIL_TUCK * SYMBOL_SIZE;
+					trail.headY = pos.y - dv.y * TRAIL_TUCK * SYMBOL_SIZE;
+					revealUpTo(Math.floor(p * Math.max(N - 1, 1) + 0.001));
 				} else {
-					// BURST / SETTLE
-					const bp = clamp01((el - WINDUP_MS - travelMs) / burstMs);
+					// BURST — the head pushes fully OFF the board; the ribbon holds the completed
+					// wild line, then DRAINS tail-first after the dragon; ring flash at the edge.
+					const bp = clamp01((el - WINDUP_MS - travelMs) / BURST_MS);
 					const edge = posAt(1);
-					if (beast.sticky) {
-						// settle home; the seated board dragon takes over as the overlay fades
-						dragon.x = origin.x;
-						dragon.y = origin.y;
-						dragon.alpha = 1 - EASE.collapse(bp);
-						applyStretch(0.35 * (1 - bp) * 0.3);
-						glowAlpha = 0.85 * (1 - bp);
-					} else {
-						const ee = EASE.settle(bp);
-						dragon.x = edge.x + dv.x * EXIT_PUSH * SYMBOL_SIZE * ee;
-						dragon.y = edge.y + dv.y * EXIT_PUSH * SYMBOL_SIZE * ee;
-						dragon.alpha = 1 - EASE.collapse(clamp01(bp / 0.7));
-						applyStretch(STRETCH * (1 - bp));
-						glowAlpha = 0.85 * (1 - EASE.collapse(clamp01(bp / 0.7)));
-					}
-					if (!stickyWhiff) {
-						trail.headX = edge.x + dv.x * 0.18 * SYMBOL_SIZE;
-						trail.headY = edge.y + dv.y * 0.18 * SYMBOL_SIZE;
-						trail.drain = EASE.collapse(clamp01((bp - 0.3) / 0.7));
-						trail.alpha = 1 - EASE.collapse(clamp01((bp - 0.45) / 0.55));
-						flash = {
-							x: edge.x,
-							y: edge.y,
-							r: EASE.impact(clamp01(bp / 0.6)) * SYMBOL_SIZE * (beast.sticky ? 0.8 : 1.15),
-							alpha: (1 - clamp01(bp / 0.6)) * (beast.sticky ? 0.6 : 0.85),
-						};
-					}
+					const ee = EASE.settle(bp);
+					dragon.x = edge.x + dv.x * EXIT_PUSH * SYMBOL_SIZE * ee;
+					dragon.y = edge.y + dv.y * EXIT_PUSH * SYMBOL_SIZE * ee;
+					dragon.alpha = 1 - EASE.collapse(clamp01(bp / 0.7));
+					applyStretch(STRETCH * (1 - bp));
+					glowAlpha = 0.85 * (1 - EASE.collapse(clamp01(bp / 0.7)));
+					trail.headX = edge.x + dv.x * 0.18 * SYMBOL_SIZE;
+					trail.headY = edge.y + dv.y * 0.18 * SYMBOL_SIZE;
+					trail.drain = EASE.collapse(clamp01((bp - 0.3) / 0.7));
+					trail.alpha = 1 - EASE.collapse(clamp01((bp - 0.45) / 0.55));
+					flash = {
+						x: edge.x,
+						y: edge.y,
+						r: EASE.impact(clamp01(bp / 0.6)) * SYMBOL_SIZE * 1.15,
+						alpha: (1 - clamp01(bp / 0.6)) * 0.85,
+					};
 					revealUpTo(N - 1);
 				}
 
 				if (el < total) {
 					requestAnimationFrame(frame);
 				} else {
-					// safety: every cell resolved + sticky seat in place before handing back control
-					revealUpTo(N - 1);
-					if (beast.sticky) seatStickyDragon(beast.origin, dir, beast.multiplier);
+					// safety: every cell resolved before handing back control
+					revealUpTo(beast.cells.length - 1);
 					dragon.alpha = 0;
 					glowAlpha = 0;
 					flash = { ...flash, alpha: 0 };

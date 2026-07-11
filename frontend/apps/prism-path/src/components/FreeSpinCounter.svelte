@@ -6,48 +6,36 @@
 </script>
 
 <script lang="ts">
+	// Free-spin counter — code-drawn prism pill beside the board (no template atlas panel).
 	import { MainContainer } from 'components-layout';
 	import { FadeContainer } from 'components-pixi';
+	import { BitmapText } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
 	import { SYMBOL_SIZE } from '../game/constants';
 	import { prismStyle } from '../game/fonts';
-	import { anchorToPivot, BitmapText, Container, Sprite, type Sizes } from 'pixi-svelte';
+	import PrismPanel from './PrismPanel.svelte';
 
 	const context = getContext();
-	const PANEL_KEY_DESKTOP = 'Frame_FSCounter.png';
-	const PANEL_RATIO_DESKTOP = 824 / 622;
-	const panelKey = PANEL_KEY_DESKTOP;
-	const panelWidth = $derived(SYMBOL_SIZE * 2);
-	const panelSizes = $derived({
-		width: panelWidth,
-		height: panelWidth / PANEL_RATIO_DESKTOP,
-	});
-	const scale = 1;
+
+	const PANEL_W = SYMBOL_SIZE * 2.1;
+	const PANEL_H = SYMBOL_SIZE * 1.15;
+	// centre of the pill sits left of the board, aligned to the board's top edge
 	const position = $derived({
 		x:
 			context.stateGameDerived.boardLayout().x -
 			context.stateGameDerived.boardLayout().width * 0.5 -
-			panelSizes.width -
-			SYMBOL_SIZE * 0.7,
+			PANEL_W * 0.5 -
+			SYMBOL_SIZE * 0.85,
 		y:
 			context.stateGameDerived.boardLayout().y -
-			context.stateGameDerived.boardLayout().height * 0.5,
+			context.stateGameDerived.boardLayout().height * 0.5 +
+			PANEL_H * 0.5,
 	});
-
-	const fontSize = SYMBOL_SIZE * 0.275;
 
 	let show = $state(false);
 	let current = $state(0);
 	let total = $state(0);
-	let titleSizes: Sizes = $state({ width: 0, height: 0 });
-	let counterSizes: Sizes = $state({ width: 0, height: 0 });
-
-	const textContainerSizes = $derived({
-		width: titleSizes.width,
-		height: titleSizes.height + counterSizes.height,
-	});
-	const counterPosition = $derived({ x: titleSizes.width / 2, y: titleSizes.height });
 
 	context.eventEmitter.subscribeOnMount({
 		freeSpinCounterShow: () => (show = true),
@@ -60,28 +48,20 @@
 </script>
 
 <MainContainer>
-	<FadeContainer {show} {...position} {scale}>
-		<Sprite key={panelKey} {...panelSizes} />
-		<Container
-			x={panelSizes.width * 0.5}
-			y={panelSizes.height * 0.48}
-			pivot={anchorToPivot({
-				sizes: textContainerSizes,
-				anchor: { x: 0.5, y: 0.5 },
-			})}
-		>
+	<FadeContainer {show} {...position}>
+		<PrismPanel width={PANEL_W} height={PANEL_H} radius={16}>
 			<BitmapText
-				text={'FREE SPIN'}
-				style={prismStyle(fontSize, { wordWrap: false })}
-				onresize={(sizes) => (titleSizes = sizes)}
+				anchor={0.5}
+				y={-PANEL_H * 0.2}
+				text="FREE SPIN"
+				style={prismStyle(SYMBOL_SIZE * 0.24, { align: 'center' })}
 			/>
 			<BitmapText
+				anchor={0.5}
+				y={PANEL_H * 0.17}
 				text={`${current} OF ${total}`}
-				{...counterPosition}
-				anchor={{ x: 0.5, y: 0 }}
-				style={prismStyle(fontSize)}
-				onresize={(sizes) => (counterSizes = sizes)}
+				style={prismStyle(SYMBOL_SIZE * 0.32, { align: 'center' })}
 			/>
-		</Container>
+		</PrismPanel>
 	</FadeContainer>
 </MainContainer>

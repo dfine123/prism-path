@@ -5,62 +5,64 @@
 </script>
 
 <script lang="ts">
-	import { Graphics, Sprite, SpineProvider, SpineTrack } from 'pixi-svelte';
+	import { Graphics, Sprite } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
 	import { BOARD_SIZES, SYMBOL_SIZE } from '../game/constants';
+	import { paletteAt } from '../game/motion';
+	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 
 	const context = getContext();
-	const SPINE_SCALE = { width: 0.62, height: 0.66 };
 	const SPRITE_SCALE = { width: 1.14, height: 1.15 };
 	const POSITION_ADJUSTMENT = 1.01;
 
-	type AnimationName = 'reelhouse_glow_start' | 'reelhouse_glow_idle' | 'reelhouse_glow_exit';
+	// FREE-GAME frame glow — code-drawn animated prism halo around the whole board
+	// (replaces the template "reelhouse" spine).
+	let glowActive = $state(false);
 
-	let animationName = $state<AnimationName | undefined>(undefined);
-	let loop = $state(false);
+	$effect(() => {
+		if (glowActive) {
+			acquireTrailClock();
+			return releaseTrailClock;
+		}
+	});
 
 	context.eventEmitter.subscribeOnMount({
-		boardFrameGlowShow: () => {
-			animationName = 'reelhouse_glow_start';
-			loop = false;
-		},
-		boardFrameGlowHide: () => {
-			if (animationName) animationName = 'reelhouse_glow_exit';
-		},
+		boardFrameGlowShow: () => (glowActive = true),
+		boardFrameGlowHide: () => (glowActive = false),
 	});
 </script>
 
-{#if animationName}
-	<SpineProvider
+{#if glowActive}
+	<Graphics
+		blendMode="add"
 		zIndex={-1}
-		key="reelhouse"
-		x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT}
-		y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT}
-		width={context.stateGameDerived.boardLayout().width * SPINE_SCALE.width}
-		height={context.stateGameDerived.boardLayout().height * SPINE_SCALE.height}
-	>
-		<SpineTrack
-			trackIndex={0}
-			{animationName}
-			{loop}
-			listener={{
-				complete: (entry) => {
-					if (entry.animation) {
-						if (entry.animation.name === 'reelhouse_glow_start') {
-							animationName = 'reelhouse_glow_idle';
-							loop = true;
-						}
-
-						if (entry.animation.name === 'reelhouse_glow_exit') {
-							animationName = undefined;
-							loop = false;
-						}
-					}
-				},
-			}}
-		/>
-	</SpineProvider>
+		draw={(g) => {
+			const t = trailClock.t;
+			const bl = context.stateGameDerived.boardLayout();
+			const cx = bl.x * POSITION_ADJUSTMENT;
+			const cy = bl.y * POSITION_ADJUSTMENT;
+			const w = bl.width * SPRITE_SCALE.width + 26;
+			const h = bl.height * SPRITE_SCALE.height + 26;
+			const breathe = 0.7 + 0.3 * Math.sin(t * Math.PI * 1.1);
+			// layered halo: wide soft bloom -> mid -> tight hue ring (hues slowly cycling)
+			g.roundRect(cx - w / 2 - 16, cy - h / 2 - 16, w + 32, h + 32, 34).stroke({
+				width: 30,
+				color: paletteAt(t * 0.16),
+				alpha: 0.08 * breathe,
+			});
+			g.roundRect(cx - w / 2 - 6, cy - h / 2 - 6, w + 12, h + 12, 28).stroke({
+				width: 12,
+				color: paletteAt(t * 0.16 + 0.12),
+				alpha: 0.16 * breathe,
+			});
+			g.roundRect(cx - w / 2, cy - h / 2, w, h, 24).stroke({
+				width: 4,
+				color: paletteAt(t * 0.16 + 0.24),
+				alpha: 0.5 * breathe,
+			});
+		}}
+	/>
 {/if}
 
 <!-- Board backing: mid-dark grey panel + light gridlines aligned to the 5x5 cells -->

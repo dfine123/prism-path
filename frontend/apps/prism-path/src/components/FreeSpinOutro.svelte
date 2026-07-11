@@ -8,26 +8,25 @@
 </script>
 
 <script lang="ts">
-	import { Sprite, SpineProvider, SpineTrack, SpineSlot } from 'pixi-svelte';
+	// Feature finale — TOTAL WIN presented with the same layered WinBox light show as the
+	// big wins (one visual language), plus the prism-shard burst. No template spines/sprites.
 	import { FadeContainer, WinCountUpProvider, ResponsiveBitmapText } from 'components-pixi';
 	import { bookEventAmountToCurrencyString } from 'utils-shared/amount';
 	import { waitForResolve } from 'utils-shared/wait';
-	import { CanvasSizeRectangle } from 'components-layout';
+	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { OnMount } from 'components-shared';
-	import { stateUrlDerived } from 'state-shared';
+	import { Container } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
+	import { SYMBOL_SIZE } from '../game/constants';
 	import { prismStyle } from '../game/fonts';
-	import FreeSpinAnimation from './FreeSpinAnimation.svelte';
+	import WinBox from './WinBox.svelte';
+	import PrismShards from './PrismShards.svelte';
 	import PressToContinue from './PressToContinue.svelte';
-	import WinCoins from './WinCoins.svelte';
-
-	type AnimationName = 'intro' | 'idle';
 
 	const context = getContext();
 
 	let show = $state(true);
-	let animationName = $state<AnimationName>('intro');
 	let amount = $state(0);
 	let winLevelData = $state<WinLevelData>();
 	let oncomplete = $state(() => {});
@@ -46,61 +45,31 @@
 
 <FadeContainer {show}>
 	{#if winLevelData}
-		{@const duration = winLevelData.presentDuration}
-		{@const isBigWin = winLevelData.type === 'big'}
+		{@const duration = Math.max(winLevelData.presentDuration, 2500)}
+		{@const boxLevel = Math.max(6, winLevelData.level)}
 		<WinCountUpProvider {amount} {duration} oncomplete={() => onCountUpComplete()}>
 			{#snippet children({ countUpAmount, startCountUp, finishCountUp, countUpCompleted })}
 				<OnMount onmount={() => startCountUp()} />
 
-				<CanvasSizeRectangle backgroundColor={0x000000} backgroundAlpha={0.5} />
+				<CanvasSizeRectangle backgroundColor={0x05030a} backgroundAlpha={0.6} />
 
-				<FreeSpinAnimation>
-					{#snippet children({ sizes })}
-						{#if isBigWin}
-							<Sprite
-								anchor={{ x: 0.5, y: 1.2 }}
-								width={500 * 2.2}
-								height={156 * 2.2}
-								key="freespins_{stateUrlDerived.lang()}.png"
+				<MainContainer>
+					<Container
+						x={context.stateGameDerived.boardLayout().x}
+						y={context.stateGameDerived.boardLayout().y}
+					>
+						<WinBox level={boxLevel} text="TOTAL WIN">
+							<ResponsiveBitmapText
+								anchor={0.5}
+								maxWidth={SYMBOL_SIZE * 4.6}
+								text={bookEventAmountToCurrencyString(countUpAmount)}
+								style={prismStyle(SYMBOL_SIZE * 1.5, { align: 'center', letterSpacing: 0 })}
 							/>
-						{:else}
-							<Sprite
-								anchor={{ x: 0.5, y: 1.2 }}
-								width={500 * 4.5}
-								height={80 * 4.5}
-								key="winsmall_{stateUrlDerived.lang()}.png"
-							/>
-						{/if}
+						</WinBox>
+					</Container>
+				</MainContainer>
 
-						<SpineProvider key="fsOutroNumber" width={sizes.width * 0.4}>
-							<SpineTrack
-								trackIndex={0}
-								{animationName}
-								loop={animationName === 'idle'}
-								listener={{
-									complete: () => (animationName = 'idle'),
-								}}
-							/>
-							<SpineSlot slotName="slot_number">
-								<ResponsiveBitmapText
-									anchor={0.5}
-									style={prismStyle(sizes.width * 0.08)}
-									text={bookEventAmountToCurrencyString(countUpAmount)}
-									maxWidth={sizes.width}
-								/>
-							</SpineSlot>
-						</SpineProvider>
-
-						<Sprite
-							anchor={{ x: 0.5, y: isBigWin ? -3.2 : -2 }}
-							width={177 * (isBigWin ? 2.2 : 3)}
-							height={42 * (isBigWin ? 2.2 : 3)}
-							key="totalwin.png"
-						/>
-					{/snippet}
-				</FreeSpinAnimation>
-
-				<WinCoins emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
+				<PrismShards emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
 
 				<PressToContinue onpress={() => (countUpCompleted ? oncomplete() : finishCountUp())} />
 			{/snippet}

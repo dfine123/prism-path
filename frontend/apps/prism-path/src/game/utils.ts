@@ -62,7 +62,11 @@ export const getSymbolInfo = ({
 	state: SymbolState;
 }) => {
 	const info = SYMBOL_INFO_MAP[rawSymbol.name][state];
-	// A WILD (Prism Beast) renders the directional bust matching the way it faces / fires.
+	// A STICKY dragon renders its dedicated crowned-guardian symbol (its claimed square also
+	// carries the glowing border marker); a normal WILD renders the directional bust.
+	if (rawSymbol.name === 'WILD' && rawSymbol.sticky) {
+		return { ...info, assetKey: 'WILDSTICKY' };
+	}
 	if (rawSymbol.name === 'WILD' && rawSymbol.direction) {
 		return { ...info, assetKey: BEAST_ASSET[rawSymbol.direction] };
 	}

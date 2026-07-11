@@ -18,6 +18,7 @@ export default {
 	// `../../assets/...` resolves to the dev-served /assets/* (i.e. static/assets/*).
 	// --- Prism Path generated UI art ---
 	bgBase: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_base.png', import.meta.url).href, preload: true },
+	bgFeature: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_feature.png', import.meta.url).href, preload: true },
 	prismFrameEdge: { type: 'sprite', src: new URL('../../assets/ui/prismFrameEdge.png', import.meta.url).href },
 	logo: { type: 'sprite', src: new URL('../../assets/ui/logo.png', import.meta.url).href },
 	L2: { type: 'sprite', src: new URL('../../assets/symbols/L2.png', import.meta.url).href },
@@ -29,6 +30,7 @@ export default {
 	H3: { type: 'sprite', src: new URL('../../assets/symbols/H3.png', import.meta.url).href },
 	H4: { type: 'sprite', src: new URL('../../assets/symbols/H4.png', import.meta.url).href },
 	WILD: { type: 'sprite', src: new URL('../../assets/symbols/WILD.png', import.meta.url).href },
+	WILDSTICKY: { type: 'sprite', src: new URL('../../assets/symbols/WILDSTICKY.png', import.meta.url).href },
 	SCAT: { type: 'sprite', src: new URL('../../assets/symbols/SCAT.png', import.meta.url).href },
 	// Prism Beast overlay sprites — directional busts (PrismFx picks one by facing direction).
 	prismBeast: { type: 'sprite', src: new URL('../../assets/symbols/prismBeast.png', import.meta.url).href },

@@ -14,6 +14,7 @@
 
 	import { getContext } from '../game/context';
 	import { PRISM_BET_MODE_META } from '../game/betModeMeta';
+	import DevFramePanel from './DevFramePanel.svelte';
 	import EnableSound from './EnableSound.svelte';
 	import EnableGameActor from './EnableGameActor.svelte';
 	import ResumeBet from './ResumeBet.svelte';
@@ -125,6 +126,9 @@
 		<Transition />
 	{/if}
 </App>
+
+<!-- DEV-ONLY: board-frame candidate picker (remove once a frame is locked) -->
+<DevFramePanel />
 
 <Modals>
 	{#snippet version()}

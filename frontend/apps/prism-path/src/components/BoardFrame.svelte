@@ -11,9 +11,12 @@
 	import { BOARD_SIZES, SYMBOL_SIZE } from '../game/constants';
 	import { paletteAt } from '../game/motion';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
+	import { stateDev, FRAME_OPTIONS } from '../game/stateDev.svelte';
 
 	const context = getContext();
-	const SPRITE_SCALE = { width: 1.14, height: 1.15 };
+	// frame candidate + fit come from the DEV picker (DevFramePanel) until a frame is locked
+	const SPRITE_SCALE = $derived({ width: stateDev.scaleW, height: stateDev.scaleH });
+	const frameKey = $derived(FRAME_OPTIONS[stateDev.frameIndex].key);
 	// frame/grid sit EXACTLY on the board centre — the symbols' lattice and the drawn grid
 	// must share one origin (was *1.01, a template fudge shifting the grid ~7px off-lattice)
 	const POSITION_ADJUSTMENT = 1;
@@ -88,7 +91,7 @@
 />
 
 <Sprite
-	key="prismFrameEdge"
+	key={frameKey}
 	anchor={0.5}
 	x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT}
 	y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT}

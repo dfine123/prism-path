@@ -17,6 +17,11 @@ export default {
 
 	// UI art
 	prismFrameEdge: { type: 'sprite', src: new URL('../../assets/ui/prismFrameEdge.png', import.meta.url).href },
+	// board-frame CANDIDATES (dev toggle via DevFramePanel; unused ones removed once locked)
+	board1: { type: 'sprite', src: new URL('../../assets/ui/frames/board1.png', import.meta.url).href },
+	board2: { type: 'sprite', src: new URL('../../assets/ui/frames/board2.png', import.meta.url).href },
+	board3: { type: 'sprite', src: new URL('../../assets/ui/frames/board3.png', import.meta.url).href },
+	board4: { type: 'sprite', src: new URL('../../assets/ui/frames/board4.png', import.meta.url).href },
 	logo: { type: 'sprite', src: new URL('../../assets/ui/logo.png', import.meta.url).href, preload: true },
 
 	// --- symbols (keys match the math reveal board names: L2-L5/H1-H4/WILD/SCAT) ---

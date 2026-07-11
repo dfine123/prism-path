@@ -38,6 +38,7 @@
 	// Paytable/rules content (MUST mirror math/games/prism_path/game_config.py).
 	const symImg = (name: string) => new URL(`../../assets/symbols/${name}.png`, import.meta.url).href;
 	const PAYS = [
+		{ key: 'WILD', p: ['5x', '1.5x', '0.5x'] },
 		{ key: 'H1', p: ['5x', '1.5x', '0.5x'] },
 		{ key: 'H2', p: ['5x', '1.5x', '0.5x'] },
 		{ key: 'H3', p: ['5x', '1.5x', '0.5x'] },
@@ -51,7 +52,7 @@
 		{
 			img: symImg('WILD'),
 			title: 'DRAGON WILD',
-			text: 'The Prism Dragon is WILD and substitutes for all symbols except the Scatter. A landing dragon faces a random direction and FIRES a path of multiplier wilds (x2, x3, x5 — up to x10 in free spins) from its square to the board edge. A dragon facing the edge fires off the board.',
+			text: 'The Prism Dragon is WILD and substitutes for all symbols except the Scatter. A landing dragon faces a random direction and FIRES a path of multiplier wilds (x2, x3, x5 — up to x10 in free spins) from its square to the board edge. A dragon facing the edge fires off the board. A run of only wilds on a payline pays at gem tier — a full dragon path across a line IS a winning line.',
 		},
 		{
 			img: symImg('beastRight'),

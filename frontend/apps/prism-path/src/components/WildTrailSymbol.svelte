@@ -29,7 +29,7 @@
 
 	// The symbol pipeline awaits oncomplete. On WIN the trail brightens (winBoost) and holds
 	// for the same beat as the sprite breath so an all-wild line still paces the sequence.
-	const WIN_HOLD_MS = 620;
+	const WIN_HOLD_MS = 460;
 	$effect(() => {
 		if (props.state === 'win') {
 			const id = setTimeout(() => props.oncomplete?.(), WIN_HOLD_MS);

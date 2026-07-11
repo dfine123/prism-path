@@ -9,8 +9,9 @@ class GameExecutables(GameCalculations):
 
         Uses ``multiplier_method="prism_product"``: a line's multiplier is the product of the
         DISTINCT beasts whose covered cells intersect the line's winning positions (per-beast-once,
-        overlap multiplies). wild_sym="WILD" — the beast has no own paytable entry, so wild-only
-        lines pay 0; wilds only substitute for L/H symbols.
+        overlap multiplies). wild_sym="WILD" — WILD pays at gem tier for pure-wild runs, so a
+        full dragon path across a payline pays as a line (the evaluator takes the better of the
+        wild-run win vs the substituted win).
         """
         self.win_data = Lines.get_lines(
             self.board,

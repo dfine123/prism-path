@@ -78,6 +78,8 @@
 
 	// Convert a covered cell to a trail wild (accumulating so an overlap grows to the product).
 	// Stickiness is signalled by the glowing square marker (StickyDragonMarkers), not the cell.
+	// NOTE: no per-cell sound — cells convert as a BATCH under the burst (one landing sound),
+	// keeping the flight itself perfectly fluid (per-cell component mounts caused micro-hitches).
 	const revealCell = (reel: number, row: number, direction: string, mult: number) => {
 		const reelSymbol = board()[reel]?.reelState?.symbols?.[row];
 		if (!reelSymbol) return;
@@ -89,7 +91,6 @@
 			multiplier: prev * mult,
 		};
 		reelSymbol.symbolState = 'land';
-		context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
 	};
 
 	const runTravel = (beast: BeastTravel) =>
@@ -107,6 +108,7 @@
 			const total = WINDUP_MS + travelMs + BURST_MS;
 			const start = now();
 			const revealed = new Set<number>();
+			let landSoundPlayed = false;
 
 			visible = true;
 			dragon = { x: origin.x, y: origin.y, sx: DRAGON_SCALE, sy: DRAGON_SCALE, alpha: 0 };
@@ -166,7 +168,8 @@
 					trail.alpha = clamp01(elFlow / 90);
 					trail.headX = pos.x - dv.x * TRAIL_TUCK * SYMBOL_SIZE;
 					trail.headY = pos.y - dv.y * TRAIL_TUCK * SYMBOL_SIZE;
-					revealUpTo(Math.floor(p * Math.max(N - 1, 1) + 0.001));
+					// no cell conversions during the flight — the ribbon carries the visual;
+					// the wilds land as one batch under the burst (fluid, hitch-free travel)
 				} else {
 					// BURST — the head pushes fully OFF the board; the ribbon holds the completed
 					// wild line, then DRAINS tail-first after the dragon; ring flash at the edge.
@@ -188,6 +191,10 @@
 						r: EASE.impact(clamp01(bp / 0.6)) * SYMBOL_SIZE * 1.15,
 						alpha: (1 - clamp01(bp / 0.6)) * 0.85,
 					};
+					if (!landSoundPlayed) {
+						landSoundPlayed = true;
+						context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
+					}
 					revealUpTo(N - 1);
 				}
 

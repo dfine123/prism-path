@@ -322,6 +322,40 @@
           }
         },
         {
+          "symbol": "WILD",
+          "kind": 5,
+          "win": 500000,
+          "positions": [
+            {
+              "reel": 0,
+              "row": 3
+            },
+            {
+              "reel": 1,
+              "row": 3
+            },
+            {
+              "reel": 2,
+              "row": 3
+            },
+            {
+              "reel": 3,
+              "row": 3
+            },
+            {
+              "reel": 4,
+              "row": 3
+            }
+          ],
+          "meta": {
+            "lineIndex": 3,
+            "multiplier": 2500,
+            "winWithoutMult": 500,
+            "globalMult": 1,
+            "lineMultiplier": 2500
+          }
+        },
+        {
           "symbol": "H1",
           "kind": 5,
           "win": 500,

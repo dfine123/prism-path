@@ -17,8 +17,10 @@ from src.config.betmode import BetMode
 
 
 # Paytable in payoutMultiplier-int units (800 = 8.0x). L2-L5 [3,4,5] -> [25,50,100];
-# H1-H4 -> [50,150,500]. WILD has NO own-symbol pay (substitutes + carries multipliers).
+# H1-H4 -> [50,150,500]. WILD pays at GEM TIER for pure-wild runs — a full dragon path
+# across a payline IS a line (the evaluator takes the better of wild-run vs substituted win).
 PAYTABLE_PM = {
+    "WILD": [50, 150, 500],
     "L2": [25, 50, 100],
     "L3": [25, 50, 100],
     "L4": [25, 50, 100],

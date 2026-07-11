@@ -1,6 +1,6 @@
 {
   "id": 0,
-  "payoutMultiplier": 5400,
+  "payoutMultiplier": 8400,
   "events": [
     {
       "index": 0,
@@ -251,7 +251,7 @@
     {
       "index": 5,
       "type": "winInfo",
-      "totalWin": 5400,
+      "totalWin": 8400,
       "wins": [
         {
           "symbol": "L5",
@@ -319,6 +319,40 @@
             "winWithoutMult": 100,
             "globalMult": 1,
             "lineMultiplier": 1
+          }
+        },
+        {
+          "symbol": "WILD",
+          "kind": 5,
+          "win": 3000,
+          "positions": [
+            {
+              "reel": 0,
+              "row": 3
+            },
+            {
+              "reel": 1,
+              "row": 3
+            },
+            {
+              "reel": 2,
+              "row": 3
+            },
+            {
+              "reel": 3,
+              "row": 3
+            },
+            {
+              "reel": 4,
+              "row": 3
+            }
+          ],
+          "meta": {
+            "lineIndex": 3,
+            "multiplier": 6,
+            "winWithoutMult": 500,
+            "globalMult": 1,
+            "lineMultiplier": 6
           }
         },
         {
@@ -734,21 +768,21 @@
     {
       "index": 6,
       "type": "setWin",
-      "amount": 5400,
+      "amount": 8400,
       "winLevel": 8
     },
     {
       "index": 7,
       "type": "setTotalWin",
-      "amount": 5400
+      "amount": 8400
     },
     {
       "index": 8,
       "type": "finalWin",
-      "amount": 5400
+      "amount": 8400
     }
   ],
   "criteria": "basegame",
-  "baseGameWins": 54.0,
+  "baseGameWins": 84.0,
   "freeGameWins": 0.0
 }

@@ -30,20 +30,20 @@
 	const board = () => context.stateGame.board;
 
 	// ---- feel tunables ----
-	const DRAW_MS = 185; // sweep-on (left -> right through the winning cells)
-	const HOLD_MS = 500; // streaming hold (matches the symbol breath underneath)
-	const FADE_MS = 120; // release
+	const DRAW_MS = 135; // sweep-on (left -> right through the winning cells)
+	const HOLD_MS = 360; // streaming hold (matches the symbol breath underneath)
+	const FADE_MS = 95; // release
 	const LINE_W = 11; // core line width (px)
-	const FLOW_HZ = 1.15; // gradient stream speed while held (flowy)
+	const FLOW_HZ = 1.45; // gradient stream speed while held (flowy)
 	const CHUNK = 13; // px per gradient chunk
-	const POP_MS = 150; // value pop-in (impact right as the sweep completes)
+	const POP_MS = 125; // value pop-in (impact right as the sweep completes)
 	const POP_FONT = 40;
 	const MULT_FONT = 32;
 	const MULT_Y = 40; // the xN sits under the value before merging into it
-	const MULT_BEAT_MS = 140; // read beat: value + xN visible together
-	const MERGE_MS = 260; // xN collapses in while the value rolls to the full amount
-	const PUNCH_MS = 150; // impact punch when the full value lands
-	const HOLD_MULT_MS = 820; // longer hold for multiplied lines (pop+beat+merge+punch)
+	const MULT_BEAT_MS = 110; // read beat: value + xN visible together
+	const MERGE_MS = 210; // xN collapses in while the value rolls to the full amount
+	const PUNCH_MS = 130; // impact punch when the full value lands
+	const HOLD_MULT_MS = 640; // longer hold for multiplied lines (pop+beat+merge+punch)
 
 	let line = $state({
 		show: false,
@@ -94,7 +94,8 @@
 				const el = now() - start;
 				line.phase = (el / 1000) * FLOW_HZ;
 				if (el < DRAW_MS) {
-					line.prog = EASE.settle(clamp01(el / DRAW_MS));
+					// glide (cubicOut): continuous fluid sweep, no expo snap-then-crawl
+					line.prog = EASE.glide(clamp01(el / DRAW_MS));
 					line.alpha = 1;
 				} else if (el < DRAW_MS + holdMs) {
 					line.prog = 1;

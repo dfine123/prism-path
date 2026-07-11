@@ -17,7 +17,7 @@
 
 	// WIN state = a subtle two-pulse breath (anticipation of the line light passing through);
 	// oncomplete fires when the breath settles, which is what paces the win-line sequence.
-	const BREATH_MS = 620;
+	const BREATH_MS = 460;
 	const BREATH_AMP = 0.065;
 
 	let breath = $state(1);

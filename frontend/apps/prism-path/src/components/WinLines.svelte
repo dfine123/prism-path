@@ -13,7 +13,7 @@
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
 	import { SYMBOL_SIZE } from '../game/constants';
-	import { EASE, clamp01, lerp, paletteAt } from '../game/motion';
+	import { EASE, clamp01, lerp, paletteAt, lerpColor } from '../game/motion';
 
 	const context = getContext();
 	const board = () => context.stateGame.board;
@@ -108,7 +108,8 @@
 				return pts[pts.length - 1];
 			};
 
-			// gradient chunks: glow / body / hot core, hues streaming along the drawn length
+			// gradient chunks — the LINE ITSELF is the luminescent gradient: streaming prism hues
+			// as the base, and a traveling white-hot shimmer band instead of a flat white core.
 			const nChunks = Math.max(3, Math.ceil(drawnLen / CHUNK));
 			for (let i = 0; i < nChunks; i++) {
 				const L0 = (drawnLen * i) / nChunks;
@@ -117,9 +118,17 @@
 				const b = pointAtLen(L1 + 0.75); // slight overlap kills seams
 				const u = (L0 + L1) / 2 / totalLen;
 				const col = paletteAt(u * 0.8 - s.phase);
-				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: LINE_W * 2.4, color: col, alpha: 0.16 * s.alpha, cap: 'round' });
-				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: LINE_W, color: col, alpha: 0.75 * s.alpha, cap: 'round' });
-				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: LINE_W * 0.36, color: 0xffffff, alpha: 0.85 * s.alpha, cap: 'round' });
+				// shimmer: a bright pulse that sweeps along the line while it holds
+				const shimmer = clamp01(0.5 + 0.5 * Math.sin(Math.PI * 2 * (u * 1.5 - s.phase * 1.5)));
+				const coreCol = lerpColor(col, 0xffffff, 0.35 + 0.5 * shimmer);
+				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: LINE_W * 2.6, color: col, alpha: 0.2 * s.alpha, cap: 'round' });
+				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: LINE_W * 1.05, color: col, alpha: 0.85 * s.alpha, cap: 'round' });
+				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({
+					width: LINE_W * (0.34 + 0.14 * shimmer),
+					color: coreCol,
+					alpha: (0.5 + 0.4 * shimmer) * s.alpha,
+					cap: 'round',
+				});
 			}
 
 			// sweep head spark while drawing on (the line + symbol breath carry the rest)

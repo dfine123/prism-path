@@ -61,28 +61,23 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		eventEmitter.broadcast({ type: 'soundScatterCounterClear' });
 	},
 	prismBeast: async (bookEvent: BookEventOfType<'prismBeast'>) => {
-		// The beast already sits on the board facing its direction (from the reveal). A short
-		// "charge" beat before it travels and starts replacing symbols.
+		// The beast has landed facing its direction (from the reveal). A brief charge beat of
+		// anticipation before it pushes off — the travel overlay carries the full wind-up.
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
-		await waitForTimeout(280);
+		await waitForTimeout(110);
 	},
 	prismPath: async (bookEvent: BookEventOfType<'prismPath'>) => {
-		// Travel the path (own cell first, then to the edge): REPLACE each covered cell's symbol
-		// with a directional multiplier wild, one square at a time, ACCUMULATING the multiplier so
-		// an overlap cell grows to the product (x2 -> x6) when a second beast crosses it.
-		for (const cell of bookEvent.cells) {
-			const reelSymbol = stateGame.board[cell.position.reel]?.reelState.symbols[cell.position.row];
-			if (!reelSymbol) continue;
-			const prevMult = reelSymbol.rawSymbol.multiplier ?? 1;
-			reelSymbol.rawSymbol = {
-				name: 'WILD',
-				wild: true,
-				direction: bookEvent.direction,
-				multiplier: prevMult * cell.multiplier,
-			};
-			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
-			await waitForTimeout(170);
-		}
+		// Hand the whole flight to the PrismBeastTravel overlay: the dragon pushes off, flows along
+		// the path trailing prismatic afterimages, and drops an (accumulating) multiplier wild into
+		// each cell as it passes. Awaiting broadcastAsync pauses the book until the flight lands.
+		await eventEmitter.broadcastAsync({
+			type: 'prismBeastTravel',
+			beast: {
+				direction: bookEvent.direction as 'up' | 'down' | 'left' | 'right',
+				whiff: (bookEvent.cells?.length ?? 0) <= 1,
+				cells: bookEvent.cells,
+			},
+		});
 	},
 	winInfo: async (bookEvent: BookEventOfType<'winInfo'>) => {
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });

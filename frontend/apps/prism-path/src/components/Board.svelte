@@ -19,6 +19,7 @@
 	import BoardContainer from './BoardContainer.svelte';
 	import BoardMask from './BoardMask.svelte';
 	import BoardBase from './BoardBase.svelte';
+	import PrismBeastTravel from './PrismBeastTravel.svelte';
 
 	const context = getContext();
 
@@ -56,6 +57,7 @@
 	<BoardContext animate={true}>
 		<BoardContainer>
 			<BoardBase />
+			<PrismBeastTravel />
 		</BoardContainer>
 	</BoardContext>
 {/if}

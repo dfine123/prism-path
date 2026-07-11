@@ -15,8 +15,8 @@
 	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { OnMount } from 'components-shared';
 
-	import WinCoins from './WinCoins.svelte';
-	import WinAnimation from './WinAnimation.svelte';
+	import PrismShards from './PrismShards.svelte';
+	import WinBox from './WinBox.svelte';
 	import PressToContinue from './PressToContinue.svelte';
 	import { SYMBOL_SIZE } from '../game/constants';
 	import { getContext } from '../game/context';
@@ -48,7 +48,11 @@
 		<WinCountUpProvider {amount} {duration} oncomplete={() => onCountUpComplete()}>
 			{#snippet children({ countUpAmount, startCountUp, finishCountUp, countUpCompleted })}
 				{#if isBigWin}
-					<CanvasSizeRectangle backgroundColor={0x000000} backgroundAlpha={0.5} />
+					<!-- dim veil scales with tier (escalation ladder: banner+dim >= big) -->
+					<CanvasSizeRectangle
+						backgroundColor={0x05030a}
+						backgroundAlpha={0.42 + (winLevelData.level - 6) * 0.06}
+					/>
 				{/if}
 
 				<OnMount
@@ -64,15 +68,15 @@
 						x={context.stateGameDerived.boardLayout().x}
 						y={context.stateGameDerived.boardLayout().y}
 					>
-						{#if winLevelData?.animation}
-							<WinAnimation animationMap={winLevelData.animation}>
+						{#if isBigWin && winLevelData.text}
+							<WinBox level={winLevelData.level} text={winLevelData.text}>
 								<ResponsiveBitmapText
 									anchor={0.5}
-									maxWidth={2130}
+									maxWidth={SYMBOL_SIZE * 4.6}
 									text={bookEventAmountToCurrencyString(countUpAmount)}
-									style={prismStyle(SYMBOL_SIZE * 3.6, { align: 'center', letterSpacing: 0 })}
+									style={prismStyle(SYMBOL_SIZE * 1.5, { align: 'center', letterSpacing: 0 })}
 								/>
-							</WinAnimation>
+							</WinBox>
 						{:else}
 							<ResponsiveBitmapText
 								anchor={0.5}
@@ -85,7 +89,7 @@
 					</Container>
 				</MainContainer>
 
-				<WinCoins emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
+				<PrismShards emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
 
 				<PressToContinue onpress={() => (countUpCompleted ? oncomplete() : finishCountUp())} />
 			{/snippet}

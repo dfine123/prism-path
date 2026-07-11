@@ -10,8 +10,8 @@
 	const showFeatureBackground = $derived(context.stateGame.gameType === 'freegame');
 
 	// COVER-crop (never stretch): scale so the image covers the canvas, centre-anchored.
-	// Both generated backgrounds are 1376x768.
-	const BG = { width: 1376, height: 768 };
+	// Both backgrounds (light sky-islands = base, aurora night = feature) are 2048x1143.
+	const BG = { width: 2048, height: 1143 };
 	const cover = $derived.by(() => {
 		const c = context.stateLayoutDerived.canvasSizes();
 		const s = Math.max(c.width / BG.width, c.height / BG.height);

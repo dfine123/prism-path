@@ -45,7 +45,7 @@ export type GameRuleData = {
 	title: string;
 };
 
-type GameRuleMeta = {
+export type GameRuleMeta = {
 	gameRules: GameRuleData[];
 	payTable: GameRuleData[];
 	splashScreen: GameRuleData[];

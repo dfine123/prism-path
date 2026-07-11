@@ -86,18 +86,22 @@ const spriteAll = (assetKey: string, sizeRatios = { width: 0.88, height: 0.88 })
 	return { static: s, spin: s, land: s, win: s, postWinStatic: s, explosion: s };
 };
 
+// VALUE HIERARCHY via size tiers (textures are all normalized to one box; the in-cell
+// ratio communicates worth): royals clearly smaller < gems dominant < specials a hair above.
+const LOW_RATIO = { width: 0.72, height: 0.72 };
+const SPECIAL_RATIO = { width: 0.94, height: 0.94 };
+
 export const SYMBOL_INFO_MAP = {
-	L2: spriteAll('L2'),
-	L3: spriteAll('L3'),
-	L4: spriteAll('L4'),
-	L5: spriteAll('L5'),
+	L2: spriteAll('L2', LOW_RATIO),
+	L3: spriteAll('L3', LOW_RATIO),
+	L4: spriteAll('L4', LOW_RATIO),
+	L5: spriteAll('L5', LOW_RATIO),
 	H1: spriteAll('H1'),
 	H2: spriteAll('H2'),
 	H3: spriteAll('H3'),
 	H4: spriteAll('H4'),
-	// same ratio as every other symbol — the set reads as ONE proportionate family
-	WILD: spriteAll('WILD'),
-	SCAT: spriteAll('SCAT'),
+	WILD: spriteAll('WILD', SPECIAL_RATIO),
+	SCAT: spriteAll('SCAT', SPECIAL_RATIO),
 } as const;
 
 export const SCATTER_LAND_SOUND_MAP = {

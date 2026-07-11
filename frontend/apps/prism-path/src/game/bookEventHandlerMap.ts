@@ -73,7 +73,7 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 			eventEmitter.broadcast({ type: 'stickyMarkerAdd', position: bookEvent.position });
 		}
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
-		await waitForTimeout(110);
+		await waitForTimeout(60);
 	},
 	prismPath: async (bookEvent: BookEventOfType<'prismPath'>) => {
 		// Hand the whole flight to the PrismBeastTravel overlay. Non-sticky: the dragon pushes

@@ -22,7 +22,8 @@
 
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
-	import { SYMBOL_SIZE, CELL_W } from '../game/constants';
+	import { SYMBOL_SIZE, CELL_W, BOARD_DIMENSIONS } from '../game/constants';
+	import { stateFx } from '../game/stateFx.svelte';
 	import { prismStyle } from '../game/fonts';
 	import { EASE, clamp01, lerp, paletteAt, lerpColor } from '../game/motion';
 
@@ -33,7 +34,7 @@
 	const DRAW_MS = 135; // sweep-on (left -> right through the winning cells)
 	const HOLD_MS = 360; // streaming hold (matches the symbol breath underneath)
 	const FADE_MS = 95; // release
-	const LINE_W = 11; // core line width (px)
+	const LINE_W = 8; // core line width (px)
 	const FLOW_HZ = 1.45; // gradient stream speed while held (flowy)
 	const CHUNK = 13; // px per gradient chunk
 	const POP_MS = 125; // value pop-in (impact right as the sweep completes)
@@ -75,14 +76,20 @@
 			const cx = cells.reduce((s, p) => s + p.x, 0) / cells.length;
 			const cy = cells.reduce((s, p) => s + p.y, 0) / cells.length;
 			// paylines read left-to-right: the line launches from BEHIND the frame border (the
-			// board-rect mask clips it, so it slides out from under the frame into the board)
+			// board-rect mask clips it, so it slides out from under the frame into the board);
+			// a FULL line (last reel hit) also runs out through the right edge the same way
 			const pts = [{ x: -CELL_W * 0.6, y: cells[0].y }, ...cells];
+			if (cells.length === positions.length && positions.some((p) => p.reel === BOARD_DIMENSIONS.x - 1)) {
+				pts.push({ x: CELL_W * (BOARD_DIMENSIONS.x + 0.6), y: cells[cells.length - 1].y });
+			}
 
 			const hasMult = multiplier > 1;
 			const holdMs = hasMult ? HOLD_MULT_MS : HOLD_MS;
 			const mergeStart = POP_MS + MULT_BEAT_MS; // within the hold phase
-			const start = now();
 			const total = DRAW_MS + holdMs + FADE_MS;
+			// scaled-time clock: a click mid-sequence raises stateFx.winSpeed (skip-through)
+			let lastT = now();
+			let el = 0;
 
 			line = { show: true, pts, prog: 0, alpha: 1, phase: 0 };
 			label = bookEventAmountToCurrencyString(hasMult ? baseAmount : amount);
@@ -91,7 +98,9 @@
 			multFx = { y: MULT_Y, scale: 0, alpha: 0 };
 
 			const frame = () => {
-				const el = now() - start;
+				const t = now();
+				el += (t - lastT) * stateFx.winSpeed;
+				lastT = t;
 				line.phase = (el / 1000) * FLOW_HZ;
 				if (el < DRAW_MS) {
 					// glide (cubicOut): continuous fluid sweep, no expo snap-then-crawl

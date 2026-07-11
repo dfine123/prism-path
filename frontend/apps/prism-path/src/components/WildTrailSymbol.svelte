@@ -7,6 +7,7 @@
 	import { Graphics } from 'pixi-svelte';
 
 	import { EASE, clamp01 } from '../game/motion';
+	import { stateFx } from '../game/stateFx.svelte';
 	import { drawTrailBeam, TRAIL_FLOW_HZ, TRAIL_HOT_FLIGHT } from '../game/trailBeam';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 	import type { SymbolState } from '../game/types';
@@ -24,12 +25,30 @@
 	});
 
 	// The symbol pipeline awaits oncomplete. On WIN the beam brightens and holds for the
-	// same beat as the sprite breath so an all-wild line still paces the sequence.
+	// same beat as the sprite breath so an all-wild line still paces the sequence
+	// (scaled-time so click-to-skip accelerates it too).
 	const WIN_HOLD_MS = 460;
 	$effect(() => {
 		if (props.state === 'win') {
-			const id = setTimeout(() => props.oncomplete?.(), WIN_HOLD_MS);
-			return () => clearTimeout(id);
+			let lastT = performance.now();
+			let el = 0;
+			let raf = 0;
+			let done = false;
+			const frame = () => {
+				const t = performance.now();
+				el += (t - lastT) * stateFx.winSpeed;
+				lastT = t;
+				if (el >= WIN_HOLD_MS) {
+					if (!done) {
+						done = true;
+						props.oncomplete?.();
+					}
+					return;
+				}
+				raf = requestAnimationFrame(frame);
+			};
+			raf = requestAnimationFrame(frame);
+			return () => cancelAnimationFrame(raf);
 		}
 		props.oncomplete?.();
 	});

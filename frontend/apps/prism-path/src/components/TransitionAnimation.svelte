@@ -10,6 +10,7 @@
 
 	type Props = {
 		oncomplete: () => void;
+		oncovered?: () => void; // fired ONCE at full cover — swap the scene behind the curtain
 	};
 	const props: Props = $props();
 	const context = getContext();
@@ -18,6 +19,7 @@
 
 	let t01 = $state(0); // 0..1 sweep progress
 	let done = false;
+	let coveredFired = false;
 
 	onMount(() => {
 		const start = performance.now();
@@ -25,6 +27,11 @@
 		const frame = () => {
 			const el = performance.now() - start;
 			t01 = clamp01(el / DURATION_MS);
+			// the band fully covers the screen for eased progress ~[0.435, 0.565]
+			if (!coveredFired && easeInOut(t01) >= 0.5) {
+				coveredFired = true;
+				props.oncovered?.();
+			}
 			if (el < DURATION_MS) {
 				raf = requestAnimationFrame(frame);
 			} else if (!done) {

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Rectangle, Sprite } from 'pixi-svelte';
 	import { FadeContainer } from 'components-pixi';
-	import { SECOND } from 'constants-shared/time';
 
 	import { getContext } from '../game/context';
 
@@ -27,10 +26,12 @@
 
 <Rectangle {...context.stateLayoutDerived.canvasSizes()} backgroundColor={0x05030a} zIndex={-3} />
 
-<FadeContainer show={showBaseBackground} duration={SECOND} zIndex={-2}>
+<!-- fast crossfade: the day<->night swap happens UNDER the transition curtain, so it must
+     complete before the reveal -->
+<FadeContainer show={showBaseBackground} duration={300} zIndex={-2}>
 	<Sprite key="bgBase" {...cover} />
 </FadeContainer>
 
-<FadeContainer show={showFeatureBackground} duration={SECOND} zIndex={-1}>
+<FadeContainer show={showFeatureBackground} duration={300} zIndex={-1}>
 	<Sprite key="bgFeature" {...cover} />
 </FadeContainer>

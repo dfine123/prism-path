@@ -1,5 +1,7 @@
 <script lang="ts" module>
-	export type EmitterEventTransition = { type: 'transition' };
+	// onCovered fires at FULL COVER — the moment to swap what's behind the curtain
+	// (background/game state) so the reveal already shows the new scene.
+	export type EmitterEventTransition = { type: 'transition'; onCovered?: () => void };
 </script>
 
 <script lang="ts">
@@ -12,9 +14,11 @@
 
 	let transitioning = $state(false);
 	let oncomplete = $state(() => {});
+	let oncovered = $state<(() => void) | undefined>(undefined);
 
 	context.eventEmitter.subscribeOnMount({
-		transition: async () => {
+		transition: async (emitterEvent) => {
+			oncovered = emitterEvent.onCovered;
 			transitioning = true;
 			await waitForResolve((resolve) => (oncomplete = resolve));
 		},
@@ -23,6 +27,7 @@
 
 {#if transitioning}
 	<TransitionAnimation
+		oncovered={() => oncovered?.()}
 		oncomplete={() => {
 			oncomplete();
 			transitioning = false;

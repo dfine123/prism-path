@@ -3,6 +3,7 @@
 
 	import { getSymbolInfo } from '../game/utils';
 	import { SYMBOL_SIZE } from '../game/constants';
+	import { stateFx } from '../game/stateFx.svelte';
 	import type { SymbolState } from '../game/types';
 
 	type Props = {
@@ -24,10 +25,13 @@
 
 	$effect(() => {
 		if (props.state === 'win') {
-			const start = performance.now();
+			let lastT = performance.now();
+			let el = 0;
 			let raf = 0;
 			const frame = () => {
-				const el = performance.now() - start;
+				const t = performance.now();
+				el += (t - lastT) * stateFx.winSpeed; // click-to-skip accelerates the breath
+				lastT = t;
 				const u = Math.min(1, el / BREATH_MS);
 				// two soft sine pulses that relax back to rest
 				breath = 1 + BREATH_AMP * Math.sin(u * Math.PI * 2) * Math.sin(u * Math.PI);

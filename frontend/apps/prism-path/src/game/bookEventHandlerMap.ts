@@ -7,6 +7,7 @@ import { waitForTimeout } from 'utils-shared/wait';
 
 import { eventEmitter } from './eventEmitter';
 import { playBookEvent } from './utils';
+import { stateFx } from './stateFx.svelte';
 import { winLevelMap, type WinLevel, type WinLevelData } from './winLevelMap';
 import { stateGame, stateGameDerived } from './stateGame.svelte';
 import type { BookEvent, BookEventOfType, BookEventContext } from './typesBookEvent';
@@ -95,20 +96,31 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// Lines play strictly SEQUENTIALLY, ordered by value ascending so the presentation
 		// escalates and ends on the biggest hit. Per line: the prism win-line sweeps through
 		// the winning cells while those symbols breathe — both awaited so nothing overlaps.
+		// A CLICK during the sequence = "skip through": every paced clock runs much faster.
 		const wins = [...bookEvent.wins].sort((a, b) => (a.win ?? 0) - (b.win ?? 0));
-		await sequence(wins, async (win) => {
-			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });
-			await Promise.all([
-				eventEmitter.broadcastAsync({
-					type: 'winLinePlay',
-					positions: win.positions,
-					amount: win.win,
-					baseAmount: win.meta?.winWithoutMult ?? win.win,
-					multiplier: win.meta?.lineMultiplier ?? 1,
-				}),
-				animateSymbols({ positions: win.positions }),
-			]);
-		});
+		stateFx.winSpeed = 1;
+		const speedUp = () => {
+			stateFx.winSpeed = 5;
+		};
+		window.addEventListener('pointerdown', speedUp);
+		try {
+			await sequence(wins, async (win) => {
+				eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });
+				await Promise.all([
+					eventEmitter.broadcastAsync({
+						type: 'winLinePlay',
+						positions: win.positions,
+						amount: win.win,
+						baseAmount: win.meta?.winWithoutMult ?? win.win,
+						multiplier: win.meta?.lineMultiplier ?? 1,
+					}),
+					animateSymbols({ positions: win.positions }),
+				]);
+			});
+		} finally {
+			window.removeEventListener('pointerdown', speedUp);
+			stateFx.winSpeed = 1;
+		}
 	},
 	setTotalWin: async (bookEvent: BookEventOfType<'setTotalWin'>) => {
 		stateBet.winBookEventAmount = bookEvent.amount;
@@ -117,10 +129,15 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// animate scatters
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_scatter_win_v2' });
 		await animateSymbols({ positions: bookEvent.positions });
-		// show free spin intro
+		// show free spin intro (the day->night background swap happens UNDER the curtain)
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_superfreespin' });
 		await eventEmitter.broadcastAsync({ type: 'uiHide' });
-		await eventEmitter.broadcastAsync({ type: 'transition' });
+		await eventEmitter.broadcastAsync({
+			type: 'transition',
+			onCovered: () => {
+				stateGame.gameType = 'freegame';
+			},
+		});
 		eventEmitter.broadcast({ type: 'freeSpinIntroShow' });
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'jng_intro_fs' });
 		eventEmitter.broadcast({ type: 'soundMusic', name: 'bgm_freespin' });
@@ -128,7 +145,6 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 			type: 'freeSpinIntroUpdate',
 			totalFreeSpins: bookEvent.totalFs,
 		});
-		stateGame.gameType = 'freegame';
 		eventEmitter.broadcast({ type: 'freeSpinIntroHide' });
 		eventEmitter.broadcast({ type: 'boardFrameGlowShow' });
 		eventEmitter.broadcast({ type: 'freeSpinCounterShow' });

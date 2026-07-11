@@ -75,7 +75,10 @@ class Lines:
                     base_win = config.paytable[(wild_matches + matches, first_non_wild.name)]
 
             if base_win > 0 or wild_win > 0:
-                if wild_win > base_win:
+                # A wild run that a symbol COMPLETES always registers as the full line with
+                # that symbol (4 wilds + K = a 5-line of K). The pure wild-run pay applies
+                # only when there is no completing symbol win (e.g. an all-wild line).
+                if wild_win > 0 and base_win <= 0:
                     positions = [{"reel": idx, "row": line[idx]} for idx in range(0, wild_matches)]
                     line_win, applied_mult = apply_mult(
                         board,

@@ -61,8 +61,9 @@
 		<BoardContainer>
 			<BoardBase />
 			<StickyDragonMarkers />
-			<!-- win lines clip EXACTLY at the board rect so the line slides out from UNDER the
-			     frame border (its start sits behind the frame, off the visible board) -->
+			<!-- win lines AND the dragon flight clip EXACTLY at the board rect: lines slide out
+			     from UNDER the frame border, and the dragon exits THROUGH the board edge,
+			     disappearing under the border (never flying over the frame art) -->
 			<Container>
 				<Rectangle
 					isMask
@@ -70,8 +71,8 @@
 					height={context.stateGameDerived.boardLayout().height}
 				/>
 				<WinLines />
+				<PrismBeastTravel />
 			</Container>
-			<PrismBeastTravel />
 		</BoardContainer>
 	</BoardContext>
 {/if}

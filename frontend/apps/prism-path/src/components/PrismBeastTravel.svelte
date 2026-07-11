@@ -163,9 +163,10 @@
 				const L = p * totalLen;
 				const pos = posAtLen(L);
 
-				// materialize fast; dissolve over the exit leg WHILE STILL MOVING (never brakes)
+				// materialize fast; stay OPAQUE while sliding under the border (the board-rect
+				// mask does the exit) — only a late safety fade once it's already off-board
 				const fadeIn = clamp01(el / 90);
-				const fadeOut = 1 - EASE.collapse(clamp01((u - 0.84) / 0.16));
+				const fadeOut = 1 - EASE.collapse(clamp01((u - 0.92) / 0.08));
 				dragon.x = pos.x;
 				dragon.y = pos.y;
 				dragon.alpha = fadeIn * fadeOut;

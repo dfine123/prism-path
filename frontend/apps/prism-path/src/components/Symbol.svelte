@@ -6,7 +6,9 @@
 	import type { SymbolState, RawSymbol } from '../game/types';
 	import { getContext } from '../game/context';
 	import { prismStyle } from '../game/fonts';
-	import { BitmapText } from 'pixi-svelte';
+	import { SYMBOL_SIZE } from '../game/constants';
+	import { EASE } from '../game/motion';
+	import { BitmapText, Container } from 'pixi-svelte';
 
 	type Props = {
 		x?: number;
@@ -30,6 +32,29 @@
 			!!props.rawSymbol.direction &&
 			(props.rawSymbol.multiplier ?? 0) > 1,
 	);
+
+	// multiplier badge: clean subtle pop-in whenever the value appears or grows (overlap x2->x6)
+	let badgeScale = $state(1);
+	let badgeAlpha = $state(1);
+	$effect(() => {
+		const m = props.rawSymbol.multiplier;
+		if (!m) return;
+		let lastT = performance.now();
+		let el = 0;
+		let raf = 0;
+		const POP_MS = 240;
+		const frame = () => {
+			const t = performance.now();
+			el += t - lastT;
+			lastT = t;
+			const u = Math.min(1, el / POP_MS);
+			badgeScale = 0.7 + 0.3 * EASE.impact(u);
+			badgeAlpha = Math.min(1, u * 3);
+			if (u < 1) raf = requestAnimationFrame(frame);
+		};
+		raf = requestAnimationFrame(frame);
+		return () => cancelAnimationFrame(raf);
+	});
 </script>
 
 {#if isTrailWild}
@@ -59,11 +84,19 @@
 {/if}
 
 {#if props.rawSymbol.multiplier}
-	<BitmapText
-		anchor={0.5}
-		x={props.x}
-		y={props.y}
-		text={`${props.rawSymbol.multiplier}X`}
-		style={prismStyle(50)}
-	/>
+	{@const sticky = !!props.rawSymbol.sticky}
+	<!-- a STICKY dragon's badge sits by its path edge (bottom of the cell), never covering
+	     the seated dragon; trail cells keep the centred badge -->
+	<Container
+		x={props.x ?? 0}
+		y={(props.y ?? 0) + (sticky ? SYMBOL_SIZE * 0.31 : 0)}
+		scale={badgeScale}
+		alpha={badgeAlpha}
+	>
+		<BitmapText
+			anchor={0.5}
+			text={`${props.rawSymbol.multiplier}X`}
+			style={prismStyle(sticky ? 34 : 50)}
+		/>
+	</Container>
 {/if}

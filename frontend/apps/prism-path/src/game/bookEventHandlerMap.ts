@@ -59,10 +59,17 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		if (bookEvent.gameType === 'basegame') {
 			eventEmitter.broadcast({ type: 'stickyMarkerClear' });
 		}
-		await stateGameDerived.enhancedBoard.spin({
-			revealEvent: bookEvent,
-			paddingBoard: config.paddingReels[bookEvent.gameType],
-		});
+		// a CLICK mid-spin = "hurry up": slam the reels like the stop button / turbo would
+		const quickStop = () => eventEmitter.broadcast({ type: 'stopButtonClick' });
+		window.addEventListener('pointerdown', quickStop);
+		try {
+			await stateGameDerived.enhancedBoard.spin({
+				revealEvent: bookEvent,
+				paddingBoard: config.paddingReels[bookEvent.gameType],
+			});
+		} finally {
+			window.removeEventListener('pointerdown', quickStop);
+		}
 		eventEmitter.broadcast({ type: 'soundScatterCounterClear' });
 	},
 	prismBeast: async (bookEvent: BookEventOfType<'prismBeast'>) => {

@@ -3,6 +3,7 @@
 	import { FadeContainer } from 'components-pixi';
 
 	import { getContext } from '../game/context';
+	import BackgroundParticles from './BackgroundParticles.svelte';
 
 	const context = getContext();
 	const showBaseBackground = $derived(context.stateGame.gameType === 'basegame');
@@ -35,3 +36,6 @@
 <FadeContainer show={showFeatureBackground} duration={300} zIndex={-1}>
 	<Sprite key="bgFeature" {...cover} />
 </FadeContainer>
+
+<!-- living ambient motes over the clean plates (the baked particles, animated) -->
+<BackgroundParticles />

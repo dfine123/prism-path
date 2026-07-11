@@ -4,6 +4,7 @@ import { recordBookEvent, checkIsMultipleRevealEvents, type BookEventHandlerMap 
 import { stateBet, stateUi } from 'state-shared';
 import { sequence } from 'utils-shared/sequence';
 import { waitForTimeout } from 'utils-shared/wait';
+import { bookEventAmountToCurrencyString } from 'utils-shared/amount';
 
 import { eventEmitter } from './eventEmitter';
 import { playBookEvent } from './utils';
@@ -87,7 +88,11 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		await sequence(wins, async (win) => {
 			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });
 			await Promise.all([
-				eventEmitter.broadcastAsync({ type: 'winLinePlay', positions: win.positions }),
+				eventEmitter.broadcastAsync({
+					type: 'winLinePlay',
+					positions: win.positions,
+					label: bookEventAmountToCurrencyString(win.win),
+				}),
 				animateSymbols({ positions: win.positions }),
 			]);
 		});

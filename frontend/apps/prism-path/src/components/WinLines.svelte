@@ -1,18 +1,20 @@
 <script lang="ts" module>
 	import type { Position } from '../game/types';
 
-	// Awaitable win-line presentation: sweeps a prism-light line through the winning cells
-	// (joint pulse as it passes each one), holds while streaming, then fades. The winInfo
-	// handler awaits one full lifecycle per line, so lines play strictly sequentially.
-	export type EmitterEventWinLines = { type: 'winLinePlay'; positions: Position[] };
+	// Awaitable win-line presentation: sweeps a prism-light line through the winning cells,
+	// pops the line's WIN VALUE at the centroid on the impact frame, holds while streaming,
+	// then fades. The winInfo handler awaits one full lifecycle per line, so lines play
+	// strictly sequentially.
+	export type EmitterEventWinLines = { type: 'winLinePlay'; positions: Position[]; label: string };
 </script>
 
 <script lang="ts">
-	import { Graphics } from 'pixi-svelte';
+	import { BitmapText, Container, Graphics } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
 	import { SYMBOL_SIZE } from '../game/constants';
+	import { prismStyle } from '../game/fonts';
 	import { EASE, clamp01, lerp, paletteAt, lerpColor } from '../game/motion';
 
 	const context = getContext();
@@ -25,6 +27,8 @@
 	const LINE_W = 11; // core line width (px)
 	const FLOW_HZ = 0.8; // gradient stream speed while held
 	const CHUNK = 13; // px per gradient chunk
+	const POP_MS = 170; // value plaque pop-in (impact right as the sweep completes)
+	const POP_FONT = 36;
 
 	let line = $state({
 		show: false,
@@ -33,6 +37,9 @@
 		alpha: 0,
 		phase: 0,
 	});
+	// the per-line WIN VALUE plaque (standard slots pattern: value pops at the line's centre)
+	let pop = $state({ x: 0, y: 0, scale: 0, alpha: 0, textW: 0, textH: 0 });
+	let label = $state('');
 
 	const now = () => performance.now();
 
@@ -42,18 +49,21 @@
 		return { x: getSymbolX(p.reel), y };
 	};
 
-	const play = (positions: Position[]) =>
+	const play = (positions: Position[], winLabel: string) =>
 		new Promise<void>((resolve) => {
-			const pts = [...positions]
-				.sort((a, b) => a.reel - b.reel)
-				.map(cellPos);
-			if (pts.length === 0) return resolve();
+			const cells = [...positions].sort((a, b) => a.reel - b.reel).map(cellPos);
+			if (cells.length === 0) return resolve();
+			// the value plaque sits at the centroid of the WINNING cells (before the edge anchor)
+			const cx = cells.reduce((s, p) => s + p.x, 0) / cells.length;
+			const cy = cells.reduce((s, p) => s + p.y, 0) / cells.length;
 			// paylines read left-to-right: launch the line FROM the board's left edge (tucked
 			// just under the frame) into the first winning symbol
-			pts.unshift({ x: -SYMBOL_SIZE * 0.04, y: pts[0].y });
+			const pts = [{ x: -SYMBOL_SIZE * 0.04, y: cells[0].y }, ...cells];
 			const start = now();
 			const total = DRAW_MS + HOLD_MS + FADE_MS;
 			line = { show: true, pts, prog: 0, alpha: 1, phase: 0 };
+			label = winLabel;
+			pop = { x: cx, y: cy, scale: 0, alpha: 0, textW: pop.textW, textH: pop.textH };
 
 			const frame = () => {
 				const el = now() - start;
@@ -64,15 +74,29 @@
 				} else if (el < DRAW_MS + HOLD_MS) {
 					line.prog = 1;
 					line.alpha = 1;
+					// value plaque: IMPACT pop as the sweep completes, then a gentle breathe
+					const pu = clamp01((el - DRAW_MS) / POP_MS);
+					if (pu < 1) {
+						pop.scale = EASE.impact(pu);
+						pop.alpha = clamp01(pu * 2.5);
+					} else {
+						pop.scale = 1 + 0.025 * Math.sin(line.phase * Math.PI * 2.4);
+						pop.alpha = 1;
+					}
 				} else {
 					line.prog = 1;
-					line.alpha = 1 - EASE.collapse(clamp01((el - DRAW_MS - HOLD_MS) / FADE_MS));
+					const fu = clamp01((el - DRAW_MS - HOLD_MS) / FADE_MS);
+					line.alpha = 1 - EASE.collapse(fu);
+					pop.alpha = line.alpha;
+					pop.scale = 1 - 0.08 * fu;
 				}
 				if (el < total) {
 					requestAnimationFrame(frame);
 				} else {
 					line.show = false;
 					line.alpha = 0;
+					pop.alpha = 0;
+					pop.scale = 0;
 					resolve();
 				}
 			};
@@ -80,8 +104,8 @@
 		});
 
 	context.eventEmitter.subscribeOnMount({
-		winLinePlay: async ({ positions }) => {
-			await play(positions);
+		winLinePlay: async ({ positions, label: winLabel }) => {
+			await play(positions, winLabel);
 		},
 	});
 </script>
@@ -180,4 +204,27 @@
 			}
 		}}
 	/>
+
+	<!-- the line's WIN VALUE: pops at the centroid on the sweep's impact frame -->
+	{#if pop.alpha > 0.01}
+		<Container x={pop.x} y={pop.y} scale={pop.scale} alpha={pop.alpha}>
+			<Graphics
+				draw={(g) => {
+					const w = pop.textW + 30;
+					const h = pop.textH + 14;
+					g.roundRect(-w / 2, -h / 2, w, h, 12).fill({ color: 0x0b0814, alpha: 0.88 });
+					g.roundRect(-w / 2, -h / 2, w, h, 12).stroke({ width: 2, color: 0xffffff, alpha: 0.85 });
+				}}
+			/>
+			<BitmapText
+				anchor={0.5}
+				text={label}
+				style={prismStyle(POP_FONT)}
+				onresize={(sizes) => {
+					pop.textW = sizes.width;
+					pop.textH = sizes.height;
+				}}
+			/>
+		</Container>
+	{/if}
 {/if}

@@ -11,7 +11,10 @@
 	// Feature finale — TOTAL WIN presented with the same layered WinBox light show as the
 	// big wins (one visual language), plus the prism-shard burst. No template spines/sprites.
 	import { FadeContainer, WinCountUpProvider, ResponsiveBitmapText } from 'components-pixi';
-	import { bookEventAmountToCurrencyString } from 'utils-shared/amount';
+	import {
+		bookEventAmountToBetAmountMultiplier,
+		bookEventAmountToCurrencyString,
+	} from 'utils-shared/amount';
 	import { waitForResolve } from 'utils-shared/wait';
 	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { OnMount } from 'components-shared';
@@ -47,7 +50,12 @@
 
 <FadeContainer {show}>
 	{#if winLevelData}
-		{@const duration = Math.max(winLevelData.presentDuration, 2500)}
+		<!-- same >10x rule as Win.svelte: only totals above 10x the bet earn the roll — a
+		     small feature total lands instantly (the panel + press-to-continue still hold) -->
+		{@const duration =
+			bookEventAmountToBetAmountMultiplier(amount) > 10
+				? Math.max(winLevelData.presentDuration, 2500)
+				: 0}
 		{@const boxLevel = Math.max(6, winLevelData.level)}
 		<WinCountUpProvider {amount} {duration} oncomplete={() => onCountUpComplete()}>
 			{#snippet children({ countUpAmount, startCountUp, finishCountUp, countUpCompleted })}

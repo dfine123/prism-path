@@ -11,7 +11,10 @@
 	import { Container } from 'pixi-svelte';
 	import { FadeContainer, WinCountUpProvider, ResponsiveBitmapText } from 'components-pixi';
 	import { waitForResolve, waitForTimeout } from 'utils-shared/wait';
-	import { bookEventAmountToCurrencyString } from 'utils-shared/amount';
+	import {
+		bookEventAmountToBetAmountMultiplier,
+		bookEventAmountToCurrencyString,
+	} from 'utils-shared/amount';
 	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { OnMount } from 'components-shared';
 
@@ -44,7 +47,10 @@
 <FadeContainer {show}>
 	{#if winLevelData}
 		{@const isBigWin = winLevelData.type === 'big'}
-		{@const duration = winLevelData.presentDuration}
+		<!-- the count-up ROLL is a >10x ceremony: at or under 10x the bet, the amount lands
+		     instantly (duration 0) and just holds long enough to read -->
+		{@const rollsUp = bookEventAmountToBetAmountMultiplier(amount) > 10}
+		{@const duration = rollsUp ? winLevelData.presentDuration : 0}
 		<WinCountUpProvider {amount} {duration} oncomplete={() => onCountUpComplete()}>
 			{#snippet children({ countUpAmount, startCountUp, finishCountUp, countUpCompleted })}
 				{#if isBigWin}
@@ -58,7 +64,9 @@
 				<OnMount
 					onmount={async () => {
 						await startCountUp();
-						await waitForTimeout(300);
+						// an instant amount needs a longer static hold than a rolled one — the
+						// roll itself was the reading time
+						await waitForTimeout(rollsUp ? 300 : 650);
 						oncomplete();
 					}}
 				/>

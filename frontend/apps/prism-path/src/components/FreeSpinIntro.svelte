@@ -106,5 +106,9 @@
 		</Container>
 	</MainContainer>
 
-	<PressToContinue onpress={() => oncomplete()} />
+	<!-- unmount the full-screen catcher the instant hiding starts — an invisible fading
+	     rect must not swallow board presses -->
+	{#if show}
+		<PressToContinue onpress={() => oncomplete()} />
+	{/if}
 </FadeContainer>

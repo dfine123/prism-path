@@ -3,7 +3,7 @@
 	// in-flight ribbon. Rendering comes from the SHARED beam renderer (game/trailBeam.ts) on
 	// the shared absolute clock, so the hand-off from flight to resting cell is
 	// pixel-identical: it lands at the flight's heat (TRAIL_HOT_FLIGHT) and settles to rest.
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { Graphics } from 'pixi-svelte';
 
 	import { EASE, clamp01 } from '../game/motion';
@@ -61,10 +61,12 @@
 	const born = performance.now();
 
 	// WIN boost: pops IN fast (impact) and RETRACTS slowly (settle) — never a step.
+	// `boost` is read via untrack: a tracked read would make every rAF write re-trigger
+	// this effect, restarting the ease each frame (stacked drivers, overshoot never lands).
 	let boost = $state(1);
 	$effect(() => {
 		const target = props.state === 'win' ? 1.4 : 1;
-		const from = boost;
+		const from = untrack(() => boost);
 		if (Math.abs(target - from) < 0.005) return;
 		const rising = target > from;
 		const dur = rising ? 150 : 380;

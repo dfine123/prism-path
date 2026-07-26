@@ -13,12 +13,16 @@
 
 	const props: Props = $props();
 
-	// clean subtle pop-in whenever the value appears or grows (overlap x2 -> x6)
-	let badgeScale = $state(1);
-	let badgeAlpha = $state(1);
+	// clean subtle pop-in whenever the value appears or grows (overlap x2 -> x6).
+	// Initialized at the pop's START pose — initializing at rest painted one full-size
+	// frame before the first rAF tick (a visible flash at mount).
+	let badgeScale = $state(0.7);
+	let badgeAlpha = $state(0);
 	$effect(() => {
 		const m = props.multiplier;
 		if (!m) return;
+		badgeScale = 0.7;
+		badgeAlpha = 0;
 		let lastT = performance.now();
 		let el = 0;
 		let raf = 0;

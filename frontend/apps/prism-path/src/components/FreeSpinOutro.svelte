@@ -26,7 +26,9 @@
 
 	const context = getContext();
 
-	let show = $state(true);
+	// starts HIDDEN like every other overlay — init true made the first feature's TOTAL WIN
+	// panel hard-cut in (FadeContainer had already tweened to alpha 1 invisibly at boot)
+	let show = $state(false);
 	let amount = $state(0);
 	let winLevelData = $state<WinLevelData>();
 	let oncomplete = $state(() => {});
@@ -71,7 +73,11 @@
 
 				<PrismShards emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
 
-				<PressToContinue onpress={() => (countUpCompleted ? oncomplete() : finishCountUp())} />
+				<!-- unmount the full-screen catcher the instant hiding starts — an invisible
+				     fading rect must not swallow board presses -->
+				{#if show}
+					<PressToContinue onpress={() => (countUpCompleted ? oncomplete() : finishCountUp())} />
+				{/if}
 			{/snippet}
 		</WinCountUpProvider>
 	{/if}

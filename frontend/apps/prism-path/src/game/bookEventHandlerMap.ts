@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
 import { recordBookEvent, checkIsMultipleRevealEvents, type BookEventHandlerMap } from 'utils-book';
+import { wasRecentUiPress } from 'components-pixi';
 import { stateBet, stateUi } from 'state-shared';
 import { sequence } from 'utils-shared/sequence';
 import { waitForTimeout } from 'utils-shared/wait';
@@ -59,8 +60,13 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		if (bookEvent.gameType === 'basegame') {
 			eventEmitter.broadcast({ type: 'stickyMarkerClear' });
 		}
-		// a CLICK mid-spin = "hurry up": slam the reels like the stop button / turbo would
-		const quickStop = () => eventEmitter.broadcast({ type: 'stopButtonClick' });
+		// a CLICK mid-spin = "hurry up": slam the reels like the stop button / turbo would.
+		// Presses that land ON a console control are exempt (wasRecentUiPress) — clicking
+		// MENU or TURBO mid-spin must not double as a reel slam.
+		const quickStop = () => {
+			if (wasRecentUiPress()) return;
+			eventEmitter.broadcast({ type: 'stopButtonClick' });
+		};
 		window.addEventListener('pointerdown', quickStop);
 		boardBreathe(); // the board takes a breath as the reels launch
 		try {
@@ -131,6 +137,7 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		const wins = [...mergedByCells.values()].sort((a, b) => (a.win ?? 0) - (b.win ?? 0));
 		stateFx.winSpeed = 1;
 		const speedUp = () => {
+			if (wasRecentUiPress()) return; // console presses are not "skip the lines"
 			stateFx.winSpeed = 5;
 		};
 		window.addEventListener('pointerdown', speedUp);

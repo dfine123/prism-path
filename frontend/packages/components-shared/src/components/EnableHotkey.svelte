@@ -12,12 +12,21 @@
 	const getValidElement = (e: KeyboardEvent) =>
 		!EXCLUDED_TAGS.includes(e?.target?.tagName?.toLowerCase());
 
+	// physically-held keys, so a lost keyup (blur/tab-switch) can be synthesized
+	const heldKeys = new Set<string>();
+
 	function handleKeydown(e: KeyboardEvent) {
+		// OS auto-repeat re-fires keydown while held — without this filter a held Space
+		// "presses" again before the hold engages and instantly stops the spin it started
+		if (e.repeat) return;
 		if (getValidElement(e)) {
 			const isSpace = e.key === ' ';
 			const key = isSpace ? 'Space' : e.key;
 			if (PREVENT_DEFAULT_KEYS.includes(key)) e.preventDefault();
-			if (key) context.eventEmitter.broadcast({ type: 'hotKey', key, action: 'keyDown' });
+			if (key) {
+				heldKeys.add(key);
+				context.eventEmitter.broadcast({ type: 'hotKey', key, action: 'keyDown' });
+			}
 		}
 	}
 
@@ -26,17 +35,37 @@
 			const isSpace = e.key === ' ';
 			const key = isSpace ? 'Space' : e.key;
 			if (PREVENT_DEFAULT_KEYS.includes(key)) e.preventDefault();
-			if (key) context.eventEmitter.broadcast({ type: 'hotKey', key, action: 'keyUp' });
+			if (key) {
+				heldKeys.delete(key);
+				context.eventEmitter.broadcast({ type: 'hotKey', key, action: 'keyUp' });
+			}
 		}
+	}
+
+	// blur / tab-switch swallows the real keyup: synthesize one for every held key so a
+	// Space-hold can never keep auto-betting unattended after focus is lost
+	function releaseHeldKeys() {
+		for (const key of heldKeys) {
+			context.eventEmitter.broadcast({ type: 'hotKey', key, action: 'keyUp' });
+		}
+		heldKeys.clear();
+	}
+
+	function handleVisibility() {
+		if (document.visibilityState === 'hidden') releaseHeldKeys();
 	}
 
 	onMount(() => {
 		window.addEventListener('keydown', handleKeydown);
 		window.addEventListener('keyup', handleKeyup);
+		window.addEventListener('blur', releaseHeldKeys);
+		document.addEventListener('visibilitychange', handleVisibility);
 	});
 
 	onDestroy(() => {
 		window.removeEventListener('keydown', handleKeydown);
 		window.removeEventListener('keyup', handleKeyup);
+		window.removeEventListener('blur', releaseHeldKeys);
+		document.removeEventListener('visibilitychange', handleVisibility);
 	});
 </script>

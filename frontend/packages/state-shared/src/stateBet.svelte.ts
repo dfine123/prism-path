@@ -19,6 +19,9 @@ export const stateBet = $state({
 	autoSpinsSingleWinLimitAmount: Infinity,
 	isSpaceHold: false,
 	isTurbo: false,
+	// the PLAYER'S turbo choice (persistent presses only) — runtime forcing (stop-slam,
+	// space-hold) flips isTurbo but must not repaint the player's toggle
+	isTurboUser: false,
 });
 
 const correctBetAmount = (value: number) => {
@@ -44,7 +47,10 @@ const updateIsTurbo = (value: boolean, options: { persistent: boolean }) => {
 	const { persistent } = options;
 
 	if (!persistent && isTurboLocked) return;
-	if (persistent) isTurboLocked = value;
+	if (persistent) {
+		isTurboLocked = value;
+		stateBet.isTurboUser = value;
+	}
 
 	stateBet.isTurbo = value;
 };

@@ -33,8 +33,12 @@
 
 	context.eventEmitter.subscribeOnMount({
 		// the board reacts to the CLICK itself — instant tactile acknowledgment of the spin
-		// press (reveal also breathes, for pressless spins; the refractory guard dedupes)
-		soundPressBet: () => boardBreathe(),
+		// press (reveal also breathes, for pressless spins; the refractory guard dedupes).
+		// ONLY when idle: mid-round the same press means STOP, and a launch-anticipation
+		// breath on a stop press reads as a glitch.
+		soundPressBet: () => {
+			if (context.stateXstateDerived.isIdle()) boardBreathe();
+		},
 		stopButtonClick: () => context.stateGameDerived.enhancedBoard.stop(),
 		boardSettle: ({ board }) => context.stateGameDerived.enhancedBoard.settle(board),
 		boardShow: () => (show = true),

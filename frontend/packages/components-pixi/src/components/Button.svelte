@@ -39,6 +39,8 @@
 </script>
 
 <script lang="ts">
+	import { markUiPress } from '../uiPressGuard';
+
 	const { children, sizes, anchor, disabled, onpress, debug, ...containerProps }: Props = $props();
 	const center = $derived({
 		x: sizes.width * 0.5,
@@ -70,6 +72,7 @@
 		hovered = false;
 	}}
 	onpointerdown={() => {
+		markUiPress(); // even disabled buttons swallow the press — it was aimed at UI
 		if (disabled) return;
 		pressed = true;
 	}}

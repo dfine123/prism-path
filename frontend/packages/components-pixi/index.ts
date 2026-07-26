@@ -7,6 +7,8 @@ import ResponsiveText from './src/components/ResponsiveText.svelte';
 import Button, { type Props as ButtonProps } from './src/components/Button.svelte';
 import Amount, { type Props as AmountProps } from './src/components/Amount.svelte';
 
+export { markUiPress, wasRecentUiPress } from './src/uiPressGuard';
+
 export {
 	EnablePixiExtension,
 	FadeContainer,

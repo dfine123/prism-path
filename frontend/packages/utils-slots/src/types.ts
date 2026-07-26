@@ -15,6 +15,9 @@ export type SpinningReelSpinOptions = {
 	reelBounceSizeMulti: number;
 	// easing for the settle from the overshoot back to rest (default: sineOut)
 	reelBounceEasing?: (t: number) => number;
+	// easing for the FIRST pre-spin dive (default: backIn — the template's wind-up "lift";
+	// pass an accelerating ease like quadIn for a lift-free, immediate launch)
+	reelPreSpinEasing?: (t: number) => number;
 	// extra padding
 	reelPaddingMultiplierNormal: number;
 	reelPaddingMultiplierAnticipated: number;

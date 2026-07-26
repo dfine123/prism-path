@@ -57,6 +57,9 @@ const SPIN_OPTIONS_SHARED = {
 	// the settle back from the overshoot rises a hair past rest then relaxes — symbols land
 	// on a cushion instead of a hard stop
 	reelBounceEasing: EASE.cushion,
+	// launch is a pure accelerating dive — the template's backIn "lift" (reels pull UP
+	// before spinning) read as lag on the press
+	reelPreSpinEasing: EASE.launch,
 	reelPaddingMultiplierNormal: 1.2,
 	reelPaddingMultiplierAnticipated: 10,
 	reelSpinDelay: 145,
@@ -64,7 +67,7 @@ const SPIN_OPTIONS_SHARED = {
 
 export const SPIN_OPTIONS_DEFAULT = {
 	...SPIN_OPTIONS_SHARED,
-	reelPreSpinSpeed: 2,
+	reelPreSpinSpeed: 2.6, // snappier first dive (was 2 — with the lift gone, the launch carries the pace)
 	reelSpinSpeed: 3,
 	reelBounceSizeMulti: 0.3,
 };

@@ -19,6 +19,7 @@ export const EASE = {
 	glide: cubicOut, // smooth continuous travel
 	idle: sineInOut, // breathe, drift, shimmer
 	collapse: quadIn, // fade / shrink away
+	launch: quadIn, // accelerating dive from standstill (reel spin-up — no wind-up lift)
 } as const;
 
 // ms @ 1x (divide by timeScale at the call site if one is introduced).

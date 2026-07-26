@@ -187,7 +187,10 @@ export function createReelForSpinning<TRawSymbol extends object, TSymbolState ex
 			const speed = started
 				? reelState.spinOptions().reelSpinSpeed
 				: reelState.spinOptions().reelPreSpinSpeed;
-			const easing = started || isTurboBeforeAll ? linear : backIn;
+			const easing =
+				started || isTurboBeforeAll
+					? linear
+					: (reelState.spinOptions().reelPreSpinEasing ?? backIn);
 			await slideY({ reelY: defaultY, speed, easing });
 			await preSpinPadding({ preSpinPaddingRawReel });
 			if (!started) {

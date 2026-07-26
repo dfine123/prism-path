@@ -53,6 +53,8 @@ export const getSymbolX = (reelIndex: number) => CELL_W * (reelIndex + REEL_PADD
 export const getSymbolY = (symbolIndexOfBoard: number) => (symbolIndexOfBoard + 0.5) * SYMBOL_SIZE;
 
 const BEAST_ASSET = { up: 'beastUp', down: 'beastDown', left: 'beastLeft', right: 'beastRight' } as const;
+// sticky dragon faces its fresh direction each re-land (rotations of the down-facing art)
+const STICKY_ASSET = { up: 'stickyUp', down: 'stickyDown', left: 'stickyLeft', right: 'stickyRight' } as const;
 
 export const getSymbolInfo = ({
 	rawSymbol,
@@ -65,7 +67,10 @@ export const getSymbolInfo = ({
 	// A STICKY dragon renders its dedicated crowned-guardian symbol (its claimed square also
 	// carries the glowing border marker); a normal WILD renders the directional bust.
 	if (rawSymbol.name === 'WILD' && rawSymbol.sticky) {
-		return { ...info, assetKey: 'WILDSTICKY' };
+		return {
+			...info,
+			assetKey: rawSymbol.direction ? STICKY_ASSET[rawSymbol.direction] : 'WILDSTICKY',
+		};
 	}
 	if (rawSymbol.name === 'WILD' && rawSymbol.direction) {
 		return { ...info, assetKey: BEAST_ASSET[rawSymbol.direction] };

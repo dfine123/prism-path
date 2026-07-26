@@ -13,6 +13,8 @@ export type SpinningReelSpinOptions = {
 	reelSpinSpeedBeforeBounce: number;
 	// size
 	reelBounceSizeMulti: number;
+	// easing for the settle from the overshoot back to rest (default: sineOut)
+	reelBounceEasing?: (t: number) => number;
 	// extra padding
 	reelPaddingMultiplierNormal: number;
 	reelPaddingMultiplierAnticipated: number;

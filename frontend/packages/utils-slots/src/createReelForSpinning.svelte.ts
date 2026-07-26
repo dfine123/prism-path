@@ -153,7 +153,7 @@ export function createReelForSpinning<TRawSymbol extends object, TSymbolState ex
 		await slideY({
 			reelY: defaultY,
 			speed: reelState.spinOptions().reelBounceBackSpeed,
-			easing: sineOut,
+			easing: reelState.spinOptions().reelBounceEasing ?? sineOut,
 		});
 		setSymbolsWithReelSymbols(targetSymbols);
 	};

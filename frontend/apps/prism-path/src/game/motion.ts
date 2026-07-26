@@ -2,9 +2,18 @@
 // Name easings by INTENT, not by curve, so retuning a curve here re-tunes the whole game.
 import { quadOut, backOut, cubicOut, expoOut, sineInOut, quadIn, elasticOut } from 'svelte/easing';
 
+// backOut with a reduced overshoot (~7% vs backOut's ~10%) — for physical settles where the
+// full curve reads as rubbery (reel bounce-back, land cushions).
+const backOutSoft = (t: number) => {
+	const s = 1.2;
+	const u = t - 1;
+	return u * u * ((s + 1) * u + s) + 1;
+};
+
 export const EASE = {
 	load: quadOut, // wind-up before an impact
 	impact: backOut, // the land/hit — overshoot then settle
+	cushion: backOutSoft, // physical settle — rise a hair past rest, then relax
 	celebrate: elasticOut, // hero lands (wobble)
 	settle: expoOut, // count-ups, glides, meter rolls
 	glide: cubicOut, // smooth continuous travel

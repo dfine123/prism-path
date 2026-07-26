@@ -1,4 +1,5 @@
 import type { RawSymbol, SymbolState } from './types';
+import { EASE } from './motion';
 
 export const SYMBOL_SIZE = 96; // CELL HEIGHT (and the square symbol render size)
 
@@ -53,6 +54,9 @@ export const INITIAL_SYMBOL_STATE: SymbolState = 'static';
 const SPIN_OPTIONS_SHARED = {
 	reelBounceBackSpeed: 0.15,
 	reelSpinSpeedBeforeBounce: 4,
+	// the settle back from the overshoot rises a hair past rest then relaxes — symbols land
+	// on a cushion instead of a hard stop
+	reelBounceEasing: EASE.cushion,
 	reelPaddingMultiplierNormal: 1.2,
 	reelPaddingMultiplierAnticipated: 10,
 	reelSpinDelay: 145,

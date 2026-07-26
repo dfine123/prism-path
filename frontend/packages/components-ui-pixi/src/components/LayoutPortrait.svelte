@@ -3,19 +3,25 @@
 	import { cubicInOut } from 'svelte/easing';
 
 	import { stateUi } from 'state-shared';
-	import { BLACK } from 'constants-shared/colors';
 	import { FadeContainer } from 'components-pixi';
 	import { MainContainer } from 'components-layout';
-	import { Container, Rectangle } from 'pixi-svelte';
+	import { Container } from 'pixi-svelte';
 	import { waitForResolve } from 'utils-shared/wait';
 
 	import LabelFreeSpinCounter from './LabelFreeSpinCounter.svelte';
 	import ButtonDrawer from './ButtonDrawer.svelte';
+	import MenuPod from './MenuPod.svelte';
 	import type { LayoutUiProps } from '../types';
 	import { getContext } from '../context';
+	import { SUPER_UI } from '../theme';
 
+	// Portrait: the HERO lives dead-centre in the thumb zone with turbo/auto orbiting it
+	// and menu/buy at the corners; money capsules stack above. The DRAWER mechanics are
+	// the template's proven system, untouched: the action cluster + balance fold away
+	// during free spins, leaving win + bet (or the FS counter) on screen.
 	const props: LayoutUiProps = $props();
 	const context = getContext();
+	const T = SUPER_UI;
 
 	const DRAWER_Y = {
 		unfold: 0,
@@ -64,6 +70,9 @@
 			}
 		},
 	});
+
+	const midX = $derived(context.stateLayoutDerived.mainLayoutStandard().width * 0.5);
+	const H = $derived(context.stateLayoutDerived.mainLayoutStandard().height);
 </script>
 
 <Container x={20}>
@@ -75,56 +84,22 @@
 </Container>
 
 <MainContainer standard alignVertical="bottom">
-	<!-- drawer container -->
+	<!-- drawer group: action cluster + balance (folds away during free spins) -->
 	<Container y={drawerTween.current}>
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5 - 440}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 400}
-		>
-			{@render props.buttonMenu({ anchor: 0.5 })}
-		</Container>
+		<Container x={midX} y={H - 400}>{@render props.buttonBet({ anchor: 0.5 })}</Container>
+		<Container x={midX - 195} y={H - 400}>{@render props.buttonAutoSpin({ anchor: 0.5 })}</Container>
+		<Container x={midX + 195} y={H - 400}>{@render props.buttonTurbo({ anchor: 0.5 })}</Container>
+		<Container x={midX - 440} y={H - 400}>{@render props.buttonMenu({ anchor: 0.5 })}</Container>
+		<Container x={midX + 440} y={H - 400}>{@render props.buttonBuyBonus({ anchor: 0.5 })}</Container>
 
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5 + 440}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 400}
-		>
-			{@render props.buttonBuyBonus({ anchor: 0.5 })}
-		</Container>
-
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 400}
-		>
-			{@render props.buttonBet({ anchor: 0.5 })}
-		</Container>
-
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5 - 180}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 400}
-		>
-			{@render props.buttonAutoSpin({ anchor: 0.5 })}
-		</Container>
-
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5 + 180}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 400}
-		>
-			{@render props.buttonTurbo({ anchor: 0.5 })}
-		</Container>
-
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 270}
-		>
+		<Container x={midX} y={H - 234}>
 			{@render props.amountBalance({ stacked: true })}
 		</Container>
 	</Container>
 
+	<!-- win capsule: rides the drawer only until it clears its resting spot -->
 	<Container y={Math.min(drawerTween.current, 350)}>
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 670}
-		>
+		<Container x={midX} y={H - 634}>
 			{@render props.amountWin({ stacked: true })}
 		</Container>
 	</Container>
@@ -132,33 +107,16 @@
 
 <MainContainer standard alignVertical="bottom">
 	{#if stateUi.freeSpinCounterShow}
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 130}
-		>
+		<Container x={midX} y={H - 94}>
 			<LabelFreeSpinCounter stacked />
 		</Container>
 	{:else}
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 130}
-		>
+		<Container x={midX} y={H - 94}>
 			{@render props.amountBet({ stacked: true })}
 		</Container>
 
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5 - 390}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 85}
-		>
-			{@render props.buttonDecrease({ anchor: 0.5 })}
-		</Container>
-
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5 + 390}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 85}
-		>
-			{@render props.buttonIncrease({ anchor: 0.5 })}
-		</Container>
+		<Container x={midX - 250} y={H - 85}>{@render props.buttonDecrease({ anchor: 0.5 })}</Container>
+		<Container x={midX + 250} y={H - 85}>{@render props.buttonIncrease({ anchor: 0.5 })}</Container>
 	{/if}
 
 	<!-- drawer button -->
@@ -168,53 +126,18 @@
 		oncomplete={drawerButtonFadeComplete}
 		y={drawerButtonTween.current}
 	>
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5 + 440}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 105}
-		>
+		<Container x={midX + 440} y={H - 105}>
 			<ButtonDrawer disabled={!stateUi.drawerButtonShow} anchor={0.5} />
 		</Container>
 	</FadeContainer>
 </MainContainer>
 
-{#if stateUi.menuOpen}
-	<Rectangle
-		eventMode="static"
-		cursor="pointer"
-		alpha={0.5}
-		anchor={0.5}
-		backgroundColor={BLACK}
-		width={context.stateLayoutDerived.canvasSizes().width}
-		height={context.stateLayoutDerived.canvasSizes().height}
-		x={context.stateLayoutDerived.canvasSizes().width * 0.5}
-		y={context.stateLayoutDerived.canvasSizes().height * 0.5}
-		onpointerup={() => (stateUi.menuOpen = false)}
-	/>
-
-	<MainContainer standard alignVertical="bottom">
-		<Container
-			x={context.stateLayoutDerived.mainLayoutStandard().width * 0.5 - 440}
-			y={context.stateLayoutDerived.mainLayoutStandard().height - 400}
-		>
-			<Container y={-190 - 210 * 3}>
-				{@render props.buttonPayTable({ anchor: 0.5 })}
-			</Container>
-
-			<Container y={-190 - 210 * 2}>
-				{@render props.buttonGameRules({ anchor: 0.5 })}
-			</Container>
-
-			<Container y={-190 - 210 * 1}>
-				{@render props.buttonSettings({ anchor: 0.5 })}
-			</Container>
-
-			<Container y={-190}>
-				{@render props.buttonSoundSwitch({ anchor: 0.5 })}
-			</Container>
-
-			<Container>
-				{@render props.buttonMenuClose({ anchor: 0.5 })}
-			</Container>
-		</Container>
-	</MainContainer>
-{/if}
+<MenuPod
+	buttonPayTable={props.buttonPayTable}
+	buttonGameRules={props.buttonGameRules}
+	buttonSettings={props.buttonSettings}
+	buttonSoundSwitch={props.buttonSoundSwitch}
+	buttonMenuClose={props.buttonMenuClose}
+	x={midX - 440}
+	bottomY={H - 480}
+/>

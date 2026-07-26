@@ -24,7 +24,7 @@
 		anchor={0.5}
 		text={stateBet.autoSpinsCounter === Infinity ? '∞' : stateBet.autoSpinsCounter}
 		style={{
-			fontFamily: 'Prism',
+			fontFamily: 'Superui',
 			fill: WHITE,
 			fontWeight: 'bold',
 			fontSize: fontSizeMultiplier * UI_BASE_SIZE * 0.2,

@@ -2,6 +2,8 @@ import type { Snippet } from 'svelte';
 
 import type { ButtonProps } from 'components-pixi';
 
+type UiButtonSnippetProps = Partial<ButtonProps> & { showLabel?: boolean };
+
 export type EmitterEventUi =
 	| { type: 'hotKeySpace' }
 	| { type: 'hotKeyEscape' }
@@ -38,19 +40,19 @@ export type ButtonIcon =
 export type LayoutUiProps = {
 	gameName: Snippet;
 	logo: Snippet;
-	amountBalance: Snippet<[{ stacked?: boolean }]>;
-	amountWin: Snippet<[{ stacked?: boolean }]>;
-	amountBet: Snippet<[{ stacked?: boolean }]>;
-	buttonBuyBonus: Snippet<[Partial<ButtonProps>]>;
-	buttonBet: Snippet<[Partial<ButtonProps>]>;
-	buttonTurbo: Snippet<[Partial<ButtonProps>]>;
-	buttonAutoSpin: Snippet<[Partial<ButtonProps>]>;
-	buttonIncrease: Snippet<[Partial<ButtonProps>]>;
-	buttonDecrease: Snippet<[Partial<ButtonProps>]>;
-	buttonMenu: Snippet<[Partial<ButtonProps>]>;
-	buttonMenuClose: Snippet<[Partial<ButtonProps>]>;
-	buttonPayTable: Snippet<[Partial<ButtonProps>]>;
-	buttonGameRules: Snippet<[Partial<ButtonProps>]>;
-	buttonSettings: Snippet<[Partial<ButtonProps>]>;
-	buttonSoundSwitch: Snippet<[Partial<ButtonProps>]>;
+	amountBalance: Snippet<[{ stacked?: boolean; width?: number; bare?: boolean }]>;
+	amountWin: Snippet<[{ stacked?: boolean; width?: number; bare?: boolean }]>;
+	amountBet: Snippet<[{ stacked?: boolean; width?: number; bare?: boolean }]>;
+	buttonBuyBonus: Snippet<[UiButtonSnippetProps]>;
+	buttonBet: Snippet<[UiButtonSnippetProps]>;
+	buttonTurbo: Snippet<[UiButtonSnippetProps]>;
+	buttonAutoSpin: Snippet<[UiButtonSnippetProps]>;
+	buttonIncrease: Snippet<[UiButtonSnippetProps]>;
+	buttonDecrease: Snippet<[UiButtonSnippetProps]>;
+	buttonMenu: Snippet<[UiButtonSnippetProps]>;
+	buttonMenuClose: Snippet<[UiButtonSnippetProps]>;
+	buttonPayTable: Snippet<[UiButtonSnippetProps]>;
+	buttonGameRules: Snippet<[UiButtonSnippetProps]>;
+	buttonSettings: Snippet<[UiButtonSnippetProps]>;
+	buttonSoundSwitch: Snippet<[UiButtonSnippetProps]>;
 };

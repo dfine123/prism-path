@@ -6,6 +6,8 @@
 
 	type Props = {
 		stacked?: boolean;
+		width?: number;
+		bare?: boolean;
 	};
 
 	const props: Props = $props();
@@ -13,4 +15,4 @@
 	const value = $derived(`${stateUi.freeSpinCounterCurrent} / ${stateUi.freeSpinCounterTotal}`);
 </script>
 
-<UiLabel tiled {label} {value} stacked={props.stacked} />
+<UiLabel tiled {label} {value} stacked={props.stacked} width={props.width} bare={props.bare} />

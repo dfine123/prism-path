@@ -3,12 +3,12 @@
 	import { stateModal } from 'state-shared';
 
 	import UiButton from './UiButton.svelte';
-	import { UI_BASE_SIZE } from '../constants';
+	import { SUPER_UI } from '../theme';
 	import { getContext } from '../context';
 
 	const props: Partial<Omit<ButtonProps, 'children'>> = $props();
 	const context = getContext();
-	const sizes = { width: UI_BASE_SIZE * 1.3, height: UI_BASE_SIZE * 1.3 };
+	const sizes = { width: SUPER_UI.btn, height: SUPER_UI.btn };
 
 	const onpress = () => {
 		context.eventEmitter.broadcast({ type: 'soundPressGeneral' });

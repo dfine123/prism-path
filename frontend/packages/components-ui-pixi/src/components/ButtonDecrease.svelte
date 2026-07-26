@@ -4,11 +4,11 @@
 
 	import UiButton from './UiButton.svelte';
 	import { getContext } from '../context';
-	import { UI_BASE_SIZE } from '../constants';
+	import { SUPER_UI } from '../theme';
 
 	const props: Partial<Omit<ButtonProps, 'children'>> = $props();
 	const context = getContext();
-	const sizes = { width: UI_BASE_SIZE, height: UI_BASE_SIZE };
+	const sizes = $derived(props.sizes ?? { width: SUPER_UI.btnSm, height: SUPER_UI.btnSm });
 	const smallest = $derived(stateConfig.betAmountOptions[0]);
 	const disabled = $derived(
 		!context.stateXstateDerived.isIdle() || stateBet.betAmount === smallest,
@@ -25,4 +25,4 @@
 	};
 </script>
 
-<UiButton {...props} {sizes} {onpress} {disabled} icon="decrease" />
+<UiButton {...props} {sizes} showLabel={false} {onpress} {disabled} icon="decrease" />

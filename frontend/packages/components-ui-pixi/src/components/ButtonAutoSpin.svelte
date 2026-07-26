@@ -5,12 +5,12 @@
 
 	import UiButton from './UiButton.svelte';
 	import { getContext } from '../context';
-	import { UI_BASE_SIZE } from '../constants';
+	import { SUPER_UI } from '../theme';
 	import ButtonBetAutoSpinsCounter from './ButtonBetAutoSpinsCounter.svelte';
 
 	const props: Partial<Omit<ButtonProps, 'children'>> = $props();
 	const context = getContext();
-	const sizes = { width: UI_BASE_SIZE, height: UI_BASE_SIZE };
+	const sizes = $derived(props.sizes ?? { width: SUPER_UI.btn, height: SUPER_UI.btn });
 	const active = $derived(stateBetDerived.hasAutoBetCounter());
 	const disabled = $derived.by(() => {
 		if (stateBet.isSpaceHold) return true;
@@ -28,7 +28,7 @@
 </script>
 
 <UiButton {...props} {sizes} {active} {onpress} {disabled} icon="autoSpin">
-	<Container x={sizes.width * 0.5} y={sizes.height * 0.5}>
+	<Container x={sizes.width * 0.5} y={sizes.height * 0.5} scale={sizes.width / 150}>
 		<ButtonBetAutoSpinsCounter />
 	</Container>
 </UiButton>

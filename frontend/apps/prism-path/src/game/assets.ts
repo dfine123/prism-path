@@ -10,6 +10,13 @@ export default {
 		src: new URL('../../assets/fonts/prism/prism.ttf', import.meta.url).href,
 		preload: true,
 	},
+	// Super Studios bet-UI font (Baloo 2 variable, SIL OFL — license in fonts/superui/OFL.txt).
+	// Registered as family "Superui" (from the filename); the console reads it via theme.ts.
+	superuiFont: {
+		type: 'font',
+		src: new URL('../../assets/fonts/superui/superui.ttf', import.meta.url).href,
+		preload: true,
+	},
 
 	// backgrounds (cover-cropped at render; 1376x768 source)
 	bgBase: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_base.png', import.meta.url).href, preload: true },
@@ -20,12 +27,8 @@ export default {
 	moteStar: { type: 'sprite', src: new URL('../../assets/fx/moteStar.png', import.meta.url).href, preload: true },
 
 	// UI art
-	prismFrameEdge: { type: 'sprite', src: new URL('../../assets/ui/prismFrameEdge.png', import.meta.url).href },
-	// board-frame CANDIDATES (dev toggle via DevFramePanel; unused ones removed once locked)
+	// board frame: crystal v2 — LOCKED (candidate picker + losing frames removed post sign-off)
 	board1: { type: 'sprite', src: new URL('../../assets/ui/frames/board1.png', import.meta.url).href },
-	board2: { type: 'sprite', src: new URL('../../assets/ui/frames/board2.png', import.meta.url).href },
-	board3: { type: 'sprite', src: new URL('../../assets/ui/frames/board3.png', import.meta.url).href },
-	board4: { type: 'sprite', src: new URL('../../assets/ui/frames/board4.png', import.meta.url).href },
 	logo: { type: 'sprite', src: new URL('../../assets/ui/logo.png', import.meta.url).href, preload: true },
 
 	// --- symbols (keys match the math reveal board names: L2-L5/H1-H4/WILD/SCAT) ---
@@ -39,6 +42,11 @@ export default {
 	H4: { type: 'sprite', src: new URL('../../assets/symbols/H4.png', import.meta.url).href },
 	WILD: { type: 'sprite', src: new URL('../../assets/symbols/WILD.png', import.meta.url).href },
 	WILDSTICKY: { type: 'sprite', src: new URL('../../assets/symbols/WILDSTICKY.png', import.meta.url).href },
+	// sticky dragon directional variants (rotations of the down-facing WILDSTICKY art)
+	stickyUp: { type: 'sprite', src: new URL('../../assets/symbols/stickyUp.png', import.meta.url).href },
+	stickyDown: { type: 'sprite', src: new URL('../../assets/symbols/stickyDown.png', import.meta.url).href },
+	stickyLeft: { type: 'sprite', src: new URL('../../assets/symbols/stickyLeft.png', import.meta.url).href },
+	stickyRight: { type: 'sprite', src: new URL('../../assets/symbols/stickyRight.png', import.meta.url).href },
 	SCAT: { type: 'sprite', src: new URL('../../assets/symbols/SCAT.png', import.meta.url).href },
 	// Prism Beast travel overlay — directional busts (picked by facing direction).
 	prismBeast: { type: 'sprite', src: new URL('../../assets/symbols/prismBeast.png', import.meta.url).href },
@@ -47,7 +55,7 @@ export default {
 	beastLeft: { type: 'sprite', src: new URL('../../assets/symbols/beastLeft.png', import.meta.url).href },
 	beastRight: { type: 'sprite', src: new URL('../../assets/symbols/beastRight.png', import.meta.url).href },
 
-	// audio (placeholder template cues — sound design is a later, separate pass)
+	// audio — ORIGINAL synthesized sprite (built by tools/sound_design.py; template audio removed)
 	sound: {
 		type: 'audio',
 		src: new URL('../../assets/audio/sounds.json', import.meta.url).href,

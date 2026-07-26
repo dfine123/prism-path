@@ -1,16 +1,21 @@
 <script lang="ts">
-	import { Text } from 'pixi-svelte';
+	import { Container } from 'pixi-svelte';
 	import { Button, type ButtonProps } from 'components-pixi';
 	import { stateModal, stateBet, stateBetDerived } from 'state-shared';
 
-	import UiSprite from './UiSprite.svelte';
-	import { UI_BASE_FONT_SIZE, UI_BASE_SIZE } from '../constants';
+	import UiGlass from './UiGlass.svelte';
+	import UiGlyph from './UiGlyph.svelte';
 	import { getContext } from '../context';
-	import { i18nDerived } from '../i18n/i18nDerived';
+	import { SUPER_UI } from '../theme';
 
+	// Buy Bonus: a rounded-SQUARE gold-star button standing just left of the deck, a bit
+	// taller than the bar (the references' detached-but-aligned pattern). A different
+	// silhouette on purpose — a purchase, not a control. Active bet-mode -> gold ring;
+	// pressing again disarms it (logic unchanged from the template).
 	const props: Partial<Omit<ButtonProps, 'children'>> = $props();
 	const { stateXstateDerived, eventEmitter } = getContext();
-	const sizes = { width: UI_BASE_SIZE, height: UI_BASE_SIZE };
+	const T = SUPER_UI;
+	const sizes = $derived(props.sizes ?? { width: T.buy.size, height: T.buy.size });
 	const disabled = $derived(!stateXstateDerived.isIdle());
 	const active = $derived(stateBetDerived.activeBetMode()?.type === 'activate');
 
@@ -25,62 +30,19 @@
 			openModal();
 		}
 	};
-
-	const getState = (value: {
-		active: boolean;
-		disabled: boolean;
-		hovered: boolean;
-		pressed: boolean;
-	}) => {
-		if (value.disabled) return 'disabled' as const;
-		if (value.pressed) return 'pressed' as const;
-		if (value.hovered) return 'hovered' as const;
-		if (value.active) return 'active' as const;
-		return 'default' as const;
-	};
 </script>
 
 <Button {...props} {sizes} {disabled} {onpress}>
 	{#snippet children({ center, hovered, pressed })}
-		{@const state = getState({
-			active,
-			disabled,
-			hovered,
-			pressed,
-		})}
-
-		<UiSprite
-			key="buyBonus"
-			{...center}
-			anchor={0.5}
-			width={sizes.width}
-			height={sizes.height}
-			{...disabled
-				? {
-						backgroundColor: 0xaaaaaa,
-					}
-				: {}}
-			{...active
-				? {
-						borderWidth: 10,
-						borderColor: 0xffffff,
-					}
-				: {}}
-		/>
-
-		<Text
-			{...center}
-			anchor={0.5}
-			text={state === 'active' ? i18nDerived.disable() : i18nDerived.buyBonus()}
-			style={{
-				align: 'center',
-				wordWrap: true,
-				wordWrapWidth: 200,
-				fontFamily: 'Prism',
-				fontWeight: '600',
-				fontSize: UI_BASE_FONT_SIZE * 0.9,
-				fill: 0xffffff,
-			}}
-		/>
+		<Container {...center} scale={pressed ? T.press : 1} alpha={disabled ? T.dim : 1}>
+			<UiGlass
+				width={sizes.width}
+				height={sizes.height}
+				radius={T.buy.r}
+				lit={!disabled && hovered}
+				accent={active ? T.color.gold : null}
+			/>
+			<UiGlyph icon="star" shadow size={sizes.width * 0.62} color={T.color.gold} />
+		</Container>
 	{/snippet}
 </Button>

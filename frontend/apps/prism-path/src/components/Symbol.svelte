@@ -23,15 +23,18 @@
 	const symbolInfo = $derived(getSymbolInfo({ rawSymbol: props.rawSymbol, state: props.state }));
 	const isSprite = $derived(symbolInfo.type === 'sprite');
 	// A beast-created wild (has a multiplier) renders as the ANIMATED PRISM TRAIL, not a dragon.
-	// A freshly-landed beast (direction but no multiplier yet) stays a dragon until it fires,
-	// and a STICKY dragon ALWAYS renders as a seated dragon.
+	// A freshly-landed beast (direction but no multiplier yet) stays a dragon until it fires.
+	// A STICKY dragon renders as a seated dragon UNTIL it flies (dormant): its seat is a path
+	// cell like any other, so once vacated it carries the same trail light as its neighbours —
+	// not a blank hole in the marker box.
 	// (Multiplier badges render in the dedicated MultiplierBadges layer, above the ribbons.)
-	const isTrailWild = $derived(
-		props.rawSymbol.name === 'WILD' &&
-			!props.rawSymbol.sticky &&
-			!!props.rawSymbol.direction &&
-			(props.rawSymbol.multiplier ?? 0) > 1,
-	);
+	const isTrailWild = $derived.by(() => {
+		if (props.rawSymbol.name !== 'WILD' || !props.rawSymbol.direction) return false;
+		// a vacated seat is a trail cell whatever its multiplier; the >1 gate only exists to
+		// keep a freshly-landed (not yet fired) beast rendering as a dragon
+		if (props.rawSymbol.sticky) return !!props.rawSymbol.dormant;
+		return (props.rawSymbol.multiplier ?? 0) > 1;
+	});
 </script>
 
 {#if isTrailWild}

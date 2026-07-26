@@ -10,9 +10,10 @@ export type RawSymbol = {
 	wild?: boolean;
 	direction?: Direction; // Prism Beast: which way it faces / fires
 	sticky?: boolean; // STICKY dragon: its square is claimed for the whole feature
-	// STICKY seat whose dragon has FLOWN this spin: the wild stays live for wins, but no
-	// dragon art renders — the glowing marker box alone holds the claim until the next
-	// reveal re-seeds the seat (fresh rawSymbol, no dormant) and the dragon drops back in.
+	// STICKY seat whose dragon has FLOWN this spin: the seat renders as a TRAIL CELL like
+	// the rest of its path (no dragon art; the glowing marker box outlines the claim) until
+	// the next reveal re-seeds the seat (fresh rawSymbol, no dormant) and the dragon drops
+	// back in.
 	dormant?: boolean;
 };
 export type BetMode = keyof typeof config.betModes;

@@ -18,9 +18,15 @@
 	import { setContext } from '../game/context';
 	import { playBet } from '../game/utils';
 	import { scenarios } from './data/scenarios';
+	import { installStoryRgsMock } from './storyRgsMock';
 	import baseBooks from './data/base_books';
 	import bonusBooks from './data/bonus_books';
 	import superBooks from './data/super_books';
+
+	// the in-page RGS: the REAL spin button / autoplay / buys work offline in every story
+	// (funded mock wallet + random real books per mode). Storybook's Action button remains
+	// as the forced-book lever for the scenario stories.
+	installStoryRgsMock();
 
 	setContext();
 

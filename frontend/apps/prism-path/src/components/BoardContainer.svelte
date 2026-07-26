@@ -19,7 +19,7 @@
      The pivot is the board centre, so the breath expands around the middle and tucks
      under the frame lip; every BoardContainer layer reads the same state = moves as one. -->
 <Container
-	x={context.stateGameDerived.boardLayout().x}
+	x={context.stateGameDerived.boardLayout().x + stateFx.boardNudgeX}
 	y={context.stateGameDerived.boardLayout().y + stateFx.boardNudgeY}
 	pivot={context.stateGameDerived.boardLayout().pivot}
 	scale={stateFx.boardScale}

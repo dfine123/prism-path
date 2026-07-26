@@ -58,22 +58,35 @@ export const boardBreathe = () => {
 	breathRaf = requestAnimationFrame(frame);
 };
 
-// A weight thud (dragon slam): tiny damped vertical shake, gone in a quarter second.
-const SLAM_MS = 260;
-const SLAM_AMP = 4; // px at strength 1
-let slamRaf = 0;
+// Directional board IMPULSES — one damped-spring channel drives boardNudgeX/Y.
+// boardSlam: the dragon-lands thud (sharp, vertical, quarter-second).
+// boardRubberBand: the dragon PUSHING PAST the board edge drags the board with it a few
+// px in its exit direction, then the board springs back past rest and settles — a soft
+// rubber-band, slower and springier than the slam.
+let impulseRaf = 0;
 
-export const boardSlam = (strength = 1) => {
-	cancelAnimationFrame(slamRaf);
+const boardImpulse = (dx: number, dy: number, amp: number, ms: number, decay: number, cycles: number) => {
+	cancelAnimationFrame(impulseRaf);
+	const len = Math.hypot(dx, dy) || 1;
+	const ux = dx / len;
+	const uy = dy / len;
 	const start = performance.now();
 	const frame = () => {
-		const u = Math.min(1, (performance.now() - start) / SLAM_MS);
-		stateFx.boardNudgeY = SLAM_AMP * strength * Math.exp(-4.2 * u) * Math.sin(u * Math.PI * 3);
+		const u = Math.min(1, (performance.now() - start) / ms);
+		const k = amp * Math.exp(-decay * u) * Math.sin(u * Math.PI * cycles);
+		stateFx.boardNudgeX = ux * k;
+		stateFx.boardNudgeY = uy * k;
 		if (u < 1) {
-			slamRaf = requestAnimationFrame(frame);
+			impulseRaf = requestAnimationFrame(frame);
 		} else {
+			stateFx.boardNudgeX = 0;
 			stateFx.boardNudgeY = 0;
 		}
 	};
-	slamRaf = requestAnimationFrame(frame);
+	impulseRaf = requestAnimationFrame(frame);
 };
+
+export const boardSlam = (strength = 1) => boardImpulse(0, 1, 4 * strength, 260, 4.2, 3);
+
+export const boardRubberBand = (dx: number, dy: number, strength = 1) =>
+	boardImpulse(dx, dy, 7 * strength, 520, 3.1, 2.2);

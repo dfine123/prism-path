@@ -26,8 +26,8 @@
 
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
-	import { boardSlam } from '../game/stateFx.svelte';
-	import { SYMBOL_SIZE, CELL_W } from '../game/constants';
+	import { boardSlam, boardRubberBand } from '../game/stateFx.svelte';
+	import { SYMBOL_SIZE, CELL_W, BOARD_DIMENSIONS } from '../game/constants';
 	import { EASE, clamp01, lerp, paletteAt } from '../game/motion';
 	import { drawTrailBeam, TRAIL_FLOW_HZ, TRAIL_HOT_FLIGHT } from '../game/trailBeam';
 
@@ -83,9 +83,16 @@
 
 	// Convert a covered cell to a trail wild (accumulating so an overlap grows to the product).
 	// Cells land as ONE batch when the head completes the path — pixel-identical to the ribbon.
+	// A STICKY dragon's own seat is EXEMPT: the reveal already seeded it (sticky flag +
+	// multiplier); overwriting would de-throne the seated dragon into a trail cell AND
+	// square its multiplier (seed x path-cell = 2x2). Keep the seat exactly as seeded.
 	const revealCell = (reel: number, row: number, direction: string, mult: number) => {
 		const reelSymbol = board()[reel]?.reelState?.symbols?.[row];
 		if (!reelSymbol) return;
+		if (reelSymbol.rawSymbol.sticky) {
+			reelSymbol.symbolState = 'land';
+			return;
+		}
 		const prev = reelSymbol.rawSymbol.multiplier ?? 1;
 		reelSymbol.rawSymbol = {
 			name: 'WILD',
@@ -125,6 +132,7 @@
 			const start = now();
 			let revealedAll = false;
 			let flashAt = -1;
+			let exited = false;
 
 			geomRef = {
 				cells: cellPts,
@@ -175,6 +183,20 @@
 				const p = Math.pow(u, ACCEL); // one curve: quiet charge -> accelerate -> gone
 				const L = p * totalLen;
 				const pos = posAtLen(L);
+
+				// the dragon PUSHES PAST the edge: the board gives a few px in the exit
+				// direction and rubber-bands back — momentum handed to the cabinet instead
+				// of a hard clip at the mask
+				if (
+					!exited &&
+					(pos.x < 0 ||
+						pos.x > BOARD_DIMENSIONS.x * CELL_W ||
+						pos.y < 0 ||
+						pos.y > BOARD_DIMENSIONS.y * SYMBOL_SIZE)
+				) {
+					exited = true;
+					boardRubberBand(dv.x, dv.y);
+				}
 
 				// materialize fast; stay OPAQUE while sliding under the border (the board-rect
 				// mask does the exit) — only a late safety fade once it's already off-board

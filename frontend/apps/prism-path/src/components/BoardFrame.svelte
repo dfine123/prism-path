@@ -47,7 +47,7 @@
      the same screen point as the symbols (BoardContainer pivots there too) and the slam
      nudge thuds frame + symbols as one body. Children draw relative to (0,0) = centre. -->
 <Container
-	x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT}
+	x={context.stateGameDerived.boardLayout().x * POSITION_ADJUSTMENT + stateFx.boardNudgeX}
 	y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT + stateFx.boardNudgeY}
 	scale={stateFx.boardScale}
 >

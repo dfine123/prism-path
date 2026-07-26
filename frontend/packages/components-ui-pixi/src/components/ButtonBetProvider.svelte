@@ -38,11 +38,13 @@
 	};
 
 	const onpress = () => {
-		context.eventEmitter.broadcast({ type: 'soundPressBet' });
-
+		// the press sound plays only when the press ACTS — a latched (stopDisabled) stop
+		// press is a no-op and must be silent
 		if (context.stateXstateDerived.isIdle()) {
+			context.eventEmitter.broadcast({ type: 'soundPressBet' });
 			bet();
 		} else {
+			if (!stopDisabled) context.eventEmitter.broadcast({ type: 'soundPressBet' });
 			stop();
 		}
 	};

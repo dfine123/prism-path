@@ -5,6 +5,7 @@ import { checkIsMultipleRevealEvents } from 'utils-book';
 import { createPrimaryMachines, createIntermediateMachines, createGameActor } from 'utils-xstate';
 
 import type { Bet } from './typesBookEvent';
+import { eventEmitter } from './eventEmitter';
 import { stateXstateDerived } from './stateXstate';
 import { playBet, convertTorResumableBet } from './utils';
 import { stateGame, stateGameDerived } from './stateGame.svelte';
@@ -27,7 +28,11 @@ const primaryMachines = createPrimaryMachines<Bet>({
 			paddingBoard: config.paddingReels[stateGame.gameType],
 		});
 	},
-	onNewGameError: () => stateGameDerived.enhancedBoard.settle(),
+	onNewGameError: () => {
+		stateGameDerived.enhancedBoard.settle();
+		// a failed bet must not leave stopDisabled/forced-turbo latched from a stop press
+		eventEmitter.broadcast({ type: 'stopButtonEnable' });
+	},
 	onPlayGame: async (bet) => await playBet(bet),
 	checkIsBonusGame: (bet) => checkIsMultipleRevealEvents({ bookEvents: bet.state }),
 });

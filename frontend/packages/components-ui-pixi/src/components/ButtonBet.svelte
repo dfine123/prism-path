@@ -2,11 +2,12 @@
 	import { Container, Graphics, Text } from 'pixi-svelte';
 	import { Button, type ButtonProps } from 'components-pixi';
 	import { OnHotkey } from 'components-shared';
-	import { stateBetDerived } from 'state-shared';
+	import { stateBetDerived, stateModal, stateUi } from 'state-shared';
 
 	import UiGlass from './UiGlass.svelte';
 	import UiGlyph from './UiGlyph.svelte';
 	import ButtonBetProvider from './ButtonBetProvider.svelte';
+	import { getContext } from '../context';
 	import { i18nDerived } from '../i18n/i18nDerived';
 	import { SUPER_UI, prismAt, lerpColor } from '../theme';
 
@@ -14,8 +15,15 @@
 	// the only prism-gradient ring in the console, docked at the action end of the rail.
 	// SPIN glyph + label while idle, STOP square while the reels run.
 	const props: Partial<Omit<ButtonProps, 'children'>> = $props();
+	const context = getContext();
 	const T = SUPER_UI;
-	const disabled = $derived(!stateBetDerived.isBetCostAvailable());
+	// bet-cost gates only the SPIN meaning — mid-round the button means STOP and must stay
+	// live even when the post-wager balance dips below the bet cost. Any open overlay
+	// (DOM modal / menu pod) kills both press and Space — no bets behind a modal.
+	const overlayOpen = $derived(stateModal.modal !== null || stateUi.menuOpen);
+	const disabled = $derived(
+		overlayOpen || (context.stateXstateDerived.isIdle() && !stateBetDerived.isBetCostAvailable()),
+	);
 	const D = T.hero;
 	const sizes = { width: D, height: D };
 	const RING_SEGS = 48;

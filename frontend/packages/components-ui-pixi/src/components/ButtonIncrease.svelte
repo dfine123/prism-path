@@ -9,17 +9,25 @@
 	const props: Partial<Omit<ButtonProps, 'children'>> = $props();
 	const context = getContext();
 	const sizes = $derived(props.sizes ?? { width: SUPER_UI.btnSm, height: SUPER_UI.btnSm });
-	const biggest = $derived(stateConfig.betAmountOptions[stateConfig.betAmountOptions.length - 1]);
-	const disabled = $derived(!context.stateXstateDerived.isIdle() || stateBet.betAmount === biggest);
+	const nextBigger = $derived(
+		[...stateConfig.betAmountOptions].sort((a, b) => a - b).find((o) => o > stateBet.betAmount),
+	);
+	// enabled ONLY when pressing would actually change the bet: setBetAmount clamps to
+	// balance/costMultiplier, so with a clamped off-options bet the raw `=== biggest`
+	// check left a live-looking button whose presses were silently swallowed
+	const costMult = $derived.by(() => {
+		const mode = stateBetDerived.activeBetMode();
+		return mode?.type === 'activate' ? mode.costMultiplier : 1;
+	});
+	const disabled = $derived.by(() => {
+		if (!context.stateXstateDerived.isIdle()) return true;
+		if (nextBigger === undefined) return true;
+		return Math.min(nextBigger, stateBet.balanceAmount / costMult) <= stateBet.betAmount;
+	});
 
 	const onpress = () => {
 		context.eventEmitter.broadcast({ type: 'soundPressGeneral' });
-
-		const nextBigger = [...stateConfig.betAmountOptions]
-			.sort((a, b) => a - b)
-			.find((option) => option > stateBet.betAmount);
-
-		stateBetDerived.setBetAmount(nextBigger || biggest);
+		if (nextBigger !== undefined) stateBetDerived.setBetAmount(nextBigger);
 	};
 </script>
 

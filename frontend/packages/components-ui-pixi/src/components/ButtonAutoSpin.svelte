@@ -15,7 +15,9 @@
 	const disabled = $derived.by(() => {
 		if (stateBet.isSpaceHold) return true;
 		if (!context.stateXstateDerived.isIdle() && !stateBetDerived.hasAutoBetCounter()) return true;
-		if (!stateBetDerived.isBetCostAvailable()) return true;
+		// the cost check only gates ARMING autoplay — while a run is active this button
+		// means STOP AUTOPLAY and must stay live even when the balance dips below cost
+		if (!stateBetDerived.hasAutoBetCounter() && !stateBetDerived.isBetCostAvailable()) return true;
 		return false;
 	});
 

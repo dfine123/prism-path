@@ -18,8 +18,10 @@
 	const winBookEventAmountTween = new Tween(stateBet.winBookEventAmount);
 	const label = $derived(i18nDerived.win());
 	const value = $derived(bookEventAmountToCurrencyString(winBookEventAmountTween.current));
-	// the win readout goes gold while a win is on the meter — the console's one live accent
-	const accent = $derived(stateBet.winBookEventAmount > 0 ? SUPER_UI.color.gold : null);
+	// the win readout goes gold while a win is on the meter — the console's one live
+	// accent. Keyed off the TWEENED value that is actually displayed, so the gold holds
+	// while the old amount visibly drains instead of snapping grey on the next spin.
+	const accent = $derived(winBookEventAmountTween.current > 0 ? SUPER_UI.color.gold : null);
 
 	$effect(() => {
 		winBookEventAmountTween.set(stateBet.winBookEventAmount);

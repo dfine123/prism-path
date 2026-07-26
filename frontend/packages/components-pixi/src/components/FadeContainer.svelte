@@ -28,7 +28,9 @@
 </script>
 
 {#if alpha.current > 0 || persistent}
-	<Container {...restProps} alpha={alpha.current}>
+	<!-- pixi hit-testing ignores alpha: while hidden the subtree must also drop pointer
+	     events, or an invisible console keeps clicking under the player's finger -->
+	<Container {...restProps} alpha={alpha.current} eventMode={show ? undefined : 'none'}>
 		{@render children()}
 	</Container>
 {/if}

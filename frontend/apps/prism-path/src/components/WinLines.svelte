@@ -16,7 +16,7 @@
 </script>
 
 <script lang="ts">
-	import { BitmapText, Container, Graphics } from 'pixi-svelte';
+	import { Graphics } from 'pixi-svelte';
 
 	import { bookEventAmountToCurrencyString } from 'utils-shared/amount';
 
@@ -24,27 +24,25 @@
 	import { getSymbolX } from '../game/utils';
 	import { SYMBOL_SIZE, CELL_W, BOARD_DIMENSIONS } from '../game/constants';
 	import { stateFx } from '../game/stateFx.svelte';
-	import { prismStyle } from '../game/fonts';
+	import { stateWinPop, MULT_Y } from '../game/stateWinPop.svelte';
 	import { EASE, clamp01, lerp, paletteAt, lerpColor } from '../game/motion';
 
 	const context = getContext();
 	const board = () => context.stateGame.board;
 
-	// ---- feel tunables ----
-	const DRAW_MS = 135; // sweep-on (left -> right through the winning cells)
-	const HOLD_MS = 360; // streaming hold (matches the symbol breath underneath)
-	const FADE_MS = 95; // release
+	// ---- feel tunables ---- (tightened pass: every beat trimmed so the sequence reads
+	// snappy without one crude global speed-up — draw quicker, hold shorter, merge sooner)
+	const DRAW_MS = 95; // sweep-on (left -> right through the winning cells)
+	const HOLD_MS = 275; // streaming hold (symbol breath underneath is trimmed to match)
+	const FADE_MS = 80; // release
 	const LINE_W = 8; // core line width (px)
-	const FLOW_HZ = 1.45; // gradient stream speed while held (flowy)
+	const FLOW_HZ = 1.6; // gradient stream speed while held (flowy)
 	const CHUNK = 13; // px per gradient chunk
-	const POP_MS = 125; // value pop-in (impact right as the sweep completes)
-	const POP_FONT = 40;
-	const MULT_FONT = 32;
-	const MULT_Y = 40; // the xN sits under the value before merging into it
-	const MULT_BEAT_MS = 110; // read beat: value + xN visible together
-	const MERGE_MS = 210; // xN collapses in while the value rolls to the full amount
-	const PUNCH_MS = 130; // impact punch when the full value lands
-	const HOLD_MULT_MS = 640; // longer hold for multiplied lines (pop+beat+merge+punch)
+	const POP_MS = 105; // value pop-in (impact right as the sweep completes)
+	const MULT_BEAT_MS = 85; // read beat: value + xN visible together
+	const MERGE_MS = 170; // xN collapses in while the value rolls to the full amount
+	const PUNCH_MS = 110; // impact punch when the full value lands
+	const HOLD_MULT_MS = 530; // longer hold for multiplied lines (pop+beat+merge+punch)
 
 	let line = $state({
 		show: false,
@@ -53,12 +51,8 @@
 		alpha: 0,
 		phase: 0,
 	});
-	// the per-line WIN VALUE (standard slots pattern: value pops at the line's centre; a beast
-	// multiplier pops with it, then collapses into the number as it rolls to the full value)
-	let pop = $state({ x: 0, y: 0, scale: 0, alpha: 0 });
-	let multFx = $state({ y: MULT_Y, scale: 0, alpha: 0 });
-	let label = $state('');
-	let multLabel = $state('');
+	// the per-line WIN VALUE lives in stateWinPop (rendered by WinValuePop, mounted ABOVE
+	// the multiplier-badge layer) — this component only drives it frame-by-frame
 
 	const now = () => performance.now();
 
@@ -92,10 +86,17 @@
 			let el = 0;
 
 			line = { show: true, pts, prog: 0, alpha: 1, phase: 0 };
-			label = bookEventAmountToCurrencyString(hasMult ? baseAmount : amount);
-			multLabel = hasMult ? `×${multiplier}` : '';
-			pop = { x: cx, y: cy, scale: 0, alpha: 0 };
-			multFx = { y: MULT_Y, scale: 0, alpha: 0 };
+			Object.assign(stateWinPop, {
+				x: cx,
+				y: cy,
+				scale: 0,
+				alpha: 0,
+				multY: MULT_Y,
+				multScale: 0,
+				multAlpha: 0,
+				label: bookEventAmountToCurrencyString(hasMult ? baseAmount : amount),
+				multLabel: hasMult ? `×${multiplier}` : '',
+			});
 
 			const frame = () => {
 				const t = now();
@@ -114,56 +115,56 @@
 					// value: IMPACT pop as the sweep completes
 					const pu = clamp01(hu / POP_MS);
 					if (pu < 1) {
-						pop.scale = EASE.impact(pu);
-						pop.alpha = clamp01(pu * 2.5);
+						stateWinPop.scale = EASE.impact(pu);
+						stateWinPop.alpha = clamp01(pu * 2.5);
 					} else if (!hasMult) {
-						pop.scale = 1 + 0.025 * Math.sin(line.phase * Math.PI * 2.4);
-						pop.alpha = 1;
+						stateWinPop.scale = 1 + 0.025 * Math.sin(line.phase * Math.PI * 2.4);
+						stateWinPop.alpha = 1;
 					}
 
 					if (hasMult) {
 						// xN pops just after the value (read order: value, then its multiplier)
 						const mpu = clamp01((hu - 90) / POP_MS);
 						if (hu < mergeStart) {
-							multFx.scale = EASE.impact(mpu);
-							multFx.alpha = clamp01(mpu * 2.5);
+							stateWinPop.multScale = EASE.impact(mpu);
+							stateWinPop.multAlpha = clamp01(mpu * 2.5);
 						} else if (hu < mergeStart + MERGE_MS) {
 							// MERGE: xN collapses INTO the number while it rolls to the full value
 							const mu = clamp01((hu - mergeStart) / MERGE_MS);
-							multFx.y = MULT_Y * (1 - EASE.load(mu));
-							multFx.scale = 1 - 0.7 * mu;
-							multFx.alpha = 1 - EASE.collapse(mu);
-							label = bookEventAmountToCurrencyString(
+							stateWinPop.multY = MULT_Y * (1 - EASE.load(mu));
+							stateWinPop.multScale = 1 - 0.7 * mu;
+							stateWinPop.multAlpha = 1 - EASE.collapse(mu);
+							stateWinPop.label = bookEventAmountToCurrencyString(
 								Math.round(lerp(baseAmount, amount, EASE.settle(mu))),
 							);
 						} else {
 							// PUNCH: the full value lands with an impact beat, then breathes
-							multFx.alpha = 0;
-							label = bookEventAmountToCurrencyString(amount);
+							stateWinPop.multAlpha = 0;
+							stateWinPop.label = bookEventAmountToCurrencyString(amount);
 							const qu = clamp01((hu - mergeStart - MERGE_MS) / PUNCH_MS);
-							pop.scale =
+							stateWinPop.scale =
 								qu < 1
 									? 1 + 0.24 * Math.sin(Math.PI * qu)
 									: 1 + 0.025 * Math.sin(line.phase * Math.PI * 2.4);
-							pop.alpha = 1;
+							stateWinPop.alpha = 1;
 						}
 					}
 				} else {
 					line.prog = 1;
 					const fu = clamp01((el - DRAW_MS - holdMs) / FADE_MS);
 					line.alpha = 1 - EASE.collapse(fu);
-					pop.alpha = line.alpha;
-					pop.scale = 1 - 0.08 * fu;
-					multFx.alpha = 0;
+					stateWinPop.alpha = line.alpha;
+					stateWinPop.scale = 1 - 0.08 * fu;
+					stateWinPop.multAlpha = 0;
 				}
 				if (el < total) {
 					requestAnimationFrame(frame);
 				} else {
 					line.show = false;
 					line.alpha = 0;
-					pop.alpha = 0;
-					pop.scale = 0;
-					multFx.alpha = 0;
+					stateWinPop.alpha = 0;
+					stateWinPop.scale = 0;
+					stateWinPop.multAlpha = 0;
 					resolve();
 				}
 			};
@@ -240,48 +241,82 @@
 				return pts[pts.length - 1];
 			};
 
-			// gradient chunks — the LINE ITSELF is the luminescent gradient: streaming prism hues
-			// as the base, and a traveling white-hot shimmer band instead of a flat white core.
+			// stroke a chunk FOLLOWING the polyline (corner-correct: pass through any vertex
+			// that falls inside [L0, L1] instead of shortcutting across the elbow)
+			const strokeSeg = (L0: number, L1: number) => {
+				const a = pointAtLen(L0);
+				g.moveTo(a.x, a.y);
+				for (let i = 1; i < pts.length; i++) {
+					if (cum[i] > L0 && cum[i] < L1) g.lineTo(pts[i].x, pts[i].y);
+				}
+				const b = pointAtLen(L1);
+				g.lineTo(b.x, b.y);
+			};
+
+			// gradient ribbon — the LINE ITSELF is the luminescent gradient: streaming prism
+			// hues + a traveling white-hot shimmer band. BUTT caps (not round) so the chunks
+			// fuse into one continuous ribbon instead of reading as a chain of circles.
 			const nChunks = Math.max(3, Math.ceil(drawnLen / CHUNK));
 			for (let i = 0; i < nChunks; i++) {
 				const L0 = (drawnLen * i) / nChunks;
-				const L1 = (drawnLen * (i + 1)) / nChunks;
-				const a = pointAtLen(L0);
-				const b = pointAtLen(L1 + 0.75); // slight overlap kills seams
+				const L1 = Math.min((drawnLen * (i + 1)) / nChunks + 1.5, drawnLen); // overlap kills seams
 				const u = (L0 + L1) / 2 / totalLen;
 				const col = paletteAt(u * 0.8 - s.phase);
-				// shimmer: a bright pulse that sweeps along the line while it holds
 				const shimmer = clamp01(0.5 + 0.5 * Math.sin(Math.PI * 2 * (u * 1.5 - s.phase * 1.5)));
 				const coreCol = lerpColor(col, 0xffffff, 0.35 + 0.5 * shimmer);
-				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: LINE_W * 2.6, color: col, alpha: 0.2 * s.alpha, cap: 'round' });
-				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: LINE_W * 1.05, color: col, alpha: 0.85 * s.alpha, cap: 'round' });
-				g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({
+				strokeSeg(L0, L1);
+				g.stroke({ width: LINE_W * 2.4, color: col, alpha: 0.16 * s.alpha, cap: 'butt', join: 'round' });
+				strokeSeg(L0, L1);
+				g.stroke({ width: LINE_W * 1.05, color: col, alpha: 0.85 * s.alpha, cap: 'butt', join: 'round' });
+				strokeSeg(L0, L1);
+				g.stroke({
 					width: LINE_W * (0.34 + 0.14 * shimmer),
 					color: coreCol,
 					alpha: (0.5 + 0.4 * shimmer) * s.alpha,
-					cap: 'round',
+					cap: 'butt',
+					join: 'round',
 				});
 			}
 
-			// sweep head spark while drawing on (the line + symbol breath carry the rest)
+			// 4-point crystal star glint (the game's sparkle language, not a plain circle)
+			const glint = (x: number, y: number, r: number, col: number, a: number) => {
+				g.moveTo(x - r, y).lineTo(x + r, y).stroke({ width: 1.6, color: col, alpha: a, cap: 'round' });
+				g.moveTo(x, y - r).lineTo(x, y + r).stroke({ width: 1.6, color: col, alpha: a, cap: 'round' });
+				g.circle(x, y, Math.max(1.2, r * 0.3)).fill({ color: 0xffffff, alpha: a });
+			};
+
 			if (s.prog < 1) {
+				// comet head: a direction-aligned teardrop with a star glint at its tip
 				const h = pointAtLen(drawnLen);
-				g.circle(h.x, h.y, LINE_W * 1.5).fill({ color: 0xffffff, alpha: 0.85 * s.alpha });
-				g.circle(h.x, h.y, LINE_W * 2.6).fill({ color: paletteAt(-s.phase), alpha: 0.3 * s.alpha });
+				const back = pointAtLen(Math.max(0, drawnLen - 8));
+				let dx = h.x - back.x;
+				let dy = h.y - back.y;
+				const dl = Math.hypot(dx, dy) || 1;
+				dx /= dl;
+				dy /= dl;
+				const px = -dy;
+				const py = dx;
+				const W2 = LINE_W * 0.95;
+				g.poly([
+					{ x: h.x + dx * 5, y: h.y + dy * 5 }, // tip
+					{ x: h.x - dx * 4 + px * W2, y: h.y - dy * 4 + py * W2 },
+					{ x: h.x - dx * 14, y: h.y - dy * 14 }, // tail
+					{ x: h.x - dx * 4 - px * W2, y: h.y - dy * 4 - py * W2 },
+				]).fill({ color: 0xffffff, alpha: 0.8 * s.alpha });
+				g.circle(h.x, h.y, LINE_W * 2.2).fill({ color: paletteAt(-s.phase), alpha: 0.22 * s.alpha });
+				glint(h.x + dx * 5, h.y + dy * 5, LINE_W * 1.4, 0xffffff, 0.9 * s.alpha);
+			} else {
+				// held: terminal glint at the line's end + tiny twinkles drifting along it
+				const e = pointAtLen(drawnLen);
+				glint(e.x, e.y, LINE_W * 1.1, 0xffffff, 0.55 * s.alpha);
+				for (let k = 0; k < 3; k++) {
+					const u = ((k * 0.317 + s.phase * 0.23) % 1 + 1) % 1;
+					const p = pointAtLen(u * drawnLen);
+					const tw = (Math.sin(s.phase * Math.PI * 3 + k * 2.1) + 1) / 2;
+					glint(p.x, p.y, 3 + 4 * tw, lerpColor(paletteAt(u - s.phase), 0xffffff, 0.6), (0.25 + 0.5 * tw) * s.alpha);
+				}
 			}
 		}}
 	/>
 
-	<!-- the line's WIN VALUE: bare number pops at the centroid on the sweep's impact frame;
-	     its beast multiplier pops beneath, then collapses in as the value rolls to the total -->
-	{#if pop.alpha > 0.01}
-		<Container x={pop.x} y={pop.y} scale={pop.scale} alpha={pop.alpha}>
-			<BitmapText anchor={0.5} text={label} style={prismStyle(POP_FONT)} />
-			{#if multLabel && multFx.alpha > 0.01}
-				<Container y={multFx.y} scale={multFx.scale} alpha={multFx.alpha}>
-					<BitmapText anchor={0.5} text={multLabel} style={prismStyle(MULT_FONT)} />
-				</Container>
-			{/if}
-		</Container>
-	{/if}
 {/if}

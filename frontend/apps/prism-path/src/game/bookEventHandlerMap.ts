@@ -7,7 +7,7 @@ import { waitForTimeout } from 'utils-shared/wait';
 
 import { eventEmitter } from './eventEmitter';
 import { playBookEvent } from './utils';
-import { stateFx } from './stateFx.svelte';
+import { stateFx, boardBreathe, boardSlam } from './stateFx.svelte';
 import { winLevelMap, type WinLevel, type WinLevelData } from './winLevelMap';
 import { stateGame, stateGameDerived } from './stateGame.svelte';
 import type { BookEvent, BookEventOfType, BookEventContext } from './typesBookEvent';
@@ -29,8 +29,8 @@ const winLevelSoundsPlay = ({ winLevelData }: { winLevelData: WinLevelData }) =>
 
 const winLevelSoundsStop = () => {
 	eventEmitter.broadcast({ type: 'soundStop', name: 'sfx_bigwin_coinloop' });
-	if (stateBet.activeBetModeKey === 'SUPERSPIN' || stateGame.gameType === 'freegame') {
-		// check if SUPERSPIN, when finishing a bet.
+	// resume whichever bed the current game type owns (no SUPERSPIN mode in this game)
+	if (stateGame.gameType === 'freegame') {
 		eventEmitter.broadcast({ type: 'soundMusic', name: 'bgm_freespin' });
 	} else {
 		eventEmitter.broadcast({ type: 'soundMusic', name: 'bgm_main' });
@@ -62,6 +62,7 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// a CLICK mid-spin = "hurry up": slam the reels like the stop button / turbo would
 		const quickStop = () => eventEmitter.broadcast({ type: 'stopButtonClick' });
 		window.addEventListener('pointerdown', quickStop);
+		boardBreathe(); // the board takes a breath as the reels launch
 		try {
 			await stateGameDerived.enhancedBoard.spin({
 				revealEvent: bookEvent,
@@ -81,6 +82,7 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 			eventEmitter.broadcast({ type: 'stickyMarkerAdd', position: bookEvent.position });
 		}
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
+		boardSlam(0.7); // the dragon has weight — the board feels it land
 		await waitForTimeout(60);
 	},
 	prismPath: async (bookEvent: BookEventOfType<'prismPath'>) => {
@@ -100,11 +102,33 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		});
 	},
 	winInfo: async (bookEvent: BookEventOfType<'winInfo'>) => {
+		// PRESENTATION MERGE: two paylines can share an identical winning-cell set (the
+		// diagonal and the shallow-V both start rows 0,1,2 — a 3-kind pays BOTH). The math
+		// pays each line (books/RTP untouched), but sweeping the same cells twice reads as
+		// a double count — so same-cell wins present ONCE with the combined amount.
+		const mergedByCells = new Map<string, (typeof bookEvent.wins)[number]>();
+		for (const w of bookEvent.wins) {
+			const key = [...w.positions].map((p) => `${p.reel},${p.row}`).sort().join('|');
+			const prev = mergedByCells.get(key);
+			if (prev) {
+				mergedByCells.set(key, {
+					...prev,
+					win: (prev.win ?? 0) + (w.win ?? 0),
+					meta: {
+						...prev.meta,
+						winWithoutMult:
+							(prev.meta?.winWithoutMult ?? prev.win ?? 0) + (w.meta?.winWithoutMult ?? w.win ?? 0),
+					},
+				});
+			} else {
+				mergedByCells.set(key, w);
+			}
+		}
 		// Lines play strictly SEQUENTIALLY, ordered by value ascending so the presentation
 		// escalates and ends on the biggest hit. Per line: the prism win-line sweeps through
 		// the winning cells while those symbols breathe — both awaited so nothing overlaps.
 		// A CLICK during the sequence = "skip through": every paced clock runs much faster.
-		const wins = [...bookEvent.wins].sort((a, b) => (a.win ?? 0) - (b.win ?? 0));
+		const wins = [...mergedByCells.values()].sort((a, b) => (a.win ?? 0) - (b.win ?? 0));
 		stateFx.winSpeed = 1;
 		const speedUp = () => {
 			stateFx.winSpeed = 5;

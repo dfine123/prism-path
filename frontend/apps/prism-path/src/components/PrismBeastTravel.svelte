@@ -26,6 +26,7 @@
 
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
+	import { boardSlam } from '../game/stateFx.svelte';
 	import { SYMBOL_SIZE, CELL_W } from '../game/constants';
 	import { EASE, clamp01, lerp, paletteAt } from '../game/motion';
 	import { drawTrailBeam, TRAIL_FLOW_HZ, TRAIL_HOT_FLIGHT } from '../game/trailBeam';
@@ -162,6 +163,7 @@
 				// the persistent cells take over the EXACT pixels the ribbon was drawing
 				ribbon.show = false;
 				context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
+				boardSlam(1); // full path ignites — the heaviest beat of the flight
 				for (const c of beast.cells) {
 					revealCell(c.position.reel, c.position.row, dir, c.multiplier);
 				}

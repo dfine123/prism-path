@@ -20,14 +20,17 @@
 			reel.reelState.symbols
 				.filter((reelSymbol) => (reelSymbol.rawSymbol.multiplier ?? 0) > 0)
 				.map((reelSymbol) => {
-					const sticky = !!reelSymbol.rawSymbol.sticky;
+					// only a SEATED sticky (dragon present) counts as sticky here — a dormant seat
+					// renders as a trail cell, so its chip centres like the rest. The badge itself
+					// applies (and TWEENS) the seat offset, so y is the raw cell centre.
+					const seated = !!reelSymbol.rawSymbol.sticky && !reelSymbol.rawSymbol.dormant;
 					return {
 						id: reelSymbol.id,
 						x: getSymbolX(reelIndex),
-						y: reelSymbol.symbolY() + (sticky ? SYMBOL_SIZE * 0.31 : 0),
+						y: reelSymbol.symbolY(),
 						baseY: reelSymbol.symbolY(),
 						multiplier: reelSymbol.rawSymbol.multiplier as number,
-						sticky,
+						sticky: seated,
 					};
 				})
 				.filter((b) => b.baseY >= top && b.baseY <= bottom),

@@ -2,15 +2,23 @@ export default {
 	// ---- Prism Path — every visual asset is generated/owned by this game (no template art).
 	// Motion/FX are code-driven (WinBox, PrismBeastTravel, WinLines, PrismPanel, transitions).
 
-	// Prism display font (Lilita One, SIL OFL — license in fonts/prism/OFL.txt). Loaded as a
+	// Prism display font (Chango, SIL OFL — license in fonts/prism/OFL.txt). Loaded as a
 	// web font; PixiJS registers the family as "Prism" (from the filename) and BitmapText
-	// generates its atlas dynamically from the style (black fill + white stroke).
+	// generates its atlas dynamically from the style (see fonts.ts prismStyle).
 	prismFont: {
 		type: 'font',
 		src: new URL('../../assets/fonts/prism/prism.ttf', import.meta.url).href,
 		preload: true,
 	},
-	// Super Studios bet-UI font (Baloo 2 variable, SIL OFL — license in fonts/superui/OFL.txt).
+	// Prism NUMERAL font (Righteous, SIL OFL — license in fonts/prismnum/OFL.txt). Slimmer,
+	// geometric counterpart to Chango for the small multiplier chips, where Chango's weight
+	// blobs at chip size. Registered as family "Prismnum" (from the filename).
+	prismnumFont: {
+		type: 'font',
+		src: new URL('../../assets/fonts/prismnum/prismnum.ttf', import.meta.url).href,
+		preload: true,
+	},
+	// Super Studios bet-UI font (Fredoka, SIL OFL — license in fonts/superui/OFL.txt).
 	// Registered as family "Superui" (from the filename); the console reads it via theme.ts.
 	superuiFont: {
 		type: 'font',

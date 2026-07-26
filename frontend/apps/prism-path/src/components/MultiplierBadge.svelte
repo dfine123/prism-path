@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { BitmapText, Container } from 'pixi-svelte';
 
-	import { prismStyle } from '../game/fonts';
+	import { prismNumStyle, fitFontSize } from '../game/fonts';
+	import { CELL_W, SYMBOL_SIZE } from '../game/constants';
 	import { EASE } from '../game/motion';
 
 	type Props = {
@@ -12,6 +13,13 @@
 	};
 
 	const props: Props = $props();
+
+	// fitFontSize caps the label to the chip's inner width, so overlap-grown values
+	// ("128X") shrink to fit instead of flooding over the square
+	const label = $derived(`${props.multiplier}X`);
+	const fontSize = $derived(
+		fitFontSize(label, props.sticky ? 34 : 50, props.sticky ? SYMBOL_SIZE * 0.62 : CELL_W * 0.76),
+	);
 
 	// clean subtle pop-in whenever the value appears or grows (overlap x2 -> x6).
 	// Initialized at the pop's START pose — initializing at rest painted one full-size
@@ -42,5 +50,5 @@
 </script>
 
 <Container x={props.x} y={props.y} scale={badgeScale} alpha={badgeAlpha}>
-	<BitmapText anchor={0.5} text={`${props.multiplier}X`} style={prismStyle(props.sticky ? 34 : 50)} />
+	<BitmapText anchor={0.5} text={label} style={prismNumStyle(fontSize)} />
 </Container>

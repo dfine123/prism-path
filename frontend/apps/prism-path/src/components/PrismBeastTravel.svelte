@@ -175,6 +175,16 @@
 				for (const c of beast.cells) {
 					revealCell(c.position.reel, c.position.row, dir, c.multiplier);
 				}
+				// a STICKY dragon that has flown does NOT re-hold its seat: the seat goes
+				// dormant (marker box only) on the same beat non-sticky seats convert to trail
+				// cells, and the next reveal drops the dragon back in. Done here (not per-cell)
+				// so a whiffed sticky — empty cells — vacates its seat too.
+				if (beast.sticky) {
+					const seat = board()[beast.origin.reel]?.reelState?.symbols?.[beast.origin.row];
+					if (seat?.rawSymbol.sticky) {
+						seat.rawSymbol = { ...seat.rawSymbol, dormant: true };
+					}
+				}
 			};
 
 			const frame = () => {

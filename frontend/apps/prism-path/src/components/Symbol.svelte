@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Container } from 'pixi-svelte';
+
 	import SymbolSpine from './SymbolSpine.svelte';
 	import SymbolSprite from './SymbolSprite.svelte';
 	import StickyEyeGlow from './StickyEyeGlow.svelte';
@@ -40,16 +42,22 @@
 	/>
 {:else if isSprite}
 	{@const isStickyDragon = props.rawSymbol.name === 'WILD' && !!props.rawSymbol.sticky}
+	{@const dormantSeat = isStickyDragon && !!props.rawSymbol.dormant}
 	<!-- sticky dragon: the path-gradient streams THROUGH the keyed-out eye sockets
-	     (drawn behind the art — the face masks it into crisp crystal-cut eyes) -->
-	{#if isStickyDragon}
+	     (drawn behind the art — the face masks it into crisp crystal-cut eyes).
+	     A DORMANT seat (dragon flew this spin) renders invisibly — alpha 0, not removed,
+	     so state animations still run and oncomplete still fires for the sequencers —
+	     leaving the glowing marker box as the only claim on the square. -->
+	{#if isStickyDragon && !dormantSeat}
 		<StickyEyeGlow
 			x={props.x}
 			y={props.y}
 			direction={props.rawSymbol.direction as 'up' | 'down' | 'left' | 'right' | undefined}
 		/>
 	{/if}
-	<SymbolSprite {symbolInfo} state={props.state} x={props.x} y={props.y} oncomplete={props.oncomplete} />
+	<Container alpha={dormantSeat ? 0 : 1}>
+		<SymbolSprite {symbolInfo} state={props.state} x={props.x} y={props.y} oncomplete={props.oncomplete} />
+	</Container>
 {:else}
 	<SymbolSpine
 		loop={props.loop}

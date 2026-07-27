@@ -15,7 +15,8 @@
 		bookEventAmountToBetAmountMultiplier,
 		bookEventAmountToCurrencyString,
 	} from 'utils-shared/amount';
-	import { waitForResolve } from 'utils-shared/wait';
+	import { waitForResolve, waitForTimeout } from 'utils-shared/wait';
+	import { stateBetDerived } from 'state-shared';
 	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { OnMount } from 'components-shared';
 	import { Container } from 'pixi-svelte';
@@ -59,7 +60,18 @@
 		{@const boxLevel = Math.max(6, winLevelData.level)}
 		<WinCountUpProvider {amount} {duration} oncomplete={() => onCountUpComplete()}>
 			{#snippet children({ countUpAmount, startCountUp, finishCountUp, countUpCompleted })}
-				<OnMount onmount={() => startCountUp()} />
+				<!-- manual play holds on PRESS TO CONTINUE; under AUTOPLAY the outro
+				     auto-advances after a readable hold — otherwise the queue stalled here
+				     until a press (oncomplete is a resolve, so a race with a press is safe) -->
+				<OnMount
+					onmount={async () => {
+						await startCountUp();
+						if (stateBetDerived.hasAutoBetCounter()) {
+							await waitForTimeout(1400);
+							oncomplete();
+						}
+					}}
+				/>
 
 				<CanvasSizeRectangle backgroundColor={0x05030a} backgroundAlpha={0.6} />
 

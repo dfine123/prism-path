@@ -1,4 +1,4 @@
-// Prism Path frontend config. Mirrors math/games/prism_path (5x5, 15 lines, base mode).
+// Prism Path frontend config. Mirrors math/games/prism_path (5x5, 17 lines, base mode).
 // Only `symbols` (-> SymbolName), `betModes` (-> BetMode), `paddingReels` (-> GameType +
 // cosmetic reel-spin fill) are consumed at type/runtime; the rest is metadata/parity.
 
@@ -54,6 +54,8 @@ export default {
 		'13': [4, 3, 4, 3, 4],
 		'14': [1, 0, 1, 0, 1],
 		'15': [3, 4, 3, 4, 3],
+		'16': [2, 1, 2, 1, 2],
+		'17': [2, 3, 2, 3, 2],
 	},
 	symbols: {
 		L2: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },

@@ -1,6 +1,6 @@
 # Prism Path
 
-A **lines slot for the Stake Engine** platform. 5×5 board, 15 paylines. Signature feature:
+A **lines slot for the Stake Engine** platform. 5×5 board, 17 paylines. Signature feature:
 the rare **Prism Beast** wild lands facing a random direction and fires a path of multiplier-wilds
 to the board edge; when two beasts touch the same winning line their multipliers **multiply**.
 

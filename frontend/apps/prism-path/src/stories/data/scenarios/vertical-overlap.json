@@ -1,6 +1,6 @@
 {
   "id": 0,
-  "payoutMultiplier": 6900,
+  "payoutMultiplier": 8100,
   "events": [
     {
       "index": 0,
@@ -251,7 +251,7 @@
     {
       "index": 5,
       "type": "winInfo",
-      "totalWin": 6900,
+      "totalWin": 8100,
       "wins": [
         {
           "symbol": "L5",
@@ -762,27 +762,95 @@
             "globalMult": 1,
             "lineMultiplier": 6
           }
+        },
+        {
+          "symbol": "L5",
+          "kind": 5,
+          "win": 600,
+          "positions": [
+            {
+              "reel": 0,
+              "row": 3
+            },
+            {
+              "reel": 1,
+              "row": 2
+            },
+            {
+              "reel": 2,
+              "row": 3
+            },
+            {
+              "reel": 3,
+              "row": 2
+            },
+            {
+              "reel": 4,
+              "row": 3
+            }
+          ],
+          "meta": {
+            "lineIndex": 16,
+            "multiplier": 6,
+            "winWithoutMult": 100,
+            "globalMult": 1,
+            "lineMultiplier": 6
+          }
+        },
+        {
+          "symbol": "L5",
+          "kind": 5,
+          "win": 600,
+          "positions": [
+            {
+              "reel": 0,
+              "row": 3
+            },
+            {
+              "reel": 1,
+              "row": 4
+            },
+            {
+              "reel": 2,
+              "row": 3
+            },
+            {
+              "reel": 3,
+              "row": 4
+            },
+            {
+              "reel": 4,
+              "row": 3
+            }
+          ],
+          "meta": {
+            "lineIndex": 17,
+            "multiplier": 6,
+            "winWithoutMult": 100,
+            "globalMult": 1,
+            "lineMultiplier": 6
+          }
         }
       ]
     },
     {
       "index": 6,
       "type": "setWin",
-      "amount": 6900,
+      "amount": 8100,
       "winLevel": 8
     },
     {
       "index": 7,
       "type": "setTotalWin",
-      "amount": 6900
+      "amount": 8100
     },
     {
       "index": 8,
       "type": "finalWin",
-      "amount": 6900
+      "amount": 8100
     }
   ],
   "criteria": "basegame",
-  "baseGameWins": 69.0,
+  "baseGameWins": 81.0,
   "freeGameWins": 0.0
 }

@@ -58,7 +58,7 @@ book events. No outcome-affecting RNG client-side. Amounts are ×100 ints (100 =
 - `run.py` — generate books (optimizer STUBBED; small counts: 2000/800/800).
 - **`validate_books.py` — THE AUDIT GATE.** Rendering invariants + **independent win
   re-evaluation** of every spin in every book (rebuilds board + per-beast coverage from
-  events, re-scores all 15 lines, win-cap aware). Run after every `run.py`. Must be 3600/0.
+  events, re-scores all 17 lines, win-cap aware). Run after every `run.py`. Must be 3600/0.
 - `_test_free.py` — bonus/super sanity harness (guarantee violations, sticky stability).
 - `_extract_story_books.py` — samples real books into frontend story data (base 400 /
   bonus 120 / super 80).

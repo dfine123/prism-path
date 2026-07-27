@@ -31,11 +31,13 @@ PAYTABLE_PM = {
     "H4": [50, 150, 500],
 }
 
-# 15 paylines over a 5x5 grid (row indices 0..4 per reel), left-to-right — per the reference
+# 17 paylines over a 5x5 grid (row indices 0..4 per reel), left-to-right — per the reference
 # set (5 straights, 2 full diagonals, V/Λ pairs, zigzags). A line pays on 3, 4 or 5 matching
 # symbols from the leftmost reel (kind-tiered paytable) — partial activation is native to the
-# lines evaluator.
-PAYLINES_15 = [
+# lines evaluator. The MID zigzags (16/17) complete the zigzag family: without them a
+# 3-in-a-row V around the middle rows reads as an obvious win and pays nothing — players
+# (and the operator) flagged exactly that as a glitch.
+PAYLINES = [
     [0, 0, 0, 0, 0],  # 1  top row
     [1, 1, 1, 1, 1],  # 2
     [2, 2, 2, 2, 2],  # 3  middle row
@@ -51,6 +53,8 @@ PAYLINES_15 = [
     [4, 3, 4, 3, 4],  # 13 zigzag hugging the bottom row
     [1, 0, 1, 0, 1],  # 14 zigzag upper
     [3, 4, 3, 4, 3],  # 15 zigzag lower
+    [2, 1, 2, 1, 2],  # 16 mid zigzag up
+    [2, 3, 2, 3, 2],  # 17 mid zigzag down
 ]
 
 
@@ -83,9 +87,9 @@ class GameConfig(Config):
             for kind, pm in zip((3, 4, 5), vals):
                 self.paytable[(kind, sym)] = pm / 100.0
 
-        # 15 paylines, keyed 1..15
-        assert len({tuple(line) for line in PAYLINES_15}) == 15, "paylines must be 15 unique lines"
-        self.paylines = {i + 1: list(line) for i, line in enumerate(PAYLINES_15)}
+        # 17 paylines, keyed 1..17
+        assert len({tuple(line) for line in PAYLINES}) == 17, "paylines must be 17 unique lines"
+        self.paylines = {i + 1: list(line) for i, line in enumerate(PAYLINES)}
 
         self.include_padding = True
         # WILD = Prism Beast (wild; carries a multiplier via beast_mults, not the multiplier flag).

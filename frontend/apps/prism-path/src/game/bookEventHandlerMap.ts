@@ -99,7 +99,6 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 			type: 'prismBeastTravel',
 			beast: {
 				direction: bookEvent.direction as 'up' | 'down' | 'left' | 'right',
-				whiff: (bookEvent.cells?.length ?? 0) === 0,
 				sticky: !!bookEvent.sticky,
 				multiplier: bookEvent.multiplier ?? bookEvent.cells?.[0]?.multiplier ?? 2,
 				origin: bookEvent.source,
@@ -208,6 +207,35 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		stateUi.freeSpinCounterCurrent = bookEvent.amount + 1;
 		stateUi.freeSpinCounterTotal = bookEvent.total;
 	},
+	freeSpinRetrigger: async (bookEvent: BookEventOfType<'freeSpinRetrigger'>) => {
+		// RETRIGGER: an awarded outcome must be PRESENTED — without this handler the event
+		// was skipped and the counter total just silently jumped on the next updateFreeSpin.
+		// Scatters animate, then the counter total bumps to the new total (the following
+		// updateFreeSpin repeats the same total, so this stays consistent either way).
+		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_scatter_win_v2' });
+		await animateSymbols({ positions: bookEvent.positions });
+		stateUi.freeSpinCounterTotal = bookEvent.totalFs;
+		eventEmitter.broadcast({
+			type: 'freeSpinCounterUpdate',
+			current: stateUi.freeSpinCounterCurrent,
+			total: bookEvent.totalFs,
+		});
+	},
+	wincap: async (bookEvent: BookEventOfType<'wincap'>) => {
+		// MAX WIN: the 5000x cap is the game's biggest beat — full level-10 presentation the
+		// moment it's crossed. The math suppresses that spin's setWin (no double-present);
+		// the feature-end outro still shows the capped total afterwards.
+		const winLevelData = winLevelMap[10];
+		eventEmitter.broadcast({ type: 'winShow' });
+		winLevelSoundsPlay({ winLevelData });
+		await eventEmitter.broadcastAsync({
+			type: 'winUpdate',
+			amount: bookEvent.amount,
+			winLevelData,
+		});
+		winLevelSoundsStop();
+		eventEmitter.broadcast({ type: 'winHide' });
+	},
 	freeSpinEnd: async (bookEvent: BookEventOfType<'freeSpinEnd'>) => {
 		const winLevelData = winLevelMap[bookEvent.winLevel as WinLevel];
 
@@ -261,11 +289,9 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		const lastFreeSpinTriggerEvent = findLastBookEvent('freeSpinTrigger' as const);
 		const lastUpdateFreeSpinEvent = findLastBookEvent('updateFreeSpin' as const);
 		const lastSetTotalWinEvent = findLastBookEvent('setTotalWin' as const);
-		const lastUpdateGlobalMultEvent = findLastBookEvent('updateGlobalMult' as const);
 
 		if (lastFreeSpinTriggerEvent) await playBookEvent(lastFreeSpinTriggerEvent, { bookEvents });
 		if (lastUpdateFreeSpinEvent) playBookEvent(lastUpdateFreeSpinEvent, { bookEvents });
 		if (lastSetTotalWinEvent) playBookEvent(lastSetTotalWinEvent, { bookEvents });
-		if (lastUpdateGlobalMultEvent) playBookEvent(lastUpdateGlobalMultEvent, { bookEvents });
 	},
 };

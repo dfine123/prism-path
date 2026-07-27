@@ -31,6 +31,21 @@ type BookEventFreeSpinTrigger = {
 	positions: Position[];
 };
 
+type BookEventFreeSpinRetrigger = {
+	index: number;
+	type: 'freeSpinRetrigger';
+	totalFs: number;
+	positions: Position[];
+};
+
+// emitted immediately after the winInfo that crossed the 5000x cap (math suppresses that
+// spin's setWin; the feature keeps playing but total win is frozen at the cap)
+type BookEventWinCap = {
+	index: number;
+	type: 'wincap';
+	amount: number;
+};
+
 type BookEventUpdateFreeSpin = {
 	index: number;
 	type: 'updateFreeSpin';
@@ -106,6 +121,8 @@ export type BookEvent =
 	| BookEventWinInfo
 	| BookEventSetTotalWin
 	| BookEventFreeSpinTrigger
+	| BookEventFreeSpinRetrigger
+	| BookEventWinCap
 	| BookEventUpdateFreeSpin
 	| BookEventCreateBonusSnapshot
 	| BookEventFinalWin

@@ -15,6 +15,10 @@ export type RawSymbol = {
 	// the next reveal re-seeds the seat (fresh rawSymbol, no dormant) and the dragon drops
 	// back in.
 	dormant?: boolean;
+	// frontend-only: this WILD was converted to a prism-trail cell by a flight (books never
+	// set it). Distinguishes a trail cell from an UNFIRED beast's seat that another flight
+	// crossed — the seat keeps its dragon (and accumulates the product) until it fires.
+	trail?: boolean;
 };
 export type BetMode = keyof typeof config.betModes;
 export type GameType = keyof typeof config.paddingReels;

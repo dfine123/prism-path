@@ -20,10 +20,14 @@
 			reel.reelState.symbols
 				.filter((reelSymbol) => (reelSymbol.rawSymbol.multiplier ?? 0) > 0)
 				.map((reelSymbol) => {
-					// only a SEATED sticky (dragon present) counts as sticky here — a dormant seat
-					// renders as a trail cell, so its chip centres like the rest. The badge itself
-					// applies (and TWEENS) the seat offset, so y is the raw cell centre.
-					const seated = !!reelSymbol.rawSymbol.sticky && !reelSymbol.rawSymbol.dormant;
+					// SEATED = a dragon bust occupies the cell (sticky not yet flown, OR an unfired
+					// beast's seat that an earlier flight crossed and stamped a multiplier onto):
+					// the chip sits at the path edge, off the dragon's face. Trail cells and
+					// dormant seats centre their chip. The badge itself applies (and TWEENS) the
+					// seat offset, so y is the raw cell centre.
+					const raw = reelSymbol.rawSymbol;
+					const seated =
+						raw.name === 'WILD' && !!raw.direction && !raw.trail && !raw.dormant;
 					return {
 						id: reelSymbol.id,
 						x: getSymbolX(reelIndex),

@@ -10,7 +10,6 @@
 	export type BeastTravelDir = 'up' | 'down' | 'left' | 'right';
 	export type BeastTravel = {
 		direction: BeastTravelDir;
-		whiff: boolean;
 		sticky: boolean;
 		multiplier: number;
 		origin: Position;
@@ -83,22 +82,42 @@
 
 	// Convert a covered cell to a trail wild (accumulating so an overlap grows to the product).
 	// Cells land as ONE batch when the head completes the path — pixel-identical to the ribbon.
-	// A STICKY dragon's own seat is EXEMPT: the reveal already seeded it (sticky flag +
-	// multiplier); overwriting would de-throne the seated dragon into a trail cell AND
-	// square its multiplier (seed x path-cell = 2x2). Keep the seat exactly as seeded.
-	const revealCell = (reel: number, row: number, direction: string, mult: number) => {
+	// Seat rules (the math stamps every crossed cell with the per-beast-once PRODUCT, and the
+	// on-board chip must agree):
+	// - a beast's OWN sticky seat is exempt: the reveal seeded it (sticky + multiplier);
+	//   accumulating would square it (seed x path-cell = 2x2).
+	// - ANOTHER beast crossing a sticky seat DOES accumulate — the seat's lane pays the
+	//   product, so a frozen chip would lie.
+	// - an UNFIRED beast's seat crossed by an earlier flight accumulates the product but
+	//   KEEPS its seated dragon (no trail flag) — converting it made the bust vanish before
+	//   its own charge/flight choreography played. Its own flight later converts it.
+	const revealCell = (
+		reel: number,
+		row: number,
+		direction: string,
+		mult: number,
+		isOwnSeat: boolean,
+	) => {
 		const reelSymbol = board()[reel]?.reelState?.symbols?.[row];
 		if (!reelSymbol) return;
-		if (reelSymbol.rawSymbol.sticky) {
+		const raw = reelSymbol.rawSymbol;
+		const prev = raw.multiplier ?? 1;
+		if (raw.sticky) {
+			if (!isOwnSeat) reelSymbol.rawSymbol = { ...raw, multiplier: prev * mult };
 			reelSymbol.symbolState = 'land';
 			return;
 		}
-		const prev = reelSymbol.rawSymbol.multiplier ?? 1;
+		if (!isOwnSeat && raw.name === 'WILD' && !!raw.direction && !raw.trail) {
+			reelSymbol.rawSymbol = { ...raw, multiplier: prev * mult };
+			reelSymbol.symbolState = 'land';
+			return;
+		}
 		reelSymbol.rawSymbol = {
 			name: 'WILD',
 			wild: true,
 			direction,
 			multiplier: prev * mult,
+			trail: true,
 		};
 		reelSymbol.symbolState = 'land';
 	};
@@ -173,7 +192,9 @@
 				context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
 				boardSlam(1); // full path ignites — the heaviest beat of the flight
 				for (const c of beast.cells) {
-					revealCell(c.position.reel, c.position.row, dir, c.multiplier);
+					const isOwnSeat =
+						c.position.reel === beast.origin.reel && c.position.row === beast.origin.row;
+					revealCell(c.position.reel, c.position.row, dir, c.multiplier, isOwnSeat);
 				}
 				// a STICKY dragon that has flown does NOT re-hold its seat: the seat goes
 				// dormant (renders as a trail cell inside the marker box) on the same beat

@@ -63,14 +63,18 @@
 			carry += rate * dt;
 			while (carry >= 1) {
 				carry -= 1;
-				const H = SYMBOL_SIZE * 2.6;
+				// born HIDDEN inside the win-box footprint (this layer renders UNDER the box)
+				// and flung radially with an upward bias — gems visibly erupt from behind the
+				// plaque edges, arc out, then fall. Never over the text.
+				const ang = Math.random() * Math.PI * 2;
+				const sp = SYMBOL_SIZE * (3.2 + Math.random() * 3.2);
 				shards.push({
 					id: seq++,
 					key: TEXTURES[Math.floor(Math.random() * TEXTURES.length)],
-					x: (Math.random() - 0.5) * SYMBOL_SIZE * 3.4,
-					y: SYMBOL_SIZE * 3.2,
-					vx: (Math.random() - 0.5) * SYMBOL_SIZE * 4.4,
-					vy: -H * (2.5 + Math.random() * 1.6),
+					x: (Math.random() - 0.5) * SYMBOL_SIZE * 2.4,
+					y: (Math.random() - 0.5) * SYMBOL_SIZE * 1.2,
+					vx: Math.cos(ang) * sp,
+					vy: Math.sin(ang) * sp * 0.7 - SYMBOL_SIZE * 2.2,
 					rot: Math.random() * Math.PI * 2,
 					vr: (Math.random() - 0.5) * 7,
 					size: SYMBOL_SIZE * (0.3 + Math.random() * 0.34),

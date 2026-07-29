@@ -13,7 +13,7 @@
 
 	import { getContext } from '../game/context';
 	import { SYMBOL_SIZE } from '../game/constants';
-	import { prismStyle } from '../game/fonts';
+	import { prismNumStyle, superLabelStyle } from '../game/fonts';
 	import PrismPanel from './PrismPanel.svelte';
 
 	const context = getContext();
@@ -49,18 +49,20 @@
 
 <MainContainer>
 	<FadeContainer {show} {...position}>
-		<PrismPanel width={PANEL_W} height={PANEL_H} radius={16}>
+		<PrismPanel width={PANEL_W} height={PANEL_H} chamfer={14}>
+			<!-- label voice + numeral font: the chip reads as DATA (like the multiplier
+			     chips), not as a shrunken celebration headline -->
 			<BitmapText
 				anchor={0.5}
-				y={-PANEL_H * 0.2}
+				y={-PANEL_H * 0.21}
 				text="FREE SPIN"
-				style={prismStyle(SYMBOL_SIZE * 0.24, { align: 'center' })}
+				style={superLabelStyle(SYMBOL_SIZE * 0.19, { align: 'center' })}
 			/>
 			<BitmapText
 				anchor={0.5}
-				y={PANEL_H * 0.17}
-				text={`${current} OF ${total}`}
-				style={prismStyle(SYMBOL_SIZE * 0.32, { align: 'center' })}
+				y={PANEL_H * 0.16}
+				text={`${current} / ${total}`}
+				style={prismNumStyle(SYMBOL_SIZE * 0.38, { align: 'center' })}
 			/>
 		</PrismPanel>
 	</FadeContainer>

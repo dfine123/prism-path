@@ -71,6 +71,12 @@
 					}}
 				/>
 
+			<!-- shards render UNDER the box — gems erupt from behind the plaque, never
+				     over the text -->
+				{#if isBigWin}
+					<PrismShards emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
+				{/if}
+
 				<MainContainer>
 					<Container
 						x={context.stateGameDerived.boardLayout().x}
@@ -82,7 +88,7 @@
 									anchor={0.5}
 									maxWidth={SYMBOL_SIZE * 4.6}
 									text={bookEventAmountToCurrencyString(countUpAmount)}
-									style={prismStyle(SYMBOL_SIZE * 1.5, { align: 'center', letterSpacing: 0 })}
+									style={prismStyle(SYMBOL_SIZE * 1.3, { align: 'center', letterSpacing: 0 })}
 								/>
 							</WinBox>
 						{:else}
@@ -97,7 +103,8 @@
 					</Container>
 				</MainContainer>
 
-				<PrismShards emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
+				<!-- non-box (quick) wins stay light: no shard garnish — the burst is part of the
+				     box design and its behind-the-plaque birth would be visible without one -->
 
 				<PressToContinue onpress={() => (countUpCompleted ? oncomplete() : finishCountUp())} />
 			{/snippet}

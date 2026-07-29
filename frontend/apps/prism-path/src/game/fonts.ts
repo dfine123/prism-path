@@ -51,6 +51,25 @@ export const prismNumStyle = (
 	...overrides,
 });
 
+// Label/instruction voice. Family "Superui" = Fredoka (the Crystal Console font) in
+// letterspaced caps — small labels ("FREE SPIN", "PRESS ANYWHERE TO CONTINUE", sub-lines)
+// read as clean UI, where Chango's heavy display counters blobbed at these sizes. This
+// completes the type hierarchy: Chango = celebration display, Righteous = data chips,
+// Fredoka = the game's speaking voice.
+export const SUPER_LABEL_FONT_FAMILY = 'Superui';
+
+export const superLabelStyle = (
+	fontSize: number,
+	overrides: Partial<PIXI.TextStyleOptions> = {},
+): Partial<PIXI.TextStyleOptions> => ({
+	fontFamily: SUPER_LABEL_FONT_FAMILY,
+	fontSize,
+	fill: 0xd9ccff, // the board grooves' lavender light — same family, same world
+	letterSpacing: Math.max(2, Math.round(fontSize * 0.22)),
+	stroke: { color: 0x160a24, width: Math.max(2, Math.round(fontSize * 0.08)), join: 'round' },
+	...overrides,
+});
+
 // Largest font size (<= baseSize) at which `text` fits inside maxWidth — measured with the
 // real font metrics, so "128X" shrinks to stay inside its chip instead of flooding over it.
 // The stroke straddles the glyph outline, so half of it counts toward occupied width.

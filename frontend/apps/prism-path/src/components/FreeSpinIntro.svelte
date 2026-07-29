@@ -16,7 +16,7 @@
 
 	import { getContext } from '../game/context';
 	import { SYMBOL_SIZE } from '../game/constants';
-	import { prismStyle } from '../game/fonts';
+	import { prismStyle, superLabelStyle } from '../game/fonts';
 	import { EASE, clamp01, paletteAt } from '../game/motion';
 	import PrismPanel from './PrismPanel.svelte';
 	import PressToContinue from './PressToContinue.svelte';
@@ -96,11 +96,13 @@
 				<Container y={PANEL_H * 0.08} scale={numScale}>
 					<BitmapText anchor={0.5} text={`${freeSpinsFromEvent}`} style={prismStyle(SYMBOL_SIZE * 1.5)} />
 				</Container>
+				<!-- sub-line in the LABEL voice (Fredoka letterspaced caps) — Chango blobbed at
+				     this size and made the whole panel read heavy -->
 				<BitmapText
 					anchor={0.5}
-					y={PANEL_H * 0.36}
+					y={PANEL_H * 0.37}
 					text="THE DRAGONS AWAKEN"
-					style={prismStyle(SYMBOL_SIZE * 0.26, { align: 'center' })}
+					style={superLabelStyle(SYMBOL_SIZE * 0.22, { align: 'center' })}
 				/>
 			</PrismPanel>
 		</Container>

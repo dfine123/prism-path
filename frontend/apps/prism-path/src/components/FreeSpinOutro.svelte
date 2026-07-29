@@ -75,6 +75,9 @@
 
 				<CanvasSizeRectangle backgroundColor={0x05030a} backgroundAlpha={0.6} />
 
+				<!-- shards UNDER the box: gems erupt from behind the plaque, never over text -->
+				<PrismShards emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
+
 				<MainContainer>
 					<Container
 						x={context.stateGameDerived.boardLayout().x}
@@ -85,13 +88,11 @@
 								anchor={0.5}
 								maxWidth={SYMBOL_SIZE * 4.6}
 								text={bookEventAmountToCurrencyString(countUpAmount)}
-								style={prismStyle(SYMBOL_SIZE * 1.5, { align: 'center', letterSpacing: 0 })}
+								style={prismStyle(SYMBOL_SIZE * 1.3, { align: 'center', letterSpacing: 0 })}
 							/>
 						</WinBox>
 					</Container>
 				</MainContainer>
-
-				<PrismShards emit={!countUpCompleted} levelAlias={winLevelData?.alias} />
 
 				<!-- unmount the full-screen catcher the instant hiding starts — an invisible
 				     fading rect must not swallow board presses -->

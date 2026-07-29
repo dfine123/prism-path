@@ -4,7 +4,7 @@
 	import { BitmapText } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
-	import { prismStyle } from '../game/fonts';
+	import { superLabelStyle } from '../game/fonts';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 	import { onMount } from 'svelte';
 
@@ -25,13 +25,14 @@
 </script>
 
 <MainContainer alignVertical="bottom">
+<!-- instructional text speaks in the LABEL voice, not the celebration display font -->
 	<BitmapText
 		text="PRESS ANYWHERE TO CONTINUE"
 		anchor={{ x: 0.5, y: 1 }}
 		x={context.stateLayoutDerived.mainLayout().width * 0.5}
 		y={context.stateLayoutDerived.mainLayout().height - 18}
 		{alpha}
-		style={prismStyle(34, { align: 'center' })}
+		style={superLabelStyle(26, { align: 'center' })}
 	/>
 </MainContainer>
 <OnHotkey hotkey="Space" onpress={() => props.onpress()} />

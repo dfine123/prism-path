@@ -56,6 +56,32 @@ class GameStateOverride(GameExecutables):
             sym.sticky = True
             self.board[d["reel"]][d["row"]] = sym
 
+    def ensure_base_dragon_guarantee(self) -> None:
+        """FEATURE SPINS (dragon3/dragon5): guarantee N dragons on the BASE spin. Injected
+        pre-reveal at random non-scatter, non-wild cells (direction assigned; multiplier
+        hidden until fire) — scatters are untouched, so the spin can still trigger the bonus
+        naturally."""
+        n = int(self.config.base_dragon_guarantee.get(self.betmode, 0))
+        if n <= 0 or self.gametype != self.config.basegame_type:
+            return
+        candidates = []
+        count = 0
+        for reel in range(self.config.num_reels):
+            for row in range(self.config.num_rows[reel]):
+                cell = self.board[reel][row]
+                if cell.name == "WILD":
+                    count += 1
+                elif cell.name != "SCAT":
+                    candidates.append((reel, row))
+        while count < n and candidates:
+            pick = get_random_outcome({c: 1 for c in candidates})
+            candidates.remove(pick)
+            sym = self.symbol_storage.create_symbol("WILD")
+            sym.direction = get_random_outcome(self.config.beast_dir_weights)
+            sym.multiplier = None
+            self.board[pick[0]][pick[1]] = sym
+            count += 1
+
     def ensure_dragon_guarantee(self) -> None:
         """SUPER: if the board holds no dragon at all after the draw (+sticky stamp), inject
         one at a random non-scatter cell (direction assigned; multiplier hidden until fire)."""

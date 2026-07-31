@@ -1,6 +1,6 @@
 """Prism Path — game configuration (inherits src/config/config.py).
 
-5x5 board, 15 lines. Signature feature: the rare Prism Beast wild (symbol ``WILD``) lands
+5x5 board, 17 lines. Signature feature: the rare Prism Beast wild (symbol ``WILD``) lands
 facing a random direction and fires a path of multiplier-wilds to the board edge. Two beasts
 touching the same winning line MULTIPLY (per-beast-once, overlap = product) — FROZEN rule.
 
@@ -107,8 +107,10 @@ class GameConfig(Config):
         # it stays for the whole feature, re-lands in the SAME cell every spin with a FRESH
         # direction (same multiplier), firing a fresh path each spin. Paths never persist.
         # SUPER additionally guarantees at least one dragon on every free spin.
-        self.sticky_dragon_chance = {"base": 0.15, "bonus": 0.15, "super": 0.35}  # by betmode, free game only
-        self.guarantee_dragon = {"base": False, "bonus": False, "super": True}
+        self.sticky_dragon_chance = {"base": 0.15, "bonus": 0.15, "super": 0.35, "hunt": 0.15, "dragon3": 0.15, "dragon5": 0.15}  # by betmode, free game only
+        self.guarantee_dragon = {"base": False, "bonus": False, "super": True, "hunt": False, "dragon3": False, "dragon5": False}
+        # FEATURE SPINS: guaranteed dragon count on the BASE spin (injected pre-reveal).
+        self.base_dragon_guarantee = {"dragon3": 3, "dragon5": 5}
         self.max_sticky_dragons = 2
 
         # Free spins: scatter count -> number of spins.
@@ -213,6 +215,60 @@ class GameConfig(Config):
                 distributions=[
                     Distribution(criteria="wincap", quota=0.02, win_criteria=max_win, conditions=wincap_condition),
                     Distribution(criteria="freegame", quota=0.98, conditions=super_condition),
+                ],
+            ),
+            # BONUS HUNT (activate mode): 4x the natural trigger chance at 2.5x cost.
+            # Pricing is anchored on design constants, not flat-phase corpus means: with the
+            # bonus listed at 100x and a design natural trigger of 1/200 per spin, each +1x
+            # of chance is worth 100/200 = 0.5x -> 4x chance = 1x + 3*0.5x = 2.5x. The
+            # trigger-book quota is 4x the base mode's 10.5% (optimizer preserves the ratio).
+            BetMode(
+                name="hunt",
+                cost=2.5,
+                rtp=self.rtp,
+                max_win=max_win,
+                auto_close_disabled=False,
+                is_feature=True,
+                is_buybonus=False,
+                distributions=[
+                    Distribution(criteria="wincap", quota=0.01, win_criteria=max_win, conditions=wincap_condition),
+                    Distribution(criteria="freegame", quota=0.41, conditions=freegame_condition),
+                    Distribution(criteria="0", quota=0.24, win_criteria=0.0, conditions=zerowin_condition),
+                    Distribution(criteria="basegame", quota=0.34, conditions=base_conditions),
+                ],
+            ),
+            # FEATURE SPINS: one base spin with N dragons GUARANTEED (injected pre-reveal;
+            # scatters still land naturally, so these spins can still trigger the bonus).
+            # Costs are ESTIMATION-PRICED from measured clean content ratios vs the base
+            # corpus, anchored on design constants (base=1x@96.5%, bonus=100x, natural
+            # trigger 1/200): dragon3 content = 6.75x base -> 3.88x -> 4x (93.6% est RTP);
+            # dragon5 = 43.9x base -> 22.45x -> 22.5x (96.3% est). Optimizer converges later.
+            BetMode(
+                name="dragon3",
+                cost=4.0,
+                rtp=self.rtp,
+                max_win=max_win,
+                auto_close_disabled=False,
+                is_feature=True,
+                is_buybonus=True,
+                distributions=[
+                    Distribution(criteria="wincap", quota=0.005, win_criteria=max_win, conditions=wincap_condition),
+                    Distribution(criteria="freegame", quota=0.10, conditions=freegame_condition),
+                    Distribution(criteria="basegame", quota=0.895, conditions=base_conditions),
+                ],
+            ),
+            BetMode(
+                name="dragon5",
+                cost=22.5,
+                rtp=self.rtp,
+                max_win=max_win,
+                auto_close_disabled=False,
+                is_feature=True,
+                is_buybonus=True,
+                distributions=[
+                    Distribution(criteria="wincap", quota=0.005, win_criteria=max_win, conditions=wincap_condition),
+                    Distribution(criteria="freegame", quota=0.10, conditions=freegame_condition),
+                    Distribution(criteria="basegame", quota=0.895, conditions=base_conditions),
                 ],
             ),
         ]

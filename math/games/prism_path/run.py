@@ -8,12 +8,31 @@ Run from the math/ root:  python games/prism_path/run.py
 Outputs land in games/prism_path/library/ (publish_files/ holds index.json + books + LUT).
 """
 
+import glob
+import os
+
 from gamestate import GameState
 from game_config import GameConfig
 from src.state.run_sims import create_books
 from src.write_data.write_configs import generate_configs
 
+
+def _clear_stale_publish_artifacts():
+    """Delete published lookup tables before a run.
+
+    write_configs.make_be_config only copies the freshly generated LUT to
+    publish_files/lookUpTable_<mode>_0.csv when that file does NOT already exist, so a
+    second run leaves the OLD payout column published against NEW books. That tears the
+    two artifacts apart (rows claiming 5000x against books that pay far less) — the RGS
+    would then select by a payout table that disagrees with what the book actually pays.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    for path in glob.glob(os.path.join(here, "library", "publish_files", "lookUpTable_*.csv")):
+        os.remove(path)
+
+
 if __name__ == "__main__":
+    _clear_stale_publish_artifacts()
     num_threads = 1            # single-thread: avoids Windows multiprocessing quirks
     batching_size = 50000      # large -> small sim counts bypass the divisibility assert
     compression = True         # produce the real books_base.jsonl.zst the RGS expects
@@ -23,6 +42,9 @@ if __name__ == "__main__":
         "base": int(2000),     # validation sims; final RTP tuned by the optimizer later
         "bonus": int(800),     # Buy Bonus (free spins)
         "super": int(800),     # Super buy (premium entry)
+        "hunt": int(1000),     # Bonus Hunt (activate: 4x trigger chance @ 2.5x)
+        "dragon3": int(600),   # Feature spin: 3 guaranteed dragons
+        "dragon5": int(600),   # Feature spin: 5 guaranteed dragons
     }
 
     config = GameConfig()

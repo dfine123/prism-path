@@ -10,14 +10,19 @@ class GameState(GameStateOverride):
         self.repeat = True
         while self.repeat:
             self.reset_book()
-            self.draw_board()              # draws board + emits reveal (beasts face their direction)
-            self.resolve_prism_beasts()    # fire beast paths -> wilds; emit prismBeast/prismPath
+            self.draw_board(emit_event=False)     # draw first; the reveal must include injections
+            self.ensure_base_dragon_guarantee()   # dragon3/dragon5 FEATURE SPINS: N dragons guaranteed
+            reveal_event(self)                    # reveal (beasts face their direction)
+            self.resolve_prism_beasts()           # fire beast paths -> wilds; emit prismBeast/prismPath
 
             # Evaluate wins (product multiplier), update wallet, transmit win events
             self.evaluate_lines_board()
 
             self.win_manager.update_gametype_wins(self.gametype)
-            if self.check_fs_condition():
+            # WIN CAP TERMINATES THE ROUND: once 5000x is reached nothing more can be won —
+            # a capped base spin never enters the feature (dead spins after MAX WIN read as
+            # a glitch, and the operator flagged exactly that).
+            if self.check_fs_condition() and not self.wincap_triggered:
                 self.run_freespin_from_base()
 
             self.evaluate_finalwin()
@@ -31,7 +36,9 @@ class GameState(GameStateOverride):
         # only and never persist).
         self.reset_fs_spin()
         self.reset_prism_feature()
-        while self.fs < self.tot_fs:
+        # the cap ends the FEATURE too: the capping spin completes its presentation, then
+        # the loop stops and end_freespin() closes the round at the capped total
+        while self.fs < self.tot_fs and not self.wincap_triggered:
             self.update_freespin()
             self.draw_board(emit_event=False)   # draw new symbols; defer the reveal
             self.stamp_sticky_dragons()         # returning sticky dragons land in their cells
@@ -41,7 +48,7 @@ class GameState(GameStateOverride):
 
             self.evaluate_lines_board()
 
-            if self.check_fs_condition():
+            if self.check_fs_condition() and not self.wincap_triggered:
                 self.update_fs_retrigger_amt()
 
             self.win_manager.update_gametype_wins(self.gametype)

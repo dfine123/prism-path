@@ -20,8 +20,16 @@ import {
 	SCATTER_LAND_SOUND_MAP,
 } from './constants';
 
-const onSymbolLand = ({ rawSymbol }: { rawSymbol: RawSymbol }) => {
-	if (rawSymbol.name === 'S') {
+// symbol names are THIS game's ('SCAT'/'WILD'), not the template's single letters — the
+// old 'S'/'W' checks never matched, so the escalating scatter-stop stingers, the scatter
+// counter and the dragon-landing cue were all silently dead
+const onSymbolLand = ({ rawSymbol, symbolIndex }: { rawSymbol: RawSymbol; symbolIndex: number }) => {
+	// PADDING ROWS ARE NOT ON SCREEN: a landed reel carries the padded 7-row board, and its
+	// row 0 / row 6 hold real book symbols the player never sees. Sounding those would
+	// count invisible scatters and fire phantom dragon cues.
+	if (symbolIndex < 1 || symbolIndex > BOARD_DIMENSIONS.y) return;
+
+	if (rawSymbol.name === 'SCAT') {
 		eventEmitter.broadcast({ type: 'soundScatterCounterIncrease' });
 		eventEmitter.broadcast({
 			type: 'soundOnce',
@@ -29,7 +37,7 @@ const onSymbolLand = ({ rawSymbol }: { rawSymbol: RawSymbol }) => {
 		});
 	}
 
-	if (rawSymbol.name === 'W') {
+	if (rawSymbol.name === 'WILD') {
 		eventEmitter.broadcast({
 			type: 'soundOnce',
 			name: 'sfx_multiplier_landing',

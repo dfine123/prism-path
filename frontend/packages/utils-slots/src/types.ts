@@ -46,7 +46,9 @@ type ReelCreateOptions<TRawSymbol extends object, TSymbolState extends string> =
 	reelIndex: number;
 	symbolHeight: number;
 	onReelStopping: () => void;
-	onSymbolLand: (args: { rawSymbol: TRawSymbol }) => void;
+	// symbolIndex is the PADDED index — consumers must ignore padding rows (a book
+	// board is serialized with padding above and below the visible window)
+	onSymbolLand: (args: { rawSymbol: TRawSymbol; symbolIndex: number }) => void;
 };
 
 export type SpinningReelCreateOptions<

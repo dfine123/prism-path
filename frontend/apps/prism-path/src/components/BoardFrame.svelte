@@ -9,7 +9,7 @@
 
 	import { getContext } from '../game/context';
 	import { BOARD_SIZES, SYMBOL_SIZE, CELL_W } from '../game/constants';
-	import { paletteAt } from '../game/motion';
+	import { paletteAt, lerpColor } from '../game/motion';
 	import { stateFx } from '../game/stateFx.svelte';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 
@@ -86,23 +86,30 @@
 				const bl = context.stateGameDerived.boardLayout();
 				const w = bl.width * SPRITE_SCALE.width + 26;
 				const h = bl.height * SPRITE_SCALE.height + 26;
-				const breathe = 0.7 + 0.3 * Math.sin(t * Math.PI * 1.1);
-				// layered halo: wide soft bloom -> mid -> tight hue ring (hues slowly cycling)
-				g.roundRect(-w / 2 - 16, -h / 2 - 16, w + 32, h + 32, 34).stroke({
-					width: 30,
-					color: paletteAt(t * 0.16),
-					alpha: 0.08 * breathe,
-				});
-				g.roundRect(-w / 2 - 6, -h / 2 - 6, w + 12, h + 12, 28).stroke({
-					width: 12,
-					color: paletteAt(t * 0.16 + 0.12),
-					alpha: 0.16 * breathe,
-				});
-				g.roundRect(-w / 2, -h / 2, w, h, 24).stroke({
-					width: 4,
-					color: paletteAt(t * 0.16 + 0.24),
-					alpha: 0.5 * breathe,
-				});
+				const breathe = 0.8 + 0.2 * Math.sin(t * Math.PI * 0.7);
+				// FEATURE GLOW — light spilling off the frame, not a ring drawn around it.
+				// The template look was three hard rounded-rect strokes in CYCLING RAINBOW
+				// hues, which read as a garish neon outline sitting on top of the art.
+				// This is one cool light in the game's own palette, stacked as a wide falloff
+				// of progressively tighter, fainter bands so the edge dissolves instead of
+				// terminating — and it never crosses into the board's interior.
+				const BANDS = 9;
+				for (let i = 0; i < BANDS; i++) {
+					const u = i / (BANDS - 1); // 0 = outermost / softest
+					const spread = 34 * u;
+					// wide+faint on the outside, tight+brighter as it approaches the frame
+					g.roundRect(
+						-w / 2 - spread,
+						-h / 2 - spread,
+						w + spread * 2,
+						h + spread * 2,
+						24 + spread * 0.8,
+					).stroke({
+						width: 3 + 9 * u,
+						color: lerpColor(0x9b7bff, 0xbfe9ff, 1 - u),
+						alpha: (0.055 + 0.10 * (1 - u) ** 2) * breathe,
+					});
+				}
 			}}
 		/>
 	{/if}

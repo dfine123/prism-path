@@ -97,6 +97,7 @@ book events. No outcome-affecting RNG client-side. Amounts are ×100 ints (100 =
 # math (run from math/):
 env/Scripts/python.exe games/prism_path/run.py                    # generate books
 env/Scripts/python.exe games/prism_path/validate_books.py         # AUDIT GATE (must pass)
+env/Scripts/python.exe games/prism_path/check_feature_invariants.py # FEATURE GATE (sticky/scatter/beast contract, must pass)
 env/Scripts/python.exe games/prism_path/_extract_story_books.py   # refresh story data
 env/Scripts/python.exe games/prism_path/scenario.py --all         # forced scenarios
 # then: cp math/games/prism_path/library/scenarios/*.json \

@@ -102,24 +102,27 @@
 	};
 </script>
 
-{#if shards.length > 0}
-	<MainContainer>
-		<Container
-			x={context.stateGameDerived.boardLayout().x}
-			y={context.stateGameDerived.boardLayout().y}
-		>
-			{#each shards as s (s.id)}
-				<Sprite
-					key={s.key}
-					anchor={0.5}
-					x={s.x}
-					y={s.y}
-					rotation={s.rot}
-					width={s.size}
-					height={s.size}
-					alpha={alphaOf(s)}
-				/>
-			{/each}
-		</Container>
-	</MainContainer>
-{/if}
+<!-- The container mounts ALWAYS, never behind an `{#if shards.length}` gate. Pixi paints in
+     child-mount order, so a layer that first appears when the first shard spawns is appended
+     AFTER the win box and lands in FRONT of it — which is exactly how the gems ended up over
+     the BIG WIN text despite this component being ordered before the box. Keeping the
+     container mounted fixes the depth for good; only the sprites come and go. -->
+<MainContainer>
+	<Container
+		x={context.stateGameDerived.boardLayout().x}
+		y={context.stateGameDerived.boardLayout().y}
+	>
+		{#each shards as s (s.id)}
+			<Sprite
+				key={s.key}
+				anchor={0.5}
+				x={s.x}
+				y={s.y}
+				rotation={s.rot}
+				width={s.size}
+				height={s.size}
+				alpha={alphaOf(s)}
+			/>
+		{/each}
+	</Container>
+</MainContainer>

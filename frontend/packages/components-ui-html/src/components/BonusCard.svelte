@@ -12,31 +12,40 @@
 	const props: Props = $props();
 </script>
 
-<!-- CUT CRYSTAL card: chamfered gem-cut silhouette (clip-path), board-glass surface with a
-     top-light sheen, lavender facet border (outer clipped layer = the border colour, inner
-     clipped layer = the glass). Mirrors the in-game PrismPanel plaque. -->
+<!-- CUT CRYSTAL feature card: full-bleed key art on top, text block below, CTA at the foot.
+     The chamfered silhouette lives on the OUTER frame only; the inner column is a plain
+     rect with its own padding, so the CTA can never be sliced by the corner cut (the
+     previous build clipped the button because it sat inside the chamfered layer). -->
 <div class="facet">
-	<div class="bonus-card-wrap">
+	<div class="card">
 		{#if props.image}
 			<div class="art">
 				<img src={props.image} alt="" draggable="false" />
+				<div class="art-fade"></div>
 			</div>
 		{/if}
-		<div class="info">
-			{@render props.title()}
-			{@render props.description()}
-			{@render props.price()}
+		<div class="body">
+			<div class="info">
+				{@render props.title()}
+				{@render props.description()}
+			</div>
+			<div class="foot">
+				{@render props.price()}
+				<div class="cta-slot">
+					{@render props.button()}
+				</div>
+			</div>
 		</div>
-		{@render props.button()}
 	</div>
 </div>
 
 <style lang="scss">
-	$cut: 14px;
+	$cut: 16px;
+	$inner: 14.5px;
 
 	.facet {
-		// the facet border: this layer's background IS the border colour, revealed as a
-		// 1.5px rim around the inner glass (both share the chamfered clip)
+		// the facet border: this layer's background IS the rim colour, revealed as a ~1.5px
+		// edge around the inner card (both share the chamfered clip)
 		clip-path: polygon(
 			$cut 0,
 			calc(100% - #{$cut}) 0,
@@ -47,54 +56,92 @@
 			0 calc(100% - #{$cut}),
 			0 $cut
 		);
-		background: linear-gradient(180deg, rgba(217, 204, 255, 0.75), rgba(217, 204, 255, 0.35));
+		background: linear-gradient(180deg, rgba(217, 204, 255, 0.7), rgba(217, 204, 255, 0.22));
 		padding: 1.5px;
-		min-width: 155px;
-		max-width: 190px;
+		width: 232px;
+		flex: 0 0 auto;
+		transition: transform 140ms ease;
+
+		&:hover {
+			transform: translateY(-3px);
+		}
 	}
 
-	.bonus-card-wrap {
-		padding: 0.6rem;
-		flex-direction: column;
+	.card {
 		display: flex;
-		justify-content: space-between;
-		gap: 0.5rem;
+		flex-direction: column;
 		height: 100%;
-		text-align: left;
+		text-align: center;
+		overflow: hidden;
 
 		clip-path: polygon(
-			13px 0,
-			calc(100% - 13px) 0,
-			100% 13px,
-			100% calc(100% - 13px),
-			calc(100% - 13px) 100%,
-			13px 100%,
-			0 calc(100% - 13px),
-			0 13px
+			$inner 0,
+			calc(100% - #{$inner}) 0,
+			100% $inner,
+			100% calc(100% - #{$inner}),
+			calc(100% - #{$inner}) 100%,
+			$inner 100%,
+			0 calc(100% - #{$inner}),
+			0 $inner
 		);
-		// board glass: deep violet with the top-light sheen falling down the first third
+		// board glass, with the top-light sheen falling across the upper third
 		background:
-			linear-gradient(180deg, rgba(191, 168, 255, 0.14), rgba(191, 168, 255, 0) 34%),
-			rgba(20, 11, 36, 0.94);
+			linear-gradient(180deg, rgba(191, 168, 255, 0.13), rgba(191, 168, 255, 0) 38%),
+			rgba(20, 11, 36, 0.96);
 	}
 
+	// ---- key art: one square window, full bleed to the card's edges ----
 	.art {
+		position: relative;
+		aspect-ratio: 1 / 1;
+		overflow: hidden;
 		line-height: 0;
-		display: flex;
-		justify-content: center;
-		padding: 0.25rem 0;
+		flex: 0 0 auto;
 	}
 
 	.art img {
-		width: auto;
-		height: 110px;
-		object-fit: contain;
-		filter: drop-shadow(0 0 14px rgba(191, 168, 255, 0.35));
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		// bias up: every painting puts its subject in the upper-middle
+		object-position: 50% 34%;
+		display: block;
+	}
+
+	// the art dissolves into the card body instead of ending on a hard seam
+	.art-fade {
+		position: absolute;
+		inset: auto 0 -1px 0;
+		height: 38%;
+		background: linear-gradient(180deg, rgba(20, 11, 36, 0) 0%, rgba(20, 11, 36, 0.92) 78%, rgba(20, 11, 36, 1) 100%);
+		pointer-events: none;
+	}
+
+	// ---- text + CTA ----
+	.body {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		flex: 1 1 auto;
+		gap: 0.7rem;
+		// generous inset keeps every edge clear of the chamfered corners
+		padding: 0.15rem 0.85rem 0.95rem;
 	}
 
 	.info {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5em;
+		gap: 0.45rem;
+	}
+
+	.foot {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+	}
+
+	// the CTA sits fully inside the padding, so the corner cut cannot touch it
+	.cta-slot {
+		display: block;
 	}
 </style>

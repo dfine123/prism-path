@@ -2,11 +2,13 @@
 // Keys/mode strings follow the SDK convention (uppercase client key -> lowercase math mode).
 import type { BetModeMeta } from 'state-shared';
 
+// Dedicated key art per mode — one square painting each, escalating by colour so the
+// ladder reads at a glance: teal shrine -> emerald trio -> violet storm -> sapphire -> gold.
+const cardHunt = new URL('../../assets/ui/cards/card_hunt.png', import.meta.url).href;
+const cardDragon3 = new URL('../../assets/ui/cards/card_dragon3.png', import.meta.url).href;
+const cardDragon5 = new URL('../../assets/ui/cards/card_dragon5.png', import.meta.url).href;
 const cardBonus = new URL('../../assets/ui/cards/card_bonus.png', import.meta.url).href;
 const cardSuper = new URL('../../assets/ui/cards/card_super.png', import.meta.url).href;
-// feature-spin cards use the game's own art until dedicated card art is generated
-const cardHunt = new URL('../../assets/symbols/SCAT.png', import.meta.url).href;
-const cardDragon = new URL('../../assets/symbols/WILDSTICKY.png', import.meta.url).href;
 
 export const PRISM_BET_MODE_META = {
 	BASE: {
@@ -59,8 +61,8 @@ export const PRISM_BET_MODE_META = {
 		parent: '',
 		children: '',
 		assets: {
-			icon: cardDragon,
-			dialogImage: cardDragon,
+			icon: cardDragon3,
+			dialogImage: cardDragon3,
 			dialogVolatility: '',
 			volatility: '',
 			button: '',
@@ -84,8 +86,8 @@ export const PRISM_BET_MODE_META = {
 		parent: '',
 		children: '',
 		assets: {
-			icon: cardDragon,
-			dialogImage: cardDragon,
+			icon: cardDragon5,
+			dialogImage: cardDragon5,
 			dialogVolatility: '',
 			volatility: '',
 			button: '',

@@ -28,8 +28,11 @@
 	.bonuses-wrap {
 		display: flex;
 		flex-direction: row;
-		gap: 1rem;
+		// real air between cards, and room for the hover lift so nothing clips
+		gap: 1.4rem;
 		flex-wrap: wrap;
 		justify-content: center;
+		align-items: stretch;
+		padding: 0.5rem 0.25rem 1rem;
 	}
 </style>

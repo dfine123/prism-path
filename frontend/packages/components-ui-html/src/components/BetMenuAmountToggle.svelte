@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { stateBet, stateConfig } from 'state-shared';
+	import { stateBet, stateBetDerived, stateConfig } from 'state-shared';
 	import { Button, OptionsToggle } from 'components-shared';
 	import { getContextEventEmitter } from 'utils-event-emitter';
 	import { numberToCurrencyString } from 'utils-shared/amount';
@@ -17,7 +17,9 @@
 	value={stateBet.betAmount}
 	options={stateConfig.betAmountOptions}
 	onchange={(value) => {
-		stateBet.betAmount = value;
+		// same affordability clamp as the +/- steppers — a direct assignment let the menu
+		// select a bet the balance cannot cover (and skipped the bet-level snap)
+		stateBetDerived.setBetAmount(value);
 		eventEmitter.broadcast({ type: 'soundPressGeneral' });
 	}}
 >

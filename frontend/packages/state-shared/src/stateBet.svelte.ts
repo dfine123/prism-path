@@ -1,5 +1,6 @@
 import type { BaseBet } from 'utils-bet';
 import { stateMeta } from './stateMeta.svelte';
+import { stateConfig } from './stateConfig.svelte';
 
 export type Currency = string;
 export type BetToResume = BaseBet | null;
@@ -29,8 +30,18 @@ const correctBetAmount = (value: number) => {
 	const costMultiplier = betCostMultiplier();
 	if (costMultiplier === 0) return 0;
 	const max = stateBet.balanceAmount / costMultiplier;
-	if (value >= max) return max;
-	return value;
+	if (value < max) return value;
+	// AFFORDABILITY CLAMP SNAPS DOWN TO A VALID BET LEVEL. The raw quotient
+	// (balance / costMultiplier) is generally NOT a selectable bet — with a fractional
+	// cost multiplier it is not even a clean micro-unit amount (balance 9.999999 / 2.5 =
+	// 3.9999996 -> 3999999.6 micro-units on the wire). The RGS requires step-aligned
+	// integer amounts, so an unsnapped clamp produced wagers it must reject.
+	const options = [...stateConfig.betAmountOptions].sort((a, b) => a - b);
+	const affordable = options.filter((option) => option <= max);
+	if (affordable.length > 0) return affordable[affordable.length - 1];
+	// nothing is affordable: fall back to the smallest level (the bet-cost gate then
+	// disables spinning rather than sending an off-ladder amount)
+	return options[0] ?? 0;
 };
 
 const setBetAmount = (value: number) => {
@@ -60,10 +71,12 @@ const activeBetMode = () => stateMeta.betModeMeta?.[stateBet.activeBetModeKey.to
 	?? null;
 const isContinuousBet = () => stateBet.autoSpinsCounter > 1 || stateBet.isSpaceHold;
 const timeScale = () => (stateBet.isTurbo ? 2 : 1);
-const betCostMultiplier = () =>
-	stateBetDerived.activeBetMode().type === 'activate'
-		? stateBetDerived.activeBetMode().costMultiplier
-		: 1;
+// activeBetMode() returns null for any key missing from betModeMeta — an unguarded
+// deref threw a TypeError inside every consumer (bet buttons, cost checks, the machine)
+const betCostMultiplier = () => {
+	const mode = stateBetDerived.activeBetMode();
+	return mode?.type === 'activate' ? (mode.costMultiplier ?? 1) : 1;
+};
 const betCost = () => stateBet.betAmount * betCostMultiplier();
 const isBetCostAvailable = () => betCost() > 0 && betCost() <= stateBet.balanceAmount;
 const hasAutoBetCounter = () => stateBet.autoSpinsCounter !== 0;

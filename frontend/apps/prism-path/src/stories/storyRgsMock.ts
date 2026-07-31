@@ -9,6 +9,9 @@ import { API_AMOUNT_MULTIPLIER } from 'constants-shared/bet';
 import baseBooks from './data/base_books';
 import bonusBooks from './data/bonus_books';
 import superBooks from './data/super_books';
+import huntBooks from './data/hunt_books';
+import dragon3Books from './data/dragon3_books';
+import dragon5Books from './data/dragon5_books';
 
 type StoryBook = { payoutMultiplier?: number; events: unknown[] };
 
@@ -16,9 +19,19 @@ const POOLS: Record<string, StoryBook[]> = {
 	BASE: baseBooks as StoryBook[],
 	BONUS: bonusBooks as StoryBook[],
 	SUPER: superBooks as StoryBook[],
+	HUNT: huntBooks as StoryBook[],
+	DRAGON3: dragon3Books as StoryBook[],
+	DRAGON5: dragon5Books as StoryBook[],
 };
 // what the RGS charges per mode (multiple of the base bet amount) — mirrors game_config costs
-const COST: Record<string, number> = { BASE: 1, BONUS: 100, SUPER: 300 };
+const COST: Record<string, number> = {
+	BASE: 1,
+	BONUS: 100,
+	SUPER: 300,
+	HUNT: 2.5,
+	DRAGON3: 4,
+	DRAGON5: 22.5,
+};
 
 const START_BALANCE = 10_000; // dollars
 

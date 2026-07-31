@@ -12,7 +12,7 @@ export default {
 	providerName: 'sample_provider',
 	gameName: 'prism_path',
 	gameID: 'prism_path',
-	rtp: 0.96,
+	rtp: 0.965,
 	numReels: 5,
 	numRows: [5, 5, 5, 5, 5],
 	betModes: {
@@ -33,6 +33,28 @@ export default {
 		super: {
 			cost: 300.0,
 			feature: false,
+			buyBonus: true,
+			rtp: 0.965,
+			max_win: 5000.0,
+		},
+		// feature spins (activate + single-spin buys); costs mirror math game_config
+		hunt: {
+			cost: 2.5,
+			feature: true,
+			buyBonus: false,
+			rtp: 0.965,
+			max_win: 5000.0,
+		},
+		dragon3: {
+			cost: 4.0,
+			feature: true,
+			buyBonus: true,
+			rtp: 0.965,
+			max_win: 5000.0,
+		},
+		dragon5: {
+			cost: 22.5,
+			feature: true,
 			buyBonus: true,
 			rtp: 0.965,
 			max_win: 5000.0,

@@ -16,7 +16,7 @@
 		bookEventAmountToCurrencyString,
 	} from 'utils-shared/amount';
 	import { waitForResolve, waitForTimeout } from 'utils-shared/wait';
-	import { stateBetDerived } from 'state-shared';
+	import { stateBet, stateBetDerived } from 'state-shared';
 	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { OnMount } from 'components-shared';
 	import { Container } from 'pixi-svelte';
@@ -60,15 +60,18 @@
 		{@const boxLevel = Math.max(6, winLevelData.level)}
 		<WinCountUpProvider {amount} {duration} oncomplete={() => onCountUpComplete()}>
 			{#snippet children({ countUpAmount, startCountUp, finishCountUp, countUpCompleted })}
-				<!-- manual play holds on PRESS TO CONTINUE; under AUTOPLAY the outro
-				     auto-advances after a readable hold — otherwise the queue stalled here
-				     until a press (oncomplete is a resolve, so a race with a press is safe) -->
+				<!-- manual play holds on PRESS TO CONTINUE; under AUTOPLAY or an active
+				     SPACE-HOLD the outro auto-advances after a readable hold — a held key
+				     can never produce the fresh keydown PressToContinue needs (auto-repeat
+				     is filtered), so without this the hold-loop stalled here forever.
+				     Generation-guarded: a stale timer must never resolve a later await. -->
 				<OnMount
 					onmount={async () => {
+						const myResolve = oncomplete;
 						await startCountUp();
-						if (stateBetDerived.hasAutoBetCounter()) {
+						if (stateBetDerived.hasAutoBetCounter() || stateBet.isSpaceHold) {
 							await waitForTimeout(1400);
-							oncomplete();
+							if (oncomplete === myResolve) oncomplete();
 						}
 					}}
 				/>
@@ -83,7 +86,13 @@
 						x={context.stateGameDerived.boardLayout().x}
 						y={context.stateGameDerived.boardLayout().y}
 					>
-						<WinBox level={boxLevel} text="TOTAL WIN">
+						<!-- "FREE SPINS WIN", not "TOTAL WIN": freeSpinEnd.amount is the FREE-GAME
+						     total only (math win_manager.freegame_wins). The triggering base spin's
+						     own win is not in it, so on a bought bonus this number is frequently
+						     LOWER than the round total the player is actually credited (which the
+						     WIN meter and balance already show). Labelling it for what it is keeps
+						     the panel honest. -->
+						<WinBox level={boxLevel} text="FREE SPINS WIN">
 							<ResponsiveBitmapText
 								anchor={0.5}
 								maxWidth={SYMBOL_SIZE * 4.6}

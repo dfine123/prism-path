@@ -63,11 +63,15 @@
 
 				<OnMount
 					onmount={async () => {
+						// GENERATION GUARD: capture the resolve this timer belongs to — a
+						// press-skip can retire this presentation and arm the NEXT one before
+						// the timeout fires; a stale timer must never resolve the new await
+						const myResolve = oncomplete;
 						await startCountUp();
 						// an instant amount needs a longer static hold than a rolled one — the
 						// roll itself was the reading time
 						await waitForTimeout(rollsUp ? 300 : 650);
-						oncomplete();
+						if (oncomplete === myResolve) oncomplete();
 					}}
 				/>
 

@@ -5,6 +5,7 @@ import { createGetEmptyPaddedBoard } from 'utils-slots';
 
 import { SYMBOL_SIZE, CELL_W, REEL_PADDING, SYMBOL_INFO_MAP, BOARD_DIMENSIONS } from './constants';
 import { eventEmitter } from './eventEmitter';
+import { stateFx } from './stateFx.svelte';
 import type { Bet, BookEventOfType } from './typesBookEvent';
 import { bookEventHandlerMap } from './bookEventHandlerMap';
 import type { RawSymbol, SymbolState } from './types';
@@ -12,10 +13,40 @@ import type { RawSymbol, SymbolState } from './types';
 // general utils
 export const { getEmptyBoard } = createGetEmptyPaddedBoard({ reelsDimensions: BOARD_DIMENSIONS });
 export const { playBookEvent, playBookEvents } = createPlayBookUtils({ bookEventHandlerMap });
+
+// RE-ENTRANCY LATCH: exactly one book plays at a time. Every playback path — the bet
+// machine, autoplay, resume, and the storybook Action buttons — funnels through playBet,
+// so this latch is the one place that makes CONCURRENT playback impossible (a second
+// round fighting the first for the same reels/gameType was the "bonus torn down to base
+// mid-flow" incident). The EnableGameActor seam also refuses BET while this is true, so
+// the machine can't even wager during a foreign playback.
+let bookPlaying = false;
+export const isBookPlaying = () => bookPlaying;
+
+// PRESENTATION RESET at round start: normally every broadcast here is a no-op (the
+// previous round released everything on its own way out), but if a playback ever died
+// mid-flight (handler throw), the latched bonus dressing must not leak into the next
+// round. Cheap, idempotent, and only touches hide/reset surfaces.
+const resetPresentation = () => {
+	eventEmitter.broadcast({ type: 'winHide' });
+	eventEmitter.broadcast({ type: 'freeSpinIntroHide' });
+	eventEmitter.broadcast({ type: 'freeSpinOutroHide' });
+	stateFx.winSpeed = 1;
+};
+
 export const playBet = async (bet: Bet) => {
-	stateBet.winBookEventAmount = 0;
-	await playBookEvents(bet.state);
-	eventEmitter.broadcast({ type: 'stopButtonEnable' });
+	if (bookPlaying) return;
+	bookPlaying = true;
+	try {
+		resetPresentation();
+		stateBet.winBookEventAmount = 0;
+		await playBookEvents(bet.state);
+	} finally {
+		bookPlaying = false;
+		// re-arm the stop latch even when a handler threw — otherwise STOP (and the
+		// forced-turbo reset that rides it) stays dead for the rest of the session
+		eventEmitter.broadcast({ type: 'stopButtonEnable' });
+	}
 };
 
 // resume bet

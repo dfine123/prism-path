@@ -1,20 +1,22 @@
 import { setup, fromPromise, assign } from 'xstate';
 
-import { stateBet, stateBetDerived } from 'state-shared';
+import { stateBet, stateBetDerived, stateModal } from 'state-shared';
 
 import { context, type Context } from './machineContext';
 import type { PrimaryMachines } from './types';
 
+// MACHINE-LEVEL BET ADMISSION. This loop re-bets with no UI in the path (it never passes
+// through idle, so every idle-gated UI guard is bypassed) — therefore IT must check what
+// the UI normally would: the hold is still armed, no modal is open, and the next wager is
+// affordable. Anything else ends the run cleanly.
 const checkSpaceHold = fromPromise(async () => {
-	if (stateBet.isSpaceHold) {
-		if (stateBetDerived.activeBetMode()?.type === 'buy') {
-			stateBet.activeBetModeKey = 'BASE';
-			return;
-		}
-
-		return;
+	if (!stateBet.isSpaceHold) throw Error('end bet');
+	if (stateModal.modal !== null) throw Error('end bet');
+	if (!stateBetDerived.isBetCostAvailable()) throw Error('end bet');
+	// a bought feature never repeat-buys on hold — continue as BASE spins
+	if (stateBetDerived.activeBetMode()?.type === 'buy') {
+		stateBet.activeBetModeKey = 'BASE';
 	}
-	throw Error('end bet');
 });
 
 export const createIntermediateMachineBet = ({
@@ -71,6 +73,14 @@ export const createIntermediateMachineBet = ({
 						onDone: [
 							{
 								target: 'ending',
+							},
+						],
+						// a handler throw must END the round, not kill the actor — an
+						// unhandled invoke error stopped the whole game machine and froze
+						// the session with every visual latched
+						onError: [
+							{
+								target: 'end',
 							},
 						],
 					},

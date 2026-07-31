@@ -86,6 +86,22 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// feature (the dragon re-lands there every spin).
 		if (bookEvent.sticky) {
 			eventEmitter.broadcast({ type: 'stickyMarkerAdd', position: bookEvent.position });
+			// CLAIM UPGRADE: on the spin a dragon BECOMES sticky, the reveal seeded its cell
+			// as a plain beast (the math flags stickiness only in this event) — without this,
+			// a normal dragon sat inside the igniting marker box. Upgrade the seat in the
+			// same beat: crowned sticky art + badge swap in as the box lights, and the seat
+			// then follows the sticky choreography (own-path exemption, dormant vacate)
+			// exactly like a returning sticky. Idempotent for returning seats.
+			const seat =
+				stateGame.board[bookEvent.position.reel]?.reelState?.symbols?.[bookEvent.position.row];
+			if (seat?.rawSymbol.name === 'WILD' && !seat.rawSymbol.sticky) {
+				seat.rawSymbol = {
+					...seat.rawSymbol,
+					sticky: true,
+					direction: bookEvent.direction ?? seat.rawSymbol.direction,
+					multiplier: bookEvent.multiplier ?? seat.rawSymbol.multiplier,
+				};
+			}
 		}
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
 		boardSlam(0.7); // the dragon has weight — the board feels it land
@@ -239,10 +255,12 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 	freeSpinEnd: async (bookEvent: BookEventOfType<'freeSpinEnd'>) => {
 		const winLevelData = winLevelMap[bookEvent.winLevel as WinLevel];
 
-		eventEmitter.broadcast({ type: 'stickyMarkerClear' }); // feature over -> markers off
+		// The TOTAL WIN outro plays IN the bonus dressing; the whole base-game teardown
+		// (markers, gameType/night->day, frame glow, counter, music bed) happens UNDER the
+		// exit curtain — mirroring the entry, where the swap hides under the curtain.
+		// Tearing down in the open (the old order) visibly snapped the scene back to base
+		// BEFORE the outro and read as "the game switched to base mid-bonus".
 		await eventEmitter.broadcastAsync({ type: 'uiHide' });
-		stateGame.gameType = 'basegame';
-		eventEmitter.broadcast({ type: 'boardFrameGlowHide' });
 		eventEmitter.broadcast({ type: 'freeSpinOutroShow' });
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_youwon_panel' });
 		winLevelSoundsPlay({ winLevelData });
@@ -251,11 +269,19 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 			amount: bookEvent.amount,
 			winLevelData,
 		});
-		winLevelSoundsStop();
+		winLevelSoundsStop(); // still freegame -> keeps the freespin bed under the outro tail
 		eventEmitter.broadcast({ type: 'freeSpinOutroHide' });
-		eventEmitter.broadcast({ type: 'freeSpinCounterHide' });
-		stateUi.freeSpinCounterShow = false;
-		await eventEmitter.broadcastAsync({ type: 'transition' });
+		await eventEmitter.broadcastAsync({
+			type: 'transition',
+			onCovered: () => {
+				eventEmitter.broadcast({ type: 'stickyMarkerClear' }); // feature over -> markers off
+				stateGame.gameType = 'basegame';
+				eventEmitter.broadcast({ type: 'boardFrameGlowHide' });
+				eventEmitter.broadcast({ type: 'freeSpinCounterHide' });
+				stateUi.freeSpinCounterShow = false;
+				eventEmitter.broadcast({ type: 'soundMusic', name: 'bgm_main' });
+			},
+		});
 		await eventEmitter.broadcastAsync({ type: 'uiShow' });
 		await eventEmitter.broadcastAsync({ type: 'drawerUnfold' });
 		eventEmitter.broadcast({ type: 'drawerButtonHide' });

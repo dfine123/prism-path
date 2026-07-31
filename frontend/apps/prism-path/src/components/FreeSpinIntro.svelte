@@ -10,7 +10,8 @@
 	// FREE SPINS wordmark, spin count dropping in with an impact pop, press to continue.
 	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { FadeContainer } from 'components-pixi';
-	import { waitForResolve } from 'utils-shared/wait';
+	import { waitForResolve, waitForTimeout } from 'utils-shared/wait';
+	import { stateBet, stateBetDerived } from 'state-shared';
 	import { BitmapText, Container, Graphics } from 'pixi-svelte';
 	import { onMount } from 'svelte';
 
@@ -51,7 +52,17 @@
 		freeSpinIntroUpdate: async (emitterEvent) => {
 			freeSpinsFromEvent = emitterEvent.totalFreeSpins;
 			popStart = performance.now();
-			await waitForResolve((resolve) => (oncomplete = resolve));
+			await waitForResolve((resolve) => {
+				oncomplete = resolve;
+				// AUTOPLAY / SPACE-HOLD can never produce the fresh keydown PressToContinue
+				// needs (auto-repeat is filtered) — auto-advance after a readable hold.
+				// Generation-guarded so a stale timer can't resolve a later intro's await.
+				if (stateBetDerived.hasAutoBetCounter() || stateBet.isSpaceHold) {
+					waitForTimeout(1600).then(() => {
+						if (oncomplete === resolve) oncomplete();
+					});
+				}
+			});
 		},
 	});
 

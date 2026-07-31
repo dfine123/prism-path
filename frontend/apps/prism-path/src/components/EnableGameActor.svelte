@@ -5,6 +5,7 @@
 
 	import { gameActor } from '../game/actor';
 	import { getContext } from '../game/context';
+	import { isBookPlaying } from '../game/utils';
 
 	type Props = {
 		debug?: boolean;
@@ -30,9 +31,16 @@
 	});
 
 	context.eventEmitter.subscribeOnMount({
-		// Connect every actor with app.eventEmitter to avoid call actor directly
-		bet: () => gameActor.send({ type: 'BET' }),
-		autoBet: () => gameActor.send({ type: 'AUTO_BET' }),
+		// Connect every actor with app.eventEmitter to avoid call actor directly.
+		// BET/AUTO_BET are refused while ANY book is already presenting — the machine can
+		// sit in idle during storybook Action-driven playback, and accepting a wager there
+		// started a second, concurrent round over the live one.
+		bet: () => {
+			if (!isBookPlaying()) gameActor.send({ type: 'BET' });
+		},
+		autoBet: () => {
+			if (!isBookPlaying()) gameActor.send({ type: 'AUTO_BET' });
+		},
 		resumeBet: () => gameActor.send({ type: 'RESUME_BET' }),
 	});
 </script>

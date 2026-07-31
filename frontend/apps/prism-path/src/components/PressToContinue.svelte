@@ -2,6 +2,7 @@
 	import { MainContainer, OnPressFullScreen } from 'components-layout';
 	import { OnHotkey } from 'components-shared';
 	import { BitmapText } from 'pixi-svelte';
+	import { stateUi } from 'state-shared';
 
 	import { getContext } from '../game/context';
 	import { superLabelStyle } from '../game/fonts';
@@ -17,7 +18,13 @@
 
 	onMount(() => {
 		acquireTrailClock();
-		return releaseTrailClock;
+		// this overlay owns the screen: the hero bet button's Space handler stands down
+		// while it is up, so one press has exactly one meaning
+		stateUi.pressCatcherActive = true;
+		return () => {
+			stateUi.pressCatcherActive = false;
+			releaseTrailClock();
+		};
 	});
 
 	// gentle invite breathe (the screen is never dead)

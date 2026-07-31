@@ -28,7 +28,8 @@
 	const context = getContext();
 </script>
 
-<EnableSpaceHold />
+<!-- replay: hold forces turbo only — the rebet loop must never arm -->
+<EnableSpaceHold canArm={() => false} />
 
 <UiFadeContainer>
 	<Container x={20}>

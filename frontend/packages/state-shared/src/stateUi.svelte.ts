@@ -62,6 +62,9 @@ export const stateUi = $state({
 	freeSpinCounterShow: false,
 	freeSpinCounterCurrent: 0,
 	freeSpinCounterTotal: 0,
+	// a PRESS-ANYWHERE overlay (win/intro/outro) owns the screen: while true, the hero
+	// bet button's Space handler must stand down so one press has exactly one meaning
+	pressCatcherActive: false,
 	menuOpen: false,
 	drawerFold: false,
 	drawerButtonShow: false,

@@ -37,7 +37,8 @@
 	{@render props.children()}
 </div>
 
-<OnHotkey hotkey="Escape" onpress={closeModal} />
+<!-- Escape honours the same 300ms arming delay as pointer input -->
+<OnHotkey hotkey="Escape" {disabled} onpress={closeModal} />
 
 <div class="pop-up-wrap" class:disabled style={`z-index: ${props.zIndex};`}>
 	<div class="blur-layer"></div>

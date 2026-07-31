@@ -19,8 +19,11 @@
 	const T = SUPER_UI;
 	// bet-cost gates only the SPIN meaning — mid-round the button means STOP and must stay
 	// live even when the post-wager balance dips below the bet cost. Any open overlay
-	// (DOM modal / menu pod) kills both press and Space — no bets behind a modal.
-	const overlayOpen = $derived(stateModal.modal !== null || stateUi.menuOpen);
+	// (DOM modal / menu pod / press-anywhere catcher) kills both press and Space — no
+	// bets behind a modal, and no double meaning while a PRESS TO CONTINUE owns the press.
+	const overlayOpen = $derived(
+		stateModal.modal !== null || stateUi.menuOpen || stateUi.pressCatcherActive,
+	);
 	const disabled = $derived(
 		overlayOpen || (context.stateXstateDerived.isIdle() && !stateBetDerived.isBetCostAvailable()),
 	);

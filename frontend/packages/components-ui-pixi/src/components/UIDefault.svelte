@@ -3,6 +3,7 @@
 
 	import { getContextLayout } from 'utils-layout';
 	import { EnableSpaceHold } from 'components-shared';
+	import { getContext } from '../context';
 
 	import UiFadeContainer from './UiFadeContainer.svelte';
 	import LayoutDesktop from './LayoutDesktop.svelte';
@@ -33,6 +34,7 @@
 	const props: Props = $props();
 
 	const { stateLayoutDerived } = getContextLayout();
+	const context = getContext();
 
 	const LAYOUT_COMPONENT_MAP = {
 		desktop: LayoutDesktop,
@@ -44,7 +46,8 @@
 	const LayoutComponent = $derived(LAYOUT_COMPONENT_MAP[stateLayoutDerived.layoutType()]);
 </script>
 
-<EnableSpaceHold />
+<!-- the rebet loop may only be ARMED from true idle; mid-round holds still force turbo -->
+<EnableSpaceHold canArm={() => context.stateXstateDerived.isIdle()} />
 
 <UiFadeContainer>
 	<LayoutComponent>

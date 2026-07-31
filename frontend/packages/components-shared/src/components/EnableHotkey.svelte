@@ -31,14 +31,16 @@
 	}
 
 	function handleKeyup(e: KeyboardEvent) {
-		if (getValidElement(e)) {
-			const isSpace = e.key === ' ';
-			const key = isSpace ? 'Space' : e.key;
-			if (PREVENT_DEFAULT_KEYS.includes(key)) e.preventDefault();
-			if (key) {
-				heldKeys.delete(key);
-				context.eventEmitter.broadcast({ type: 'hotKey', key, action: 'keyUp' });
-			}
+		// keyUp is delivered UNCONDITIONALLY — the target filter applies to keydown only.
+		// A keydown accepted on the canvas whose keyup lands on a focused input (e.g.
+		// releasing Space over the volume slider) must still release: dropping it left
+		// isSpaceHold latched true = an unattended infinite bet loop with no key held.
+		const isSpace = e.key === ' ';
+		const key = isSpace ? 'Space' : e.key;
+		if (getValidElement(e) && PREVENT_DEFAULT_KEYS.includes(key)) e.preventDefault();
+		if (key && heldKeys.has(key)) {
+			heldKeys.delete(key);
+			context.eventEmitter.broadcast({ type: 'hotKey', key, action: 'keyUp' });
 		}
 	}
 

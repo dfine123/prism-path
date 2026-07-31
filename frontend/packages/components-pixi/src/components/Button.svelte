@@ -78,9 +78,13 @@
 	}}
 	onpointerup={() => {
 		if (disabled) return;
+		// the press must have STARTED here — a drag begun on the board and released over
+		// the button must not activate it (it also bypassed markUiPress)
+		if (!pressed) return;
 		pressed = false;
 		onpress();
 	}}
+	onpointerupoutside={() => (pressed = false)}
 >
 	{#if debug}
 		<Rectangle

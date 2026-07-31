@@ -65,12 +65,14 @@
 	});
 
 	$effect(() => {
-		if (props.disabled) keyUp();
+		// release only a press that is actually in flight — an unconditional keyUp fired a
+		// spurious onpressend on mount whenever the component started disabled
+		if (props.disabled && (isHolding || isWaitingToHold)) keyUp();
 	});
 
 	onDestroy(() => keyUp());
-
-	$effect(() => {
-		if (isHolding) props.onhold?.();
-	});
+	// NOTE: no `$effect(() => { if (isHolding) onhold() })` — holdTimeoutStart already
+	// invokes onhold exactly once. The old effect DOUBLE-FIRED it, and a second
+	// spaceHoldOn re-captured the turbo snapshot AFTER the first call forced turbo on,
+	// so releasing "restored" the player's toggle to permanently ON.
 </script>

@@ -156,25 +156,29 @@ def reevaluate_spin(spin):
 
         if base_win <= 0 and wild_win <= 0:
             continue
-        # rule: a completing symbol always registers the FULL line; pure wild-run otherwise
-        if wild_win > 0 and base_win <= 0:
-            kind = wild_matches
-            pay = wild_win
-        else:
-            kind = wild_matches + matches
-            pay = base_win
 
         # line multiplier: product of DISTINCT beasts intersecting the winning positions
-        seen = {}
-        for reel in range(kind):
-            seen.update(beast_sets.get((reel, line[reel]), {}))
-        mult = 1
-        for m in seen.values():
-            mult *= m
-        mult = min(max(mult, 1), 100_000)  # mirror the strategy clamp
+        def line_mult(kind_len):
+            seen = {}
+            for reel in range(kind_len):
+                seen.update(beast_sets.get((reel, line[reel]), {}))
+            m = 1
+            for v in seen.values():
+                m *= v
+            return min(max(m, 1), 100_000)  # mirror the strategy clamp
 
-        total += round(pay * mult, 2)
-        wins.append({"lineIndex": line_index, "kind": kind, "win": round(pay * mult, 2)})
+        # RULE: HIGHEST WIN PER LINE — the completing-symbol win and the pure wild-run win
+        # are both scored through their own multipliers, and the better one pays.
+        candidates = []
+        if wild_win > 0:
+            candidates.append((round(wild_win * line_mult(wild_matches), 2), wild_matches))
+        if first_non_wild is not None and base_win > 0:
+            k = wild_matches + matches
+            candidates.append((round(base_win * line_mult(k), 2), k))
+        win_amount, kind = max(candidates, key=lambda c: c[0])
+
+        total += win_amount
+        wins.append({"lineIndex": line_index, "kind": kind, "win": win_amount})
 
     return round(total, 2), wins
 
@@ -228,7 +232,10 @@ def main():
     total = 0
     bad_books = 0
     samples = []
-    for name in ("books_base.jsonl.zst", "books_bonus.jsonl.zst", "books_super.jsonl.zst"):
+    # EVERY mode's books are gated — new bet modes are picked up automatically
+    for name in sorted(
+        os.path.basename(p) for p in glob.glob(os.path.join(LIB, "books_*.jsonl.zst"))
+    ):
         books = read_books(name)
         if not books:
             print(f"  (skip {name}: not found)")

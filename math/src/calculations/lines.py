@@ -75,53 +75,74 @@ class Lines:
                     base_win = config.paytable[(wild_matches + matches, first_non_wild.name)]
 
             if base_win > 0 or wild_win > 0:
-                # A wild run that a symbol COMPLETES always registers as the full line with
-                # that symbol (4 wilds + K = a 5-line of K). The pure wild-run pay applies
-                # only when there is no completing symbol win (e.g. an all-wild line).
-                if wild_win > 0 and base_win <= 0:
-                    positions = [{"reel": idx, "row": line[idx]} for idx in range(0, wild_matches)]
-                    line_win, applied_mult = apply_mult(
+                # HIGHEST WIN PER LINE (the rule stated on the paytable): a wild run that a
+                # symbol COMPLETES normally pays as the full line with that symbol (4 wilds
+                # + K = a 5-line of K), but when the pure WILD-run pays more it wins instead.
+                # Both candidates are scored THROUGH the multiplier step before comparing —
+                # the covered cells differ, so the multiplier product can flip the ranking.
+                candidates = []
+                if wild_win > 0:
+                    wild_positions = [
+                        {"reel": idx, "row": line[idx]} for idx in range(0, wild_matches)
+                    ]
+                    wild_line_win, wild_applied = apply_mult(
                         board,
                         multiplier_method,
                         global_multiplier=global_multiplier,
                         win_amount=wild_win,
-                        positions=positions,
+                        positions=wild_positions,
                     )
-                    win_dict = Lines.line_win_info(
-                        potential_line[0].name,
-                        wild_matches,
-                        line_win,
-                        positions,
-                        {
-                            "lineIndex": line_index,
-                            "multiplier": applied_mult,
-                            "winWithoutMult": wild_win,
-                            "globalMult": int(global_multiplier),
-                            "lineMultiplier": int(applied_mult / global_multiplier),
-                        },
+                    candidates.append(
+                        (
+                            wild_line_win,
+                            wild_applied,
+                            wild_win,
+                            wild_positions,
+                            potential_line[0].name,
+                            wild_matches,
+                        )
                     )
-                else:
-                    positions = [{"reel": idx, "row": line[idx]} for idx in range(0, matches + wild_matches)]
-                    line_win, applied_mult = apply_mult(
+                if base_win > 0 and first_non_wild is not None:
+                    base_positions = [
+                        {"reel": idx, "row": line[idx]}
+                        for idx in range(0, matches + wild_matches)
+                    ]
+                    base_line_win, base_applied = apply_mult(
                         board,
                         multiplier_method,
                         global_multiplier=global_multiplier,
                         win_amount=base_win,
-                        positions=positions,
+                        positions=base_positions,
                     )
-                    win_dict = Lines.line_win_info(
-                        first_non_wild.name,
-                        matches + wild_matches,
-                        line_win,
-                        positions,
-                        {
-                            "lineIndex": line_index,
-                            "multiplier": applied_mult,
-                            "winWithoutMult": base_win,
-                            "globalMult": int(global_multiplier),
-                            "lineMultiplier": int(applied_mult / global_multiplier),
-                        },
+                    candidates.append(
+                        (
+                            base_line_win,
+                            base_applied,
+                            base_win,
+                            base_positions,
+                            first_non_wild.name,
+                            matches + wild_matches,
+                        )
                     )
+
+                # ties go to the completing-symbol win (listed last -> max is stable on the
+                # first maximum, so sort explicitly by win only)
+                line_win, applied_mult, raw_win, positions, sym_name, kind = max(
+                    candidates, key=lambda c: c[0]
+                )
+                win_dict = Lines.line_win_info(
+                    sym_name,
+                    kind,
+                    line_win,
+                    positions,
+                    {
+                        "lineIndex": line_index,
+                        "multiplier": applied_mult,
+                        "winWithoutMult": raw_win,
+                        "globalMult": int(global_multiplier),
+                        "lineMultiplier": int(applied_mult / global_multiplier),
+                    },
+                )
 
                 return_data["totalWin"] += line_win
                 return_data["wins"].append(win_dict)

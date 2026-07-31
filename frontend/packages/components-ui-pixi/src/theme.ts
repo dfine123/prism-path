@@ -80,3 +80,61 @@ export const prismAt = (u: number) => {
 	const i = Math.floor(f) % P.length;
 	return lerpColor(P[i], P[(i + 1) % P.length], f - Math.floor(f));
 };
+
+// ---------------------------------------------------------------------------------------
+// REAL LIGHT. Flat white rectangles laid over a surface read as stickers — the hard edge is
+// the tell. These build actual gradients (rgba stops, so the light FADES OUT into the glass
+// instead of stopping) for the two lights a glass control has:
+//   sheenGradient  — the broad top-down fall of ambient light across a plate
+//   specularGradient — the tight highlight where a domed key catches the source
+// Both are declared in LOCAL space (0..1 of the shape's bounds), so one gradient object
+// works at any control size.
+// ---------------------------------------------------------------------------------------
+const rgba = (hex: number, a: number) =>
+	`rgba(${(hex >> 16) & 255},${(hex >> 8) & 255},${hex & 255},${a})`;
+
+/** Top-down ambient fall for flat plates: bright lip -> quick falloff -> nothing. */
+export const sheenGradient = (FillGradient: any, strength = 1) =>
+	new FillGradient({
+		type: 'linear',
+		start: { x: 0, y: 0 },
+		end: { x: 0, y: 1 },
+		textureSpace: 'local',
+		colorStops: [
+			{ offset: 0, color: rgba(0xffffff, 0.16 * strength) },
+			{ offset: 0.32, color: rgba(0xffffff, 0.045 * strength) },
+			{ offset: 0.62, color: rgba(0xffffff, 0) },
+			{ offset: 1, color: rgba(0x000000, 0.22 * strength) },
+		],
+	});
+
+/** Inner shadow for recessed wells: dark under the top lip, fading to a lit bottom edge. */
+export const innerShadowGradient = (FillGradient: any) =>
+	new FillGradient({
+		type: 'linear',
+		start: { x: 0, y: 0 },
+		end: { x: 0, y: 1 },
+		textureSpace: 'local',
+		colorStops: [
+			{ offset: 0, color: rgba(0x000000, 0.34) },
+			{ offset: 0.42, color: rgba(0x000000, 0.05) },
+			{ offset: 0.85, color: rgba(0x000000, 0) },
+			{ offset: 1, color: rgba(0xffffff, 0.07) },
+		],
+	});
+
+/** Specular blob for domed keys — offset up-left like a single overhead source. */
+export const specularGradient = (FillGradient: any, strength = 1) =>
+	new FillGradient({
+		type: 'radial',
+		center: { x: 0.42, y: 0.3 },
+		innerRadius: 0,
+		outerCenter: { x: 0.42, y: 0.3 },
+		outerRadius: 0.62,
+		textureSpace: 'local',
+		colorStops: [
+			{ offset: 0, color: rgba(0xffffff, 0.3 * strength) },
+			{ offset: 0.45, color: rgba(0xffffff, 0.08 * strength) },
+			{ offset: 1, color: rgba(0xffffff, 0) },
+		],
+	});

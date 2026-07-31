@@ -1,7 +1,13 @@
 <script lang="ts">
-	import { Graphics } from 'pixi-svelte';
+	import { Graphics, FillGradient } from 'pixi-svelte';
 
-	import { SUPER_UI, prismAt } from '../theme';
+	import {
+		SUPER_UI,
+		prismAt,
+		sheenGradient,
+		specularGradient,
+		innerShadowGradient,
+	} from '../theme';
 
 	// The Crystal Console surface primitive — "cut crystal" construction, layered:
 	//   grounding outline -> glass fill -> gradient bands -> bevel -> rim -> edge-light
@@ -41,10 +47,9 @@
 			// recessed well: darker glass, inverted bevel (shadow lip top, light lip bottom)
 			g.roundRect(-w / 2, -h / 2, w, h, r).fill({ color: 0x0c0716, alpha: 0.62 });
 			g.roundRect(-w / 2, -h / 2, w, h, r).stroke({ width: 1.5, color: 0x080510, alpha: 0.9 });
-			g.rect(-w / 2 + r * 0.7, -h / 2 + 1.5, w - r * 1.4, h * 0.22).fill({ color: 0x000000, alpha: 0.22 });
-			g.moveTo(-w / 2 + r, h / 2 - 1.5)
-				.lineTo(w / 2 - r, h / 2 - 1.5)
-				.stroke({ width: 1.5, color: 0xffffff, alpha: 0.09, cap: 'round' });
+			// real inner shadow: dark under the top lip, fading out, lit bottom edge — the
+			// hard black band it replaces read as a painted stripe inside the well
+			g.roundRect(-w / 2, -h / 2, w, h, r).fill(innerShadowGradient(FillGradient));
 			if (props.accent != null) {
 				g.roundRect(-w / 2 - 1.5, -h / 2 - 1.5, w + 3, h + 3, r + 1.5).stroke({
 					width: 2.5,
@@ -66,28 +71,25 @@
 		// glass plate
 		g.roundRect(-w / 2, -h / 2, w, h, r).fill({ color: fill, alpha: T.glassAlpha });
 
+		// LIGHT. Real gradients, clipped to the plate's own silhouette, so the highlight
+		// FADES OUT into the glass. The previous flat white/black rectangles had hard edges
+		// that read as stickers laid on the surface rather than light falling across it.
 		if (isRound && tone !== 'panel') {
-			// DOMED KEY: bottom shade crescent + top gloss crescent
-			// (explicit moveTo before each arc — no stray path-connector lines)
+			// DOMED KEY: one specular blob offset up-left (a single overhead source), plus a
+			// contact shade hugging the lower rim so the key sits IN the deck
 			const cr = Math.min(w, h) / 2;
-			g.moveTo(Math.cos(Math.PI * 0.15) * cr * 0.8, Math.sin(Math.PI * 0.15) * cr * 0.8);
-			g.arc(0, 0, cr * 0.8, Math.PI * 0.15, Math.PI * 0.85).stroke({
-				width: cr * 0.26,
+			g.circle(0, 0, cr * 0.94).fill(specularGradient(FillGradient, tone === 'hero' ? 1.15 : 1));
+			g.moveTo(Math.cos(Math.PI * 0.18) * cr * 0.82, Math.sin(Math.PI * 0.18) * cr * 0.82);
+			g.arc(0, 0, cr * 0.82, Math.PI * 0.18, Math.PI * 0.82).stroke({
+				width: cr * 0.22,
 				color: 0x000000,
-				alpha: 0.16,
-				cap: 'round',
-			});
-			g.moveTo(Math.cos(Math.PI * 1.15) * cr * 0.78, Math.sin(Math.PI * 1.15) * cr * 0.78);
-			g.arc(0, 0, cr * 0.78, Math.PI * 1.15, Math.PI * 1.85).stroke({
-				width: cr * 0.17,
-				color: 0xffffff,
-				alpha: 0.09,
+				alpha: 0.18,
 				cap: 'round',
 			});
 		} else {
-			// PLATE: light-top / shaded-bottom gradient bands (inset past the end caps)
-			g.rect(-w / 2 + r * 0.8, -h / 2 + 3, w - r * 1.6, h * 0.32).fill({ color: 0xffffff, alpha: 0.045 });
-			g.rect(-w / 2 + r * 0.8, h / 2 - h * 0.26, w - r * 1.6, h * 0.26 - 3).fill({ color: 0x000000, alpha: 0.2 });
+			// PLATE: ambient top-down fall across the whole face, clipped to the rounded
+			// silhouette so it never squares off the corners
+			g.roundRect(-w / 2, -h / 2, w, h, r).fill(sheenGradient(FillGradient, tone === 'panel' ? 0.85 : 1));
 		}
 
 		// rim

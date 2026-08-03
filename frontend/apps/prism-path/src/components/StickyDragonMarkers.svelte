@@ -16,7 +16,8 @@
 	import { getContext } from '../game/context';
 	import { getSymbolX } from '../game/utils';
 	import { SYMBOL_SIZE, CELL_W } from '../game/constants';
-	import { paletteAt } from '../game/motion';
+	import { paletteAt, clamp01 } from '../game/motion';
+	import { stateWinPop } from '../game/stateWinPop.svelte';
 	import { trailClock, acquireTrailClock, releaseTrailClock } from '../game/trailClock.svelte';
 
 	const context = getContext();
@@ -47,6 +48,11 @@
 		blendMode="add"
 		draw={(g) => {
 			const t = trailClock.t;
+			// LEGIBILITY GUARD: while a win VALUE POP is on stage, the ring's additive glow
+			// washes out the thin glyphs (it reads as sitting ON TOP of the number even
+			// though it paints below) — so the whole marker ducks to a whisper and swells
+			// back when the pop leaves
+			const duck = 1 - 0.8 * clamp01(stateWinPop.alpha);
 			for (let i = 0; i < markers.length; i++) {
 				const m = markers[i];
 				// fixed GRID coords (markers belong to the square, not the scrolling symbols);
@@ -59,9 +65,9 @@
 				const h2 = SYMBOL_SIZE * pulse;
 				const col = paletteAt(t * 0.35 + i * 0.21);
 				// soft outer bloom -> saturated border -> crisp inner edge
-				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 11, color: col, alpha: 0.18 * breathe });
-				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 4.5, color: col, alpha: 0.85 * breathe });
-				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 1.5, color: 0xffffff, alpha: 0.55 * breathe });
+				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 11, color: col, alpha: 0.18 * breathe * duck });
+				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 4.5, color: col, alpha: 0.85 * breathe * duck });
+				g.roundRect(x - w / 2, y - h2 / 2, w, h2, 14).stroke({ width: 1.5, color: 0xffffff, alpha: 0.55 * breathe * duck });
 				// corner sparks (one per corner, twinkling out of phase)
 				const corners = [
 					[x - w / 2, y - h2 / 2],
@@ -71,7 +77,7 @@
 				];
 				for (let k = 0; k < 4; k++) {
 					const tw = (Math.sin(t * Math.PI * 3 + i * 1.7 + k * 1.9) + 1) / 2;
-					g.circle(corners[k][0], corners[k][1], 2 + 2.4 * tw).fill({ color: 0xffffff, alpha: 0.3 + 0.45 * tw });
+					g.circle(corners[k][0], corners[k][1], 2 + 2.4 * tw).fill({ color: 0xffffff, alpha: (0.3 + 0.45 * tw) * duck });
 				}
 			}
 		}}

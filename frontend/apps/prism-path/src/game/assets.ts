@@ -30,6 +30,25 @@ export default {
 	bgBase: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_base.png', import.meta.url).href, preload: true },
 	bgFeature: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_feature.png', import.meta.url).href, preload: true },
 
+	// LAYERED LIVING BACKGROUND (BackgroundScene): the paintings decomposed into real
+	// plates via Higgsfield — empty-sky bases + complete island/cloud cutouts that
+	// float and drift in-engine
+	lyDaySky: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/day_sky.jpg', import.meta.url).href, preload: true },
+	lyDayIslandL: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/day_island_left.png', import.meta.url).href, preload: true },
+	lyDayIslandR: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/day_island_right.png', import.meta.url).href, preload: true },
+	lyDayIsletTL: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/day_islet_tl.png', import.meta.url).href, preload: true },
+	lyDayIslandTR: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/day_island_tr.png', import.meta.url).href, preload: true },
+	lyDayIsletC: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/day_islet_c.png', import.meta.url).href, preload: true },
+	lyDayCloud: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/day_cloud.png', import.meta.url).href, preload: true },
+	lyDayBank: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/day_bank.png', import.meta.url).href, preload: true },
+	lyNightSky: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/night_sky.jpg', import.meta.url).href, preload: true },
+	lyNightIslandL: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/night_island_left.png', import.meta.url).href, preload: true },
+	lyNightIslandR: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/night_island_right.png', import.meta.url).href, preload: true },
+	lyNightIsletTL: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/night_islet_tl.png', import.meta.url).href, preload: true },
+	lyNightIslandTR: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/night_island_tr.png', import.meta.url).href, preload: true },
+	lyNightIsletC: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/night_islet_c.png', import.meta.url).href, preload: true },
+	lyNightCloud: { type: 'sprite', src: new URL('../../assets/backgrounds/layers/night_cloud.png', import.meta.url).href, preload: true },
+
 	// FX textures (generated: gaussian bokeh orb + 4-point star glint for ambient motes)
 	mote: { type: 'sprite', src: new URL('../../assets/fx/mote.png', import.meta.url).href, preload: true },
 	moteStar: { type: 'sprite', src: new URL('../../assets/fx/moteStar.png', import.meta.url).href, preload: true },

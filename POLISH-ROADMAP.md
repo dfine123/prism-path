@@ -38,12 +38,30 @@ Status: `[ ]` proposed · `[~]` in progress · `[x]` shipped · `[-]` dropped by
       softer anticipation release. No dim, no banner. Skipped when a win presentation
       follows (the win owns the stage).
 
-## Phase 2 — GAME FEEL / CHOREOGRAPHY
+## Phase 2 — GAME FEEL / CHOREOGRAPHY  `ACTIVE`
 
-- [ ] 2.1 Turbo as a designed timing table (fix manual-turbo vs turbo-autoplay anticipation inconsistency).
-- [ ] 2.2 Dragon charge inhale (~200ms pull-in before launch: seat glow swell, sparkles drawn inward).
-- [ ] 2.3 Idle life: slow shimmer pass over symbols every ~8s, sticky-dragon eye flare.
-- [ ] 2.4 Camera focus on wins: dim + micro-shrink board behind the win box.
+- [x] **2.1 Designed turbo win presentation** (operator: skipping anticipation IS the
+      point of turbo — keep; win lines must not read as "10x footage"). SHIPPED: under
+      turbo (incl. space-hold), winInfo presents ONE composed statement — all lines
+      sweep on in a 45ms-stagger cascade with full easing, all winning symbols breathe
+      together, the combined total pops once at the collective centroid, joint release.
+      ~0.7s flat. Normal-speed play keeps the line-by-line tour; click-skip unchanged.
+- [-] 2.2 Dragon charge inhale — DROPPED by operator: the current smooth launch is better.
+- [~] **2.3 LIVING BACKGROUND v3 — LAYERED PLATES (operator-directed architecture,
+      2026-08-03).** v1 overlays and v2 displacement both rejected; v3 is the real
+      thing: the paintings DECOMPOSED into independent plates via Higgsfield
+      (nano-banana image-to-image on the original art) — an empty-sky base per scene
+      (day sky + aurora night sky), every island redrawn COMPLETE (including
+      canvas-cropped parts, so floating never reveals a cut edge) and cut out via
+      background removal, plus cloud plates. Composited in BackgroundScene.svelte in
+      the painting's own 2048x1143 space: islands FLOAT (desynchronized bob + sway,
+      far = less motion), clouds DRIFT. Day scene verified live (motion proven by
+      inter-frame diff, composition matches the original). Night scene wired with the
+      same rig — placement needs the operator's playtest eye. Old flat bg sprites kept
+      as assets for instant rollback.
+- [x] **2.4 Camera focus on wins** — SHIPPED with restraint: 1.4% board micro-shrink
+      behind the dim veil (stateFx.boardFocus, easeInOut 320ms) while any big-win box
+      or the outro panel holds; releases on hide. All BoardContainer layers move as one.
 
 ## Phase 3 — AUDIO SYSTEMS
 
@@ -90,3 +108,25 @@ Status: `[ ]` proposed · `[~]` in progress · `[x]` shipped · `[-]` dropped by
 - Anticipation seeding on slam paths (turbo path-dependence — folded into 2.1).
 - Space-hold repainting the turbo toggle ring.
 - Dead code sweep: unreachable wild-explode cue, missing 'anticipation' spine asset key, unused sfx_winlevel_end.
+- **Dragon path over a scatter**: a path crossing a landed SCAT converts the cell to a
+  wild for LINE pay, but the scatter still counts toward the trigger (counted at
+  landing — enforced by invariants T1/T3, industry standard, player-favourable). The
+  cosmetic edge: the trigger celebration animates a cell that now shows a wild
+  (example: base book 48, spin 1). Keep the math; optionally later: keep the SCAT art
+  visible under the path chip so the celebration reads true.
+
+## Logic-sweep log
+
+- **2026-08-03 full sweep** (operator-triggered after the reel-4 left-dragon sighting):
+  40 agents, 16 deduped findings, 13 confirmed after 2-lens adversarial verification,
+  all fixed same day. Root cause of the sighting: paytable inversion made "highest win
+  per line" truncate completed lines through royals (7,353 corpus occurrences) →
+  replaced with the LINE-EXTENSION RULE in engine + validator. Other majors: sticky
+  claim-upgrade clobbered crossing multipliers (chip vs paid mult), space-hold rebet
+  loop dead in the normal gesture (canArm raced its own keypress), resume machine
+  missing onError (frozen session on handler throw), wincap-suppressed retrigger
+  tripping gate T2. Minors: RTP tally double-clamp on capped rounds, counter staleness
+  across features + no rehydrate on remount, resume celebration on placeholder board,
+  float micro-unit wire amounts, space-hold arming behind modals nesting into
+  autoplay, bet-machine error path skipping settlement, prismPath event docstring
+  contradicting emission.

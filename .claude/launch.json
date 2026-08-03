@@ -3,7 +3,9 @@
 	"configurations": [
 		{
 			"name": "storybook",
-			"url": "http://localhost:6010"
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": ["--dir", "frontend/apps/prism-path", "storybook"],
+			"port": 6010
 		},
 		{
 			"name": "game",

@@ -61,7 +61,9 @@
 			const tw = 0.5 + 0.5 * Math.sin(t * m.twSpd * Math.PI * 2 + m.phase);
 			const tint = palette[Math.floor(m.hue * palette.length) % palette.length];
 			const size = m.size * (0.8 + 0.4 * tw);
-			const alpha = (m.bokeh ? 0.1 + 0.16 * tw : 0.2 + 0.5 * tw) * modeMul;
+			// dialed WAY down (operator: flashing too bright) — a shine you notice only
+			// when you look for it, never a flash that pulls the eye from the reels
+			const alpha = (m.bokeh ? 0.05 + 0.07 * tw : 0.09 + 0.16 * tw) * modeMul;
 			return {
 				x,
 				y,
@@ -71,7 +73,8 @@
 				star: m.star,
 				starRot: t * 0.12 + m.phase,
 				starSize: size * 2.4,
-				starAlpha: Math.max(0, tw - 0.55) * 1.6 * modeMul,
+				// star cross only crests near the twinkle peak, and gently (was 1.6x — a strobe)
+				starAlpha: Math.max(0, tw - 0.72) * 0.7 * modeMul,
 			};
 		});
 	});

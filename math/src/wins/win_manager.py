@@ -51,9 +51,16 @@ class WinManager:
             raise RuntimeError("Must define a valid gametype")
 
     def update_end_round_wins(self):
-        """Accumulate total wins for a given betting round."""
+        """Accumulate total wins for a given betting round.
+
+        The cap applies to the ROUND (base + free jointly), matching the actual payout
+        clamp in update_final_win. Two independent per-gametype clamps let base+free
+        exceed max_allowed_win (base 200x + capped 5000x feature counted 5200x), which
+        overstated capped rounds in the RTP tally the shaping pass tunes against. The
+        clamp is apportioned base-first so the per-gametype tallies still sum to the
+        joint total."""
         base = min(self.max_allowed_win, self.basegame_wins)
-        free = min(self.max_allowed_win, self.freegame_wins)
+        free = min(self.max_allowed_win - base, self.freegame_wins)
         self.total_cumulative_wins += base + free
         self.cumulative_base_wins += base
         self.cumulative_free_wins += free

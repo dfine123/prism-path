@@ -133,13 +133,19 @@ def check_book(book, name):
         scats = [(reel, row) for reel in range(5) for row in VIS_ROWS if cell(reel, row).get("name") == "SCAT"]
         trig = next((e for e in spin["events"] if e.get("type") == "freeSpinTrigger"), None)
         retrig = next((e for e in spin["events"] if e.get("type") == "freeSpinRetrigger"), None)
+        # WIN-CAP CARVE-OUT (mirrors G2's): the cap is terminal, so the engine rightly
+        # suppresses trigger/retrigger awards on the spin that crosses 5000x — 3+ scatters
+        # with no award is CORRECT there, not a violation. Without this, the gate fails
+        # intermittently on correct capped books (T2 has no cap exemption while the
+        # gamestate money rule does).
+        capped_this_spin = any(e.get("type") == "wincap" for e in spin["events"])
         if gt == "basegame":
-            if len(scats) >= 3 and not trig:
+            if len(scats) >= 3 and not trig and not capped_this_spin:
                 flag("T1", bid, f"spin {si}: {len(scats)} scatters visible but NO freeSpinTrigger")
             if trig and len(scats) < 3:
                 flag("T1", bid, f"spin {si}: trigger with only {len(scats)} scatters visible")
         else:
-            if len(scats) >= 3 and not retrig:
+            if len(scats) >= 3 and not retrig and not capped_this_spin:
                 flag("T2", bid, f"spin {si}: {len(scats)} scatters visible in freegame but NO retrigger")
             if retrig and len(scats) < 3:
                 flag("T2", bid, f"spin {si}: retrigger with only {len(scats)} scatters visible")

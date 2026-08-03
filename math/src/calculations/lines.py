@@ -75,13 +75,17 @@ class Lines:
                     base_win = config.paytable[(wild_matches + matches, first_non_wild.name)]
 
             if base_win > 0 or wild_win > 0:
-                # HIGHEST WIN PER LINE (the rule stated on the paytable): a wild run that a
-                # symbol COMPLETES normally pays as the full line with that symbol (4 wilds
-                # + K = a 5-line of K), but when the pure WILD-run pays more it wins instead.
-                # Both candidates are scored THROUGH the multiplier step before comparing —
-                # the covered cells differ, so the multiplier product can flip the ranking.
+                # LINE-EXTENSION RULE (operator canon, 2026-08-03): when a completing symbol
+                # EXISTS and pays, the line ALWAYS extends through it — 4 wilds + K IS a
+                # 5-line of K, full stop. The pure WILD-run pay (gem tier) applies ONLY when
+                # the line has no paying completion: a wilds-only line, or wilds stopped by
+                # a scatter. The previous "highest win per line" comparison let the gem-tier
+                # wild run outscore a royal completion (1.5x 4-kind > 1.0x 5-kind), which
+                # visually truncated a completed line to 4-deep — 7,353 occurrences across
+                # the corpus, all with royal completions. Truth of the visible line beats
+                # the marginal pay difference.
                 candidates = []
-                if wild_win > 0:
+                if wild_win > 0 and base_win <= 0:
                     wild_positions = [
                         {"reel": idx, "row": line[idx]} for idx in range(0, wild_matches)
                     ]
@@ -125,8 +129,8 @@ class Lines:
                         )
                     )
 
-                # ties go to the completing-symbol win (listed last -> max is stable on the
-                # first maximum, so sort explicitly by win only)
+                # exactly one candidate survives the extension rule (completion if it pays,
+                # else the wild run) — max() kept for structural safety only
                 line_win, applied_mult, raw_win, positions, sym_name, kind = max(
                     candidates, key=lambda c: c[0]
                 )

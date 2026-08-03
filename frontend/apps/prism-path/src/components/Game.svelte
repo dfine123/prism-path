@@ -142,7 +142,7 @@
 	{#snippet payTable()}
 		<div class="prism-rules">
 			<h2>PAYTABLE</h2>
-			<p class="note">Wins pay on 17 fixed lines, left to right, from the leftmost reel. Line win = symbol pay × total bet × dragon multipliers. Only the highest win on each line is paid. Maximum win: 5,000x total bet.</p>
+			<p class="note">Wins pay on 17 fixed lines, left to right, from the leftmost reel. Line win = symbol pay × total bet × dragon multipliers. Wilds always extend the line through the symbol that completes it; a line of only wilds pays at gem tier. One win per line. Maximum win: 5,000x total bet.</p>
 			<div class="pay-grid">
 				{#each PAYS as s (s.key)}
 					<div class="pay-cell">

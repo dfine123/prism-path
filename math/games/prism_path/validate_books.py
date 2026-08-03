@@ -167,10 +167,12 @@ def reevaluate_spin(spin):
                 m *= v
             return min(max(m, 1), 100_000)  # mirror the strategy clamp
 
-        # RULE: HIGHEST WIN PER LINE — the completing-symbol win and the pure wild-run win
-        # are both scored through their own multipliers, and the better one pays.
+        # LINE-EXTENSION RULE (operator canon, 2026-08-03): a paying completion ALWAYS
+        # extends the line through the wilds; the pure wild-run pay applies only when no
+        # completion pays (wilds-only line, or wilds stopped by a scatter). Mirrors
+        # src/calculations/lines.py — the two implementations must agree independently.
         candidates = []
-        if wild_win > 0:
+        if wild_win > 0 and base_win <= 0:
             candidates.append((round(wild_win * line_mult(wild_matches), 2), wild_matches))
         if first_non_wild is not None and base_win > 0:
             k = wild_matches + matches

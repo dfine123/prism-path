@@ -283,9 +283,13 @@ def prism_beast_event(gamestate, position, direction, multiplier, whiff, sticky=
 def prism_path_event(gamestate, source, direction, cells, sticky=False, multiplier=1, include_padding_index=True):
     """Prism Path: the beast's path sweeps to the grid edge, converting cells to
     multiplier wilds. ``cells`` is a list of {"position": {reel,row}, "multiplier": int}
-    in game coords; the multiplier on each cell is the FINAL displayed value (the product
-    when two beasts cover the same cell). For a STICKY dragon the cells EXCLUDE its own
-    cell (the client keeps the dragon seated there). Padding offset applied here.
+    in game coords. CONTRACT (matches the emission in game_override.py and what every
+    consumer implements — frontend revealCell, validate_books.py, invariant S6): each
+    cell carries THIS beast's own multiplier only, and the route ALWAYS includes the
+    beast's own seat cell as cells[0] (sticky included). When two beasts cover the same
+    cell, the cell appears in BOTH prismPath events with each beast's own value — the
+    CLIENT accumulates the crossing product; no event ever serializes the product.
+    Padding offset applied here.
     """
     off = 1 if (include_padding_index and gamestate.config.include_padding) else 0
     out_cells = []

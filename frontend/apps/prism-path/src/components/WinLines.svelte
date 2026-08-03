@@ -1,18 +1,31 @@
 <script lang="ts" module>
 	import type { Position } from '../game/types';
 
-	// Awaitable win-line presentation: sweeps a prism-light line through the winning cells,
-	// pops the line's WIN VALUE at the centroid on the impact frame (with its beast multiplier,
-	// which collapses into the number as it rolls up to the full value), holds while streaming,
-	// then fades. The winInfo handler awaits one full lifecycle per line, so lines play
-	// strictly sequentially.
-	export type EmitterEventWinLines = {
-		type: 'winLinePlay';
-		positions: Position[];
-		amount: number; // final line win (multiplier applied)
-		baseAmount: number; // line win before the beast multiplier
-		multiplier: number; // product of distinct beasts on the line (1 = none)
-	};
+	// Awaitable win-line presentation, two modes sharing one renderer:
+	//
+	// winLinePlay — the NORMAL tour: sweeps a prism-light line through the winning cells,
+	// pops the line's WIN VALUE at the centroid on the impact frame (with its beast
+	// multiplier, which collapses into the number as it rolls up to the full value), holds
+	// while streaming, then fades. The winInfo handler awaits one full lifecycle per line,
+	// so lines play strictly sequentially.
+	//
+	// winLinesFlash — the TURBO statement: every winning line sweeps on in one composed
+	// cascade (tight stagger, real easing — NOT sped-up footage), the TOTAL value lands
+	// with one impact pop as the last line completes, everything holds a readable beat and
+	// releases together. Same ribbon, same light language, condensed choreography.
+	export type EmitterEventWinLines =
+		| {
+				type: 'winLinePlay';
+				positions: Position[];
+				amount: number; // final line win (multiplier applied)
+				baseAmount: number; // line win before the beast multiplier
+				multiplier: number; // product of distinct beasts on the line (1 = none)
+		  }
+		| {
+				type: 'winLinesFlash';
+				lines: { positions: Position[] }[];
+				amount: number; // combined total of all lines (multipliers applied)
+		  };
 </script>
 
 <script lang="ts">
@@ -44,6 +57,15 @@
 	const PUNCH_MS = 110; // impact punch when the full value lands
 	const HOLD_MULT_MS = 530; // longer hold for multiplied lines (pop+beat+merge+punch)
 
+	// ---- turbo flash tunables ---- a composed cascade, not a blink: each strand still
+	// glides on with the full easing curve; only the BETWEEN-lines time is compressed
+	const F_STAG_MS = 45; // per-strand launch stagger
+	const F_DRAW_MS = 130; // each strand's sweep-on
+	const F_HOLD_MS = 340; // all-lines readable hold (symbol breath = 380ms sits inside)
+	const F_FADE_MS = 100; // joint release
+
+	type Strand = { pts: { x: number; y: number }[]; prog: number; alpha: number };
+
 	let line = $state({
 		show: false,
 		pts: [] as { x: number; y: number }[],
@@ -51,6 +73,7 @@
 		alpha: 0,
 		phase: 0,
 	});
+	let flash = $state({ show: false, strands: [] as Strand[], phase: 0 });
 	// the per-line WIN VALUE lives in stateWinPop (rendered by WinValuePop, mounted ABOVE
 	// the multiplier-badge layer) — this component only drives it frame-by-frame
 
@@ -62,20 +85,26 @@
 		return { x: getSymbolX(p.reel), y };
 	};
 
+	// paylines read left-to-right: the line launches from BEHIND the frame border (the
+	// board-rect mask clips it, so it slides out from under the frame into the board);
+	// a FULL line (last reel hit) also runs out through the right edge the same way
+	const buildPts = (positions: Position[]) => {
+		const cells = [...positions].sort((a, b) => a.reel - b.reel).map(cellPos);
+		if (cells.length === 0) return { pts: [], cells };
+		const pts = [{ x: -CELL_W * 0.6, y: cells[0].y }, ...cells];
+		if (positions.some((p) => p.reel === BOARD_DIMENSIONS.x - 1)) {
+			pts.push({ x: CELL_W * (BOARD_DIMENSIONS.x + 0.6), y: cells[cells.length - 1].y });
+		}
+		return { pts, cells };
+	};
+
 	const play = (positions: Position[], amount: number, baseAmount: number, multiplier: number) =>
 		new Promise<void>((resolve) => {
-			const cells = [...positions].sort((a, b) => a.reel - b.reel).map(cellPos);
+			const { pts, cells } = buildPts(positions);
 			if (cells.length === 0) return resolve();
 			// the value sits at the centroid of the WINNING cells (before the edge anchor)
 			const cx = cells.reduce((s, p) => s + p.x, 0) / cells.length;
 			const cy = cells.reduce((s, p) => s + p.y, 0) / cells.length;
-			// paylines read left-to-right: the line launches from BEHIND the frame border (the
-			// board-rect mask clips it, so it slides out from under the frame into the board);
-			// a FULL line (last reel hit) also runs out through the right edge the same way
-			const pts = [{ x: -CELL_W * 0.6, y: cells[0].y }, ...cells];
-			if (cells.length === positions.length && positions.some((p) => p.reel === BOARD_DIMENSIONS.x - 1)) {
-				pts.push({ x: CELL_W * (BOARD_DIMENSIONS.x + 0.6), y: cells[cells.length - 1].y });
-			}
 
 			const hasMult = multiplier > 1;
 			const holdMs = hasMult ? HOLD_MULT_MS : HOLD_MS;
@@ -171,152 +200,255 @@
 			requestAnimationFrame(frame);
 		});
 
+	const playFlash = (lineSets: { positions: Position[] }[], amount: number) =>
+		new Promise<void>((resolve) => {
+			const built = lineSets.map((l) => buildPts(l.positions)).filter((b) => b.cells.length > 0);
+			if (built.length === 0) return resolve();
+			const allCells = built.flatMap((b) => b.cells);
+			const cx = allCells.reduce((s, p) => s + p.x, 0) / allCells.length;
+			const cy = allCells.reduce((s, p) => s + p.y, 0) / allCells.length;
+
+			const n = built.length;
+			const popStart = F_STAG_MS * (n - 1) + F_DRAW_MS; // total lands as the LAST strand completes
+			const fadeStart = popStart + F_HOLD_MS;
+			const total = fadeStart + F_FADE_MS;
+			let lastT = now();
+			let el = 0;
+
+			flash = {
+				show: true,
+				strands: built.map((b) => ({ pts: b.pts, prog: 0, alpha: 0 })),
+				phase: 0,
+			};
+			Object.assign(stateWinPop, {
+				x: cx,
+				y: cy,
+				scale: 0,
+				alpha: 0,
+				multY: MULT_Y,
+				multScale: 0,
+				multAlpha: 0,
+				// turbo is results-first: the combined total, no xN theater (the chips on the
+				// board already carry the multiplier truth)
+				label: bookEventAmountToCurrencyString(amount),
+				multLabel: '',
+			});
+
+			const frame = () => {
+				const t = now();
+				el += (t - lastT) * stateFx.winSpeed;
+				lastT = t;
+				flash.phase = (el / 1000) * FLOW_HZ;
+				const fadeMul = el < fadeStart ? 1 : 1 - EASE.collapse(clamp01((el - fadeStart) / F_FADE_MS));
+
+				for (let i = 0; i < flash.strands.length; i++) {
+					const local = el - i * F_STAG_MS;
+					const s = flash.strands[i];
+					s.prog = EASE.glide(clamp01(local / F_DRAW_MS));
+					s.alpha = clamp01(local / (F_DRAW_MS * 0.45)) * fadeMul;
+				}
+
+				if (el >= popStart) {
+					const pu = clamp01((el - popStart) / POP_MS);
+					stateWinPop.scale =
+						pu < 1 ? EASE.impact(pu) : 1 + 0.025 * Math.sin(flash.phase * Math.PI * 2.4);
+					stateWinPop.alpha = clamp01(pu * 2.5) * fadeMul;
+				}
+
+				if (el < total) {
+					requestAnimationFrame(frame);
+				} else {
+					flash.show = false;
+					flash.strands = [];
+					stateWinPop.alpha = 0;
+					stateWinPop.scale = 0;
+					resolve();
+				}
+			};
+			requestAnimationFrame(frame);
+		});
+
 	context.eventEmitter.subscribeOnMount({
 		winLinePlay: async ({ positions, amount, baseAmount, multiplier }) => {
 			await play(positions, amount, baseAmount, multiplier);
 		},
+		winLinesFlash: async ({ lines, amount }) => {
+			await playFlash(lines, amount);
+		},
 	});
+
+	// ---- shared renderers (both modes draw through these) ----
+	type DrawnStrand = { pts: { x: number; y: number }[]; prog: number; alpha: number; phase: number };
+	const activeStrands = (): DrawnStrand[] => {
+		const out: DrawnStrand[] = [];
+		if (line.show && line.alpha > 0.01 && line.pts.length > 0) {
+			out.push({ pts: line.pts, prog: line.prog, alpha: line.alpha, phase: line.phase });
+		}
+		if (flash.show) {
+			for (const s of flash.strands) {
+				if (s.alpha > 0.01 && s.prog > 0.001 && s.pts.length > 0) {
+					out.push({ pts: s.pts, prog: s.prog, alpha: s.alpha, phase: flash.phase });
+				}
+			}
+		}
+		return out;
+	};
+
+	const cumLengths = (pts: { x: number; y: number }[]) => {
+		const cum = [0];
+		for (let i = 1; i < pts.length; i++) {
+			cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+		}
+		return cum;
+	};
+
+	// minimal structural type for the pixi Graphics surface the renderers use (keeps the
+	// pixi value dependency inside pixi-svelte; the real Graphics satisfies this shape)
+	type G = {
+		moveTo(x: number, y: number): G;
+		lineTo(x: number, y: number): G;
+		circle(x: number, y: number, r: number): G;
+		poly(points: { x: number; y: number }[] | number[]): G;
+		stroke(style: Record<string, unknown>): G;
+		fill(style: Record<string, unknown>): G;
+	};
+
+	const drawPlate = (g: G, s: DrawnStrand) => {
+		const pts = s.pts;
+		const cum = cumLengths(pts);
+		const totalLen = Math.max(cum[cum.length - 1], 1);
+		const drawnLen = totalLen * s.prog;
+		let end = pts[pts.length - 1];
+		g.moveTo(pts[0].x, pts[0].y);
+		for (let i = 1; i < pts.length; i++) {
+			if (cum[i] <= drawnLen) {
+				g.lineTo(pts[i].x, pts[i].y);
+			} else {
+				const t = clamp01((drawnLen - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 0.001));
+				end = { x: lerp(pts[i - 1].x, pts[i].x, t), y: lerp(pts[i - 1].y, pts[i].y, t) };
+				g.lineTo(end.x, end.y);
+				break;
+			}
+		}
+		// soft feathered edge + solid outline
+		g.stroke({ width: LINE_W * 2.5, color: 0x0b0814, alpha: 0.5 * s.alpha, cap: 'round', join: 'round' });
+		g.moveTo(pts[0].x, pts[0].y);
+		for (let i = 1; i < pts.length; i++) {
+			if (cum[i] <= drawnLen) g.lineTo(pts[i].x, pts[i].y);
+			else {
+				g.lineTo(end.x, end.y);
+				break;
+			}
+		}
+		g.stroke({ width: LINE_W * 1.8, color: 0x0b0814, alpha: 0.92 * s.alpha, cap: 'round', join: 'round' });
+	};
+
+	const drawRibbon = (g: G, s: DrawnStrand) => {
+		const pts = s.pts;
+		const cum = cumLengths(pts);
+		const totalLen = Math.max(cum[cum.length - 1], 1);
+		const drawnLen = totalLen * s.prog;
+
+		const pointAtLen = (L: number) => {
+			for (let i = 1; i < pts.length; i++) {
+				if (L <= cum[i] || i === pts.length - 1) {
+					const t = clamp01((L - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 0.001));
+					return { x: lerp(pts[i - 1].x, pts[i].x, t), y: lerp(pts[i - 1].y, pts[i].y, t) };
+				}
+			}
+			return pts[pts.length - 1];
+		};
+
+		// stroke a chunk FOLLOWING the polyline (corner-correct: pass through any vertex
+		// that falls inside [L0, L1] instead of shortcutting across the elbow)
+		const strokeSeg = (L0: number, L1: number) => {
+			const a = pointAtLen(L0);
+			g.moveTo(a.x, a.y);
+			for (let i = 1; i < pts.length; i++) {
+				if (cum[i] > L0 && cum[i] < L1) g.lineTo(pts[i].x, pts[i].y);
+			}
+			const b = pointAtLen(L1);
+			g.lineTo(b.x, b.y);
+		};
+
+		// gradient ribbon — the LINE ITSELF is the luminescent gradient: streaming prism
+		// hues + a traveling white-hot shimmer band. BUTT caps (not round) so the chunks
+		// fuse into one continuous ribbon instead of reading as a chain of circles.
+		const nChunks = Math.max(3, Math.ceil(drawnLen / CHUNK));
+		for (let i = 0; i < nChunks; i++) {
+			const L0 = (drawnLen * i) / nChunks;
+			const L1 = Math.min((drawnLen * (i + 1)) / nChunks + 1.5, drawnLen); // overlap kills seams
+			const u = (L0 + L1) / 2 / totalLen;
+			const col = paletteAt(u * 0.8 - s.phase);
+			const shimmer = clamp01(0.5 + 0.5 * Math.sin(Math.PI * 2 * (u * 1.5 - s.phase * 1.5)));
+			const coreCol = lerpColor(col, 0xffffff, 0.35 + 0.5 * shimmer);
+			strokeSeg(L0, L1);
+			g.stroke({ width: LINE_W * 2.4, color: col, alpha: 0.16 * s.alpha, cap: 'butt', join: 'round' });
+			strokeSeg(L0, L1);
+			g.stroke({ width: LINE_W * 1.05, color: col, alpha: 0.85 * s.alpha, cap: 'butt', join: 'round' });
+			strokeSeg(L0, L1);
+			g.stroke({
+				width: LINE_W * (0.34 + 0.14 * shimmer),
+				color: coreCol,
+				alpha: (0.5 + 0.4 * shimmer) * s.alpha,
+				cap: 'butt',
+				join: 'round',
+			});
+		}
+
+		// 4-point crystal star glint (the game's sparkle language, not a plain circle)
+		const glint = (x: number, y: number, r: number, col: number, a: number) => {
+			g.moveTo(x - r, y).lineTo(x + r, y).stroke({ width: 1.6, color: col, alpha: a, cap: 'round' });
+			g.moveTo(x, y - r).lineTo(x, y + r).stroke({ width: 1.6, color: col, alpha: a, cap: 'round' });
+			g.circle(x, y, Math.max(1.2, r * 0.3)).fill({ color: 0xffffff, alpha: a });
+		};
+
+		if (s.prog < 1) {
+			// comet head: a direction-aligned teardrop with a star glint at its tip
+			const h = pointAtLen(drawnLen);
+			const back = pointAtLen(Math.max(0, drawnLen - 8));
+			let dx = h.x - back.x;
+			let dy = h.y - back.y;
+			const dl = Math.hypot(dx, dy) || 1;
+			dx /= dl;
+			dy /= dl;
+			const px = -dy;
+			const py = dx;
+			const W2 = LINE_W * 0.95;
+			g.poly([
+				{ x: h.x + dx * 5, y: h.y + dy * 5 }, // tip
+				{ x: h.x - dx * 4 + px * W2, y: h.y - dy * 4 + py * W2 },
+				{ x: h.x - dx * 14, y: h.y - dy * 14 }, // tail
+				{ x: h.x - dx * 4 - px * W2, y: h.y - dy * 4 - py * W2 },
+			]).fill({ color: 0xffffff, alpha: 0.8 * s.alpha });
+			g.circle(h.x, h.y, LINE_W * 2.2).fill({ color: paletteAt(-s.phase), alpha: 0.22 * s.alpha });
+			glint(h.x + dx * 5, h.y + dy * 5, LINE_W * 1.4, 0xffffff, 0.9 * s.alpha);
+		} else {
+			// held: terminal glint at the line's end + tiny twinkles drifting along it
+			const e = pointAtLen(drawnLen);
+			glint(e.x, e.y, LINE_W * 1.1, 0xffffff, 0.55 * s.alpha);
+			for (let k = 0; k < 3; k++) {
+				const u = ((k * 0.317 + s.phase * 0.23) % 1 + 1) % 1;
+				const p = pointAtLen(u * drawnLen);
+				const tw = (Math.sin(s.phase * Math.PI * 3 + k * 2.1) + 1) / 2;
+				glint(p.x, p.y, 3 + 4 * tw, lerpColor(paletteAt(u - s.phase), 0xffffff, 0.6), (0.25 + 0.5 * tw) * s.alpha);
+			}
+		}
+	};
 </script>
 
-{#if line.show}
+{#if line.show || flash.show}
 	<!-- contrast plate: near-black outline UNDER the light (normal blend — additive black is
 	     invisible), so the gradient line pops against the grey board and bright symbols -->
 	<Graphics
 		draw={(g) => {
-			const s = line;
-			if (!s.show || s.alpha <= 0.01 || s.pts.length === 0) return;
-			const pts = s.pts;
-			const cum = [0];
-			for (let i = 1; i < pts.length; i++) {
-				cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
-			}
-			const totalLen = Math.max(cum[cum.length - 1], 1);
-			const drawnLen = totalLen * s.prog;
-			g.moveTo(pts[0].x, pts[0].y);
-			let end = pts[pts.length - 1];
-			for (let i = 1; i < pts.length; i++) {
-				if (cum[i] <= drawnLen) {
-					g.lineTo(pts[i].x, pts[i].y);
-				} else {
-					const t = clamp01((drawnLen - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 0.001));
-					end = { x: lerp(pts[i - 1].x, pts[i].x, t), y: lerp(pts[i - 1].y, pts[i].y, t) };
-					g.lineTo(end.x, end.y);
-					break;
-				}
-			}
-			// soft feathered edge + solid outline
-			g.stroke({ width: LINE_W * 2.5, color: 0x0b0814, alpha: 0.5 * s.alpha, cap: 'round', join: 'round' });
-			g.moveTo(pts[0].x, pts[0].y);
-			for (let i = 1; i < pts.length; i++) {
-				if (cum[i] <= drawnLen) g.lineTo(pts[i].x, pts[i].y);
-				else {
-					g.lineTo(end.x, end.y);
-					break;
-				}
-			}
-			g.stroke({ width: LINE_W * 1.8, color: 0x0b0814, alpha: 0.92 * s.alpha, cap: 'round', join: 'round' });
+			for (const s of activeStrands()) drawPlate(g, s);
 		}}
 	/>
 	<Graphics
 		blendMode="add"
 		draw={(g) => {
-			const s = line;
-			if (!s.show || s.alpha <= 0.01 || s.pts.length === 0) return;
-			const pts = s.pts;
-			// cumulative lengths along the polyline
-			const cum = [0];
-			for (let i = 1; i < pts.length; i++) {
-				cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
-			}
-			const totalLen = Math.max(cum[cum.length - 1], 1);
-			const drawnLen = totalLen * s.prog;
-
-			const pointAtLen = (L: number) => {
-				for (let i = 1; i < pts.length; i++) {
-					if (L <= cum[i] || i === pts.length - 1) {
-						const t = clamp01((L - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 0.001));
-						return { x: lerp(pts[i - 1].x, pts[i].x, t), y: lerp(pts[i - 1].y, pts[i].y, t) };
-					}
-				}
-				return pts[pts.length - 1];
-			};
-
-			// stroke a chunk FOLLOWING the polyline (corner-correct: pass through any vertex
-			// that falls inside [L0, L1] instead of shortcutting across the elbow)
-			const strokeSeg = (L0: number, L1: number) => {
-				const a = pointAtLen(L0);
-				g.moveTo(a.x, a.y);
-				for (let i = 1; i < pts.length; i++) {
-					if (cum[i] > L0 && cum[i] < L1) g.lineTo(pts[i].x, pts[i].y);
-				}
-				const b = pointAtLen(L1);
-				g.lineTo(b.x, b.y);
-			};
-
-			// gradient ribbon — the LINE ITSELF is the luminescent gradient: streaming prism
-			// hues + a traveling white-hot shimmer band. BUTT caps (not round) so the chunks
-			// fuse into one continuous ribbon instead of reading as a chain of circles.
-			const nChunks = Math.max(3, Math.ceil(drawnLen / CHUNK));
-			for (let i = 0; i < nChunks; i++) {
-				const L0 = (drawnLen * i) / nChunks;
-				const L1 = Math.min((drawnLen * (i + 1)) / nChunks + 1.5, drawnLen); // overlap kills seams
-				const u = (L0 + L1) / 2 / totalLen;
-				const col = paletteAt(u * 0.8 - s.phase);
-				const shimmer = clamp01(0.5 + 0.5 * Math.sin(Math.PI * 2 * (u * 1.5 - s.phase * 1.5)));
-				const coreCol = lerpColor(col, 0xffffff, 0.35 + 0.5 * shimmer);
-				strokeSeg(L0, L1);
-				g.stroke({ width: LINE_W * 2.4, color: col, alpha: 0.16 * s.alpha, cap: 'butt', join: 'round' });
-				strokeSeg(L0, L1);
-				g.stroke({ width: LINE_W * 1.05, color: col, alpha: 0.85 * s.alpha, cap: 'butt', join: 'round' });
-				strokeSeg(L0, L1);
-				g.stroke({
-					width: LINE_W * (0.34 + 0.14 * shimmer),
-					color: coreCol,
-					alpha: (0.5 + 0.4 * shimmer) * s.alpha,
-					cap: 'butt',
-					join: 'round',
-				});
-			}
-
-			// 4-point crystal star glint (the game's sparkle language, not a plain circle)
-			const glint = (x: number, y: number, r: number, col: number, a: number) => {
-				g.moveTo(x - r, y).lineTo(x + r, y).stroke({ width: 1.6, color: col, alpha: a, cap: 'round' });
-				g.moveTo(x, y - r).lineTo(x, y + r).stroke({ width: 1.6, color: col, alpha: a, cap: 'round' });
-				g.circle(x, y, Math.max(1.2, r * 0.3)).fill({ color: 0xffffff, alpha: a });
-			};
-
-			if (s.prog < 1) {
-				// comet head: a direction-aligned teardrop with a star glint at its tip
-				const h = pointAtLen(drawnLen);
-				const back = pointAtLen(Math.max(0, drawnLen - 8));
-				let dx = h.x - back.x;
-				let dy = h.y - back.y;
-				const dl = Math.hypot(dx, dy) || 1;
-				dx /= dl;
-				dy /= dl;
-				const px = -dy;
-				const py = dx;
-				const W2 = LINE_W * 0.95;
-				g.poly([
-					{ x: h.x + dx * 5, y: h.y + dy * 5 }, // tip
-					{ x: h.x - dx * 4 + px * W2, y: h.y - dy * 4 + py * W2 },
-					{ x: h.x - dx * 14, y: h.y - dy * 14 }, // tail
-					{ x: h.x - dx * 4 - px * W2, y: h.y - dy * 4 - py * W2 },
-				]).fill({ color: 0xffffff, alpha: 0.8 * s.alpha });
-				g.circle(h.x, h.y, LINE_W * 2.2).fill({ color: paletteAt(-s.phase), alpha: 0.22 * s.alpha });
-				glint(h.x + dx * 5, h.y + dy * 5, LINE_W * 1.4, 0xffffff, 0.9 * s.alpha);
-			} else {
-				// held: terminal glint at the line's end + tiny twinkles drifting along it
-				const e = pointAtLen(drawnLen);
-				glint(e.x, e.y, LINE_W * 1.1, 0xffffff, 0.55 * s.alpha);
-				for (let k = 0; k < 3; k++) {
-					const u = ((k * 0.317 + s.phase * 0.23) % 1 + 1) % 1;
-					const p = pointAtLen(u * drawnLen);
-					const tw = (Math.sin(s.phase * Math.PI * 3 + k * 2.1) + 1) / 2;
-					glint(p.x, p.y, 3 + 4 * tw, lerpColor(paletteAt(u - s.phase), 0xffffff, 0.6), (0.25 + 0.5 * tw) * s.alpha);
-				}
-			}
+			for (const s of activeStrands()) drawRibbon(g, s);
 		}}
 	/>
-
 {/if}

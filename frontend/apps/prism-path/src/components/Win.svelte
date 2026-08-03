@@ -24,6 +24,7 @@
 	import { SYMBOL_SIZE } from '../game/constants';
 	import { getContext } from '../game/context';
 	import { prismStyle } from '../game/fonts';
+	import { boardFocusTo } from '../game/stateFx.svelte';
 
 	const context = getContext();
 
@@ -41,6 +42,12 @@
 			winLevelData = emitterEvent.winLevelData;
 			await waitForResolve((resolve) => (oncomplete = resolve));
 		},
+	});
+
+	// camera focus: while the big-win box holds the stage, the board eases back a touch
+	// behind the veil (subtle by design — see boardFocusTo)
+	$effect(() => {
+		boardFocusTo(show && winLevelData?.type === 'big' ? 1 : 0);
 	});
 </script>
 

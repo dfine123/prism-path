@@ -8,7 +8,29 @@
 // boardBreathe() / boardSlam() / boardRubberBand() below.
 // (boardNudgeX MUST be initialized here — consumers add it into container x, and an absent
 // field made that arithmetic NaN until the first impulse defined it.)
-export const stateFx = $state({ winSpeed: 1, boardScale: 1, boardNudgeX: 0, boardNudgeY: 0 });
+// boardFocus (0..1): camera focus for the big-win box — the board micro-shrinks behind the
+// dim veil so the box gets true depth separation. Deliberately SUBTLE (max 1.4% shrink,
+// see BoardContainer); drive only through boardFocusTo().
+export const stateFx = $state({ winSpeed: 1, boardScale: 1, boardNudgeX: 0, boardNudgeY: 0, boardFocus: 0 });
+
+let focusRaf = 0;
+export const boardFocusTo = (target: number, ms = 320) => {
+	cancelAnimationFrame(focusRaf);
+	const from = stateFx.boardFocus;
+	if (Math.abs(target - from) < 0.001) {
+		stateFx.boardFocus = target;
+		return;
+	}
+	const start = performance.now();
+	const frame = () => {
+		const u = Math.min(1, (performance.now() - start) / ms);
+		// easeInOutQuad: clean, smooth, no overshoot — the focus must never draw the eye itself
+		const e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+		stateFx.boardFocus = from + (target - from) * e;
+		if (u < 1) focusRaf = requestAnimationFrame(frame);
+	};
+	focusRaf = requestAnimationFrame(frame);
+};
 
 // A breath as the reels launch, in four beats — GATHER, SWELL, FALL, CATCH — so the eye
 // catches it against the reel motion AND the return reads as WEIGHT: a quick contraction,

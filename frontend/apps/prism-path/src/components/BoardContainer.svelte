@@ -22,7 +22,7 @@
 	x={context.stateGameDerived.boardLayout().x + stateFx.boardNudgeX}
 	y={context.stateGameDerived.boardLayout().y + stateFx.boardNudgeY}
 	pivot={context.stateGameDerived.boardLayout().pivot}
-	scale={stateFx.boardScale}
+	scale={stateFx.boardScale * (1 - 0.014 * stateFx.boardFocus)}
 >
 	{@render props.children()}
 </Container>

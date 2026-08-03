@@ -174,6 +174,36 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// A CLICK during the sequence = "skip through": every paced clock runs much faster.
 		const wins = [...mergedByCells.values()].sort((a, b) => (a.win ?? 0) - (b.win ?? 0));
 
+		// TURBO (incl. space-hold, which forces turbo): results-first. The line-by-line tour
+		// at raised speed read as "10x footage" — off, not fast. Instead: ONE composed
+		// statement — every line sweeps on in a tight cascade (full easing per strand), all
+		// winning symbols breathe together, the combined total lands with a single impact
+		// pop, one readable hold, joint release. ~0.7s regardless of line count.
+		if (stateBet.isTurbo && wins.length > 0) {
+			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });
+			const seen = new Set<string>();
+			const allPositions: Position[] = [];
+			for (const w of wins) {
+				for (const p of w.positions) {
+					const k = `${p.reel},${p.row}`;
+					if (!seen.has(k)) {
+						seen.add(k);
+						allPositions.push(p);
+					}
+				}
+			}
+			stateFx.winSpeed = 1;
+			await Promise.all([
+				eventEmitter.broadcastAsync({
+					type: 'winLinesFlash',
+					lines: wins.map((w) => ({ positions: w.positions })),
+					amount: wins.reduce((s, w) => s + (w.win ?? 0), 0),
+				}),
+				animateSymbols({ positions: allPositions }),
+			]);
+			return;
+		}
+
 		stateFx.winSpeed = 1;
 		const speedUp = () => {
 			if (wasRecentUiPress()) return; // console presses are not "skip the lines"

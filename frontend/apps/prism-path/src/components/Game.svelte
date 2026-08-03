@@ -26,6 +26,7 @@
 	import Win from './Win.svelte';
 	import FreeSpinIntro from './FreeSpinIntro.svelte';
 	import FreeSpinCounter from './FreeSpinCounter.svelte';
+	import RetriggerBanner from './RetriggerBanner.svelte';
 	import FreeSpinOutro from './FreeSpinOutro.svelte';
 	import Transition from './Transition.svelte';
 
@@ -121,6 +122,7 @@
 		{#if ['desktop', 'landscape'].includes(context.stateLayoutDerived.layoutType())}
 			<FreeSpinCounter />
 		{/if}
+		<RetriggerBanner />
 		<FreeSpinOutro />
 		<Transition />
 	{/if}

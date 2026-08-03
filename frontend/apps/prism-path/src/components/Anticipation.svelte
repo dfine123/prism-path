@@ -28,7 +28,7 @@
 		let raf = 0;
 		const frame = () => {
 			t = performance.now();
-			if (outStart !== null && t - outStart > 320 && !finished) {
+			if (outStart !== null && t - outStart > 480 && !finished) {
 				finished = true;
 				props.oncomplete();
 				return;
@@ -47,7 +47,9 @@
 
 	const envelope = $derived.by(() => {
 		const inE = EASE.load(clamp01((t - born) / 260));
-		const outE = outStart === null ? 1 : 1 - EASE.collapse(clamp01((t - outStart) / 320));
+		// release stretched 320 -> 480ms: the column EXHALES rather than snapping off — the
+		// near-miss decompression rides this same fade (no extra visual)
+		const outE = outStart === null ? 1 : 1 - EASE.collapse(clamp01((t - outStart) / 480));
 		return inE * outE;
 	});
 

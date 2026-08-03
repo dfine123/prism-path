@@ -87,7 +87,9 @@
 						y={context.stateGameDerived.boardLayout().y}
 					>
 						{#if isBigWin && winLevelData.text}
-							<WinBox level={winLevelData.level} text={winLevelData.text}>
+							<!-- amount = the LIVE roll: the box promotes itself (word, accent, crest,
+							     stinger) as the count-up crosses tier bands, clamped to the final level -->
+							<WinBox level={winLevelData.level} amount={countUpAmount}>
 								<ResponsiveBitmapText
 									anchor={0.5}
 									maxWidth={SYMBOL_SIZE * 4.6}

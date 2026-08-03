@@ -77,6 +77,22 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		} finally {
 			window.removeEventListener('pointerdown', quickStop);
 		}
+		// NEAR-MISS (subtle, POLISH-ROADMAP 1.5): anticipation ran and the trigger whiffed
+		// at exactly 2 landed scatters — a quiet descending exhale marks the decompression.
+		// Skipped whenever a win presentation follows this reveal (the win owns the stage;
+		// a sigh under a celebration reads as a mixed message).
+		if (bookEvent.anticipation?.some(Boolean) && stateGame.scatterCounter === 2) {
+			const at = bookEvents.indexOf(bookEvent);
+			const rest = at === -1 ? [] : bookEvents.slice(at + 1);
+			const nextReveal = rest.findIndex((e) => e.type === 'reveal');
+			const untilNextSpin = nextReveal === -1 ? rest : rest.slice(0, nextReveal);
+			const stageIsQuiet = !untilNextSpin.some(
+				(e) => e.type === 'winInfo' || e.type === 'freeSpinTrigger',
+			);
+			if (stageIsQuiet) {
+				eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_near_miss' });
+			}
+		}
 		eventEmitter.broadcast({ type: 'soundScatterCounterClear' });
 	},
 	prismBeast: async (bookEvent: BookEventOfType<'prismBeast'>) => {
@@ -232,6 +248,12 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// updateFreeSpin repeats the same total, so this stays consistent either way).
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_scatter_win_v2' });
 		await animateSymbols({ positions: bookEvent.positions });
+		// "+N FREE SPINS" banner beat (awaited) — the delta vs the counter's CURRENT total
+		// is what was just awarded; the bump to the new total lands as the banner leaves
+		const extraSpins = bookEvent.totalFs - stateUi.freeSpinCounterTotal;
+		if (extraSpins > 0) {
+			await eventEmitter.broadcastAsync({ type: 'retriggerShow', extraSpins });
+		}
 		stateUi.freeSpinCounterTotal = bookEvent.totalFs;
 		eventEmitter.broadcast({
 			type: 'freeSpinCounterUpdate',

@@ -1,0 +1,15 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "storybook",
+			"url": "http://localhost:6010"
+		},
+		{
+			"name": "game",
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": ["--dir", "frontend/apps/prism-path", "dev"],
+			"port": 3010
+		}
+	]
+}

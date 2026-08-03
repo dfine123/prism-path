@@ -12,3 +12,9 @@ export type EmitterEvent =
 	| EmitterEventGame;
 
 export const { eventEmitter } = createEventEmitter<EmitterEvent>();
+
+// dev-only debug hook: lets storybook/console drive presentation events directly
+// (never bundled into production builds)
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+	(window as unknown as { __prismEmitter: typeof eventEmitter }).__prismEmitter = eventEmitter;
+}

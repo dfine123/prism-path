@@ -92,7 +92,9 @@
 						     LOWER than the round total the player is actually credited (which the
 						     WIN meter and balance already show). Labelling it for what it is keeps
 						     the panel honest. -->
-						<WinBox level={boxLevel} text="FREE SPINS WIN">
+						<!-- fixedText: the wordmark holds (this is a TOTAL, not a tier name) but the
+						     accents/crest still rank up live with the rolling amount -->
+						<WinBox level={boxLevel} amount={countUpAmount} fixedText="FREE SPINS WIN">
 							<ResponsiveBitmapText
 								anchor={0.5}
 								maxWidth={SYMBOL_SIZE * 4.6}

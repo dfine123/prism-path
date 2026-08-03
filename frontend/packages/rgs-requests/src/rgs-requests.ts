@@ -66,7 +66,10 @@ export const requestBet = async (options: {
 			mode: options.mode,
 			currency: options.currency,
 			sessionID: options.sessionID,
-			amount: options.amount * API_AMOUNT_MULTIPLIER,
+			// the dollar<->micro-unit round-trip is not float-exact for many legitimate
+			// levels ((2010000/1e6)*1e6 = 2009999.9999999998) and the RGS requires
+			// integer micro-unit amounts — unrounded, such levels fail on every spin
+			amount: Math.round(options.amount * API_AMOUNT_MULTIPLIER),
 		},
 	});
 

@@ -13,6 +13,11 @@ const checkSpaceHold = fromPromise(async () => {
 	if (!stateBet.isSpaceHold) throw Error('end bet');
 	if (stateModal.modal !== null) throw Error('end bet');
 	if (!stateBetDerived.isBetCostAvailable()) throw Error('end bet');
+	// AUTOPLAY OWNS ITS LOOP: when this bet machine is running as an autoplay child, the
+	// hold-rebet must not loop internally — that keeps the run inside one 'playing'
+	// invoke, so the autoplay counter never decrements and its loss/single-win limit
+	// states never execute between spins
+	if (stateBetDerived.hasAutoBetCounter()) throw Error('end bet');
 	// a bought feature never repeat-buys on hold — continue as BASE spins
 	if (stateBetDerived.activeBetMode()?.type === 'buy') {
 		stateBet.activeBetModeKey = 'BASE';
@@ -77,10 +82,14 @@ export const createIntermediateMachineBet = ({
 						],
 						// a handler throw must END the round, not kill the actor — an
 						// unhandled invoke error stopped the whole game machine and froze
-						// the session with every visual latched
+						// the session with every visual latched. Route through 'ending',
+						// NOT 'end': endGame carries the settlement half of the round
+						// (apply the parked post-win balance / requestEndRound for a bonus)
+						// — skipping it left winning rounds uncredited after a
+						// presentation error
 						onError: [
 							{
-								target: 'end',
+								target: 'ending',
 							},
 						],
 					},

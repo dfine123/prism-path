@@ -115,7 +115,12 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 					...seat.rawSymbol,
 					sticky: true,
 					direction: bookEvent.direction ?? seat.rawSymbol.direction,
-					multiplier: bookEvent.multiplier ?? seat.rawSymbol.multiplier,
+					// MULTIPLY, don't replace: an earlier beast's path crossing this seat has
+					// already accumulated its factor onto the chip (revealCell's seated-beast
+					// branch). The claim installs the dragon's OWN factor on top — the chip
+					// must end at the coverage PRODUCT the math pays (x2 crossed by x3 = x6),
+					// and the seat's own flight is accumulation-exempt so nothing double-counts.
+					multiplier: (seat.rawSymbol.multiplier ?? 1) * (bookEvent.multiplier ?? 1),
 				};
 			}
 		}
@@ -168,6 +173,7 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// the winning cells while those symbols breathe — both awaited so nothing overlaps.
 		// A CLICK during the sequence = "skip through": every paced clock runs much faster.
 		const wins = [...mergedByCells.values()].sort((a, b) => (a.win ?? 0) - (b.win ?? 0));
+
 		stateFx.winSpeed = 1;
 		const speedUp = () => {
 			if (wasRecentUiPress()) return; // console presses are not "skip the lines"
@@ -197,9 +203,13 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		stateBet.winBookEventAmount = bookEvent.amount;
 	},
 	freeSpinTrigger: async (bookEvent: BookEventOfType<'freeSpinTrigger'>) => {
-		// animate scatters
-		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_scatter_win_v2' });
-		await animateSymbols({ positions: bookEvent.positions });
+		// animate scatters — skipped when the replay carries no positions (resume snapshot:
+		// the celebration already happened in the original session; re-firing it against
+		// the resumed mid-feature board animated cells that are not scatters)
+		if (bookEvent.positions.length > 0) {
+			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_scatter_win_v2' });
+			await animateSymbols({ positions: bookEvent.positions });
+		}
 		// show free spin intro (the day->night background swap happens UNDER the curtain)
 		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_superfreespin' });
 		await eventEmitter.broadcastAsync({ type: 'uiHide' });
@@ -222,9 +232,12 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		stateUi.freeSpinCounterShow = true;
 		eventEmitter.broadcast({
 			type: 'freeSpinCounterUpdate',
-			current: undefined,
+			// explicit 0: `undefined` means "keep previous" to the counter, which showed the
+			// PREVIOUS feature's final count (e.g. "8 / 12") through this trigger's tail
+			current: 0,
 			total: bookEvent.totalFs,
 		});
+		stateUi.freeSpinCounterCurrent = 0;
 		stateUi.freeSpinCounterTotal = bookEvent.totalFs;
 		await eventEmitter.broadcastAsync({ type: 'uiShow' });
 		await eventEmitter.broadcastAsync({ type: 'drawerButtonShow' });
@@ -340,7 +353,18 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		const lastUpdateFreeSpinEvent = findLastBookEvent('updateFreeSpin' as const);
 		const lastSetTotalWinEvent = findLastBookEvent('setTotalWin' as const);
 
-		if (lastFreeSpinTriggerEvent) await playBookEvent(lastFreeSpinTriggerEvent, { bookEvents });
+		// replay the trigger WITHOUT the scatter celebration (positions: []) and with the
+		// CURRENT total (a pre-resume retrigger raised it past the original award — the
+		// intro panel and counter must both show the truth at the resume point)
+		if (lastFreeSpinTriggerEvent)
+			await playBookEvent(
+				{
+					...lastFreeSpinTriggerEvent,
+					positions: [],
+					totalFs: lastUpdateFreeSpinEvent?.total ?? lastFreeSpinTriggerEvent.totalFs,
+				},
+				{ bookEvents },
+			);
 		if (lastUpdateFreeSpinEvent) playBookEvent(lastUpdateFreeSpinEvent, { bookEvents });
 		if (lastSetTotalWinEvent) playBookEvent(lastSetTotalWinEvent, { bookEvents });
 	},

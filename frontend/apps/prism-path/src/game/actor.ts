@@ -12,7 +12,17 @@ import { stateGame, stateGameDerived } from './stateGame.svelte';
 import config from './config';
 
 const primaryMachines = createPrimaryMachines<Bet>({
-	onResumeGameActive: (betToResume) => convertTorResumableBet(betToResume),
+	onResumeGameActive: (betToResume) => {
+		// settle a REAL board before snapshot playback — without this the resumed intro
+		// presentation played over the INITIAL_BOARD placeholder (whatever constants sat
+		// at the scatter positions did the 'win' breath under the trigger fanfare)
+		const lastRevealEvent = _.findLast(
+			betToResume.state,
+			(bookEvent) => bookEvent?.type === 'reveal',
+		);
+		if (lastRevealEvent) stateGameDerived.enhancedBoard.settle(lastRevealEvent.board);
+		return convertTorResumableBet(betToResume);
+	},
 	onResumeGameInactive: (betToResume) => {
 		const lastRevealEvent = _.findLast(
 			betToResume.state,

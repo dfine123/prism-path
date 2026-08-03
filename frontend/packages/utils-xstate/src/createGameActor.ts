@@ -34,11 +34,15 @@ const stateIdle = {
 	},
 };
 
+// onError backstops on every child invoke: the children handle their own errors via
+// final states, but an error that DOES escape must return the actor to idle — an
+// unhandled child error stops the root actor and freezes the whole session
 const stateResumeBet = {
 	invoke: {
 		id: 'resumeBet',
 		src: 'resumeBet' as const,
 		onDone: 'idle',
+		onError: 'idle',
 	},
 };
 
@@ -47,6 +51,7 @@ const stateBet = {
 		id: 'bet',
 		src: 'bet' as const,
 		onDone: 'idle',
+		onError: 'idle',
 	},
 };
 
@@ -55,6 +60,7 @@ const stateAutoBet = {
 		id: 'autoBet',
 		src: 'autoBet' as const,
 		onDone: 'idle',
+		onError: 'idle',
 	},
 };
 

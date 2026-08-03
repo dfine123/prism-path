@@ -49,6 +49,16 @@ export const createIntermediateMachineResumeBet = (actors: {
 								target: 'ending',
 							},
 						],
+						// mirror of the bet machine's guard: a handler throw during resume
+						// playback must settle and finish, not escalate to the root actor —
+						// unhandled, it stopped the whole game machine (frozen session,
+						// BET/AUTO_BET dead). 'ending' still runs endGame so the resumed
+						// round is credited/closed.
+						onError: [
+							{
+								target: 'ending',
+							},
+						],
 					},
 				},
 				ending: {

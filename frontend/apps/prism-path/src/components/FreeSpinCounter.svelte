@@ -10,6 +10,7 @@
 	import { MainContainer } from 'components-layout';
 	import { FadeContainer } from 'components-pixi';
 	import { BitmapText } from 'pixi-svelte';
+	import { stateUi } from 'state-shared';
 
 	import { getContext } from '../game/context';
 	import { SYMBOL_SIZE } from '../game/constants';
@@ -33,9 +34,14 @@
 			PANEL_H * 0.5,
 	});
 
-	let show = $state(false);
-	let current = $state(0);
-	let total = $state(0);
+	// HYDRATE FROM stateUi: this component unmounts on layout change (portrait hides it)
+	// and its emitter subscription dies with it. The handlers mirror every value into
+	// stateUi for exactly this moment — without hydration, a rotate-away-and-back
+	// mid-feature remounted a blank hidden counter until the next updateFreeSpin (or
+	// forever, on the feature's last spin).
+	let show = $state(stateUi.freeSpinCounterShow);
+	let current = $state(stateUi.freeSpinCounterCurrent);
+	let total = $state(stateUi.freeSpinCounterTotal);
 
 	context.eventEmitter.subscribeOnMount({
 		freeSpinCounterShow: () => (show = true),

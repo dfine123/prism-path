@@ -18,8 +18,27 @@
 	// the hold FORCES turbo; releasing must RESTORE the player's own toggle, not wipe it
 	let turboBeforeHold = false;
 
+	// ARM ELIGIBILITY IS SAMPLED AT KEYDOWN, not when the hold engages. The same keypress
+	// that begins a hold ALSO starts the bet (the console's Space handler fires on the
+	// same keydown, after this component's listener — mount order puts this one first),
+	// so by +400ms the machine is always mid-bet from our own press. Evaluating canArm
+	// at hold time therefore NEVER passed in the normal gesture: holding Space performed
+	// exactly one turbo spin and stopped — the rebet loop was functionally dead. A hold
+	// that begins MID-ROUND still samples false at its keydown and never arms (the
+	// "bonus ends and instantly re-bets" incident stays fixed). Sampled once per
+	// gesture: keydown auto-repeat re-fires onpress and must not resample mid-bet.
+	let armEligibleAtPress = false;
+	let inGesture = false;
+
+	const spacePress = () => {
+		if (!inGesture) {
+			inGesture = true;
+			armEligibleAtPress = props.canArm?.() ?? true;
+		}
+	};
+
 	const spaceHoldOn = () => {
-		if (props.canArm?.() ?? true) {
+		if (armEligibleAtPress) {
 			stateBet.autoSpinsCounter = 0;
 			stateBet.isSpaceHold = true;
 		}
@@ -28,9 +47,22 @@
 	};
 
 	const spaceHoldOff = () => {
+		inGesture = false;
+		armEligibleAtPress = false;
 		stateBet.isSpaceHold = false;
 		stateBetDerived.updateIsTurbo(turboBeforeHold, { persistent: true });
 	};
+
+	const spacePressEnd = () => {
+		inGesture = false;
+		armEligibleAtPress = false;
+	};
 </script>
 
-<OnHotkey hotkey="Space" onhold={spaceHoldOn} onholdend={spaceHoldOff} />
+<OnHotkey
+	hotkey="Space"
+	onpress={spacePress}
+	onpressend={spacePressEnd}
+	onhold={spaceHoldOn}
+	onholdend={spaceHoldOff}
+/>

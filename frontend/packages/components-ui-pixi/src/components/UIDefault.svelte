@@ -3,6 +3,7 @@
 
 	import { getContextLayout } from 'utils-layout';
 	import { EnableSpaceHold } from 'components-shared';
+	import { stateModal, stateUi, stateBetDerived } from 'state-shared';
 	import { getContext } from '../context';
 
 	import UiFadeContainer from './UiFadeContainer.svelte';
@@ -46,8 +47,18 @@
 	const LayoutComponent = $derived(LAYOUT_COMPONENT_MAP[stateLayoutDerived.layoutType()]);
 </script>
 
-<!-- the rebet loop may only be ARMED from true idle; mid-round holds still force turbo -->
-<EnableSpaceHold canArm={() => context.stateXstateDerived.isIdle()} />
+<!-- the rebet loop may only be ARMED from true idle at the keydown that starts the hold;
+     mid-round holds still force turbo. Overlay + autoplay guards mirror the console's own
+     press gate: a hold begun behind a modal (press blocked, machine idle) must not arm a
+     loop that later nests inside an autoplay run and bypasses its loss/win limits. -->
+<EnableSpaceHold
+	canArm={() =>
+		stateModal.modal === null &&
+		!stateUi.menuOpen &&
+		!stateUi.pressCatcherActive &&
+		!stateBetDerived.hasAutoBetCounter() &&
+		context.stateXstateDerived.isIdle()}
+/>
 
 <UiFadeContainer>
 	<LayoutComponent>

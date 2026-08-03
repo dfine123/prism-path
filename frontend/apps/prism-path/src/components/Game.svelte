@@ -19,7 +19,7 @@
 	import ResumeBet from './ResumeBet.svelte';
 	import Sound from './Sound.svelte';
 	import Background from './Background.svelte';
-	import LoadingScreen from './LoadingScreen.svelte';
+	import SuperStudiosBoot from './SuperStudiosBoot.svelte';
 	import BoardFrame from './BoardFrame.svelte';
 	import Board from './Board.svelte';
 	import Anticipations from './Anticipations.svelte';
@@ -88,9 +88,9 @@
 
 	<Background />
 
-	{#if context.stateLayout.showLoadingScreen}
-		<LoadingScreen onloaded={() => (context.stateLayout.showLoadingScreen = false)} />
-	{:else}
+	<!-- boot (Super Studios loader -> Prism Path intro) is a DOM overlay below; while it
+	     is up the canvas shows only the background sky behind it -->
+	{#if !context.stateLayout.showLoadingScreen}
 		<ResumeBet />
 		<!--
 			The reason why <Sound /> is rendered after clicking the loading screen:
@@ -125,6 +125,13 @@
 		<Transition />
 	{/if}
 </App>
+
+<!-- DOM boot overlay: Super Studios loader (driven by real asset progress), then the
+     Prism Path intro splash. The CONTINUE click is the audio-unlock gesture, so Sound
+     mounts right after it exactly as before. -->
+{#if context.stateLayout.showLoadingScreen}
+	<SuperStudiosBoot onenter={() => (context.stateLayout.showLoadingScreen = false)} />
+{/if}
 
 <Modals>
 	{#snippet version()}

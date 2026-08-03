@@ -40,7 +40,7 @@ const onSymbolLand = ({ rawSymbol, symbolIndex }: { rawSymbol: RawSymbol; symbol
 	if (rawSymbol.name === 'WILD') {
 		eventEmitter.broadcast({
 			type: 'soundOnce',
-			name: 'sfx_multiplier_landing',
+			name: 'sfx_dragon_land',
 		});
 	}
 };

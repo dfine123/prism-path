@@ -103,7 +103,9 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 				};
 			}
 		}
-		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
+		// the ARRIVAL is a bright chime; the fuller multiplier chord belongs to the path
+		// ignition later in the flight (sharing one cue made the two beats indistinct)
+		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_dragon_land' });
 		boardSlam(0.7); // the dragon has weight — the board feels it land
 		await waitForTimeout(60);
 	},

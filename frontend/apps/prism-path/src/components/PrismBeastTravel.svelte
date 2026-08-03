@@ -161,6 +161,15 @@
 				flowSign,
 			};
 
+			// THE GLIDE — a LOOPING bed of moving air that runs for exactly as long as the
+			// dragon is travelling. It starts here (push-off) and is stopped the moment the
+			// flight ends, below. A one-shot could not cover flights whose length varies
+			// with path length, and the once-player refuses to retrigger a cue that is
+			// still sounding — which is why it sometimes never fired at all.
+			context.eventEmitter.broadcast({ type: 'soundLoop', name: 'sfx_dragon_glide' });
+			const stopGlide = () =>
+				context.eventEmitter.broadcast({ type: 'soundStop', name: 'sfx_dragon_glide' });
+
 			visible = true;
 			dragon = { x: origin.x, y: origin.y, sx: DRAGON_SCALE, sy: DRAGON_SCALE, alpha: 0 };
 			glowAlpha = 0;
@@ -226,6 +235,7 @@
 						pos.y > BOARD_DIMENSIONS.y * SYMBOL_SIZE)
 				) {
 					exited = true;
+					stopGlide(); // it has cleared the edge — the motion is over
 					boardRubberBand(dv.x, dv.y);
 				}
 
@@ -272,6 +282,7 @@
 				} else {
 					// safety: every cell resolved before handing back control
 					revealAll();
+					stopGlide(); // safety: a whiffed flight never crosses an edge
 					dragon.alpha = 0;
 					glowAlpha = 0;
 					flash = { ...flash, alpha: 0 };

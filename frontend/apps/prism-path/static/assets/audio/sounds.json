@@ -37,7 +37,7 @@
 		],
 		"jng_intro_fs": [
 			135000,
-			2101.9955
+			2202.4943
 		],
 		"sfx_anticipation": [
 			139000,
@@ -51,63 +51,80 @@
 		],
 		"sfx_btn_general": [
 			147000,
-			160.9977
+			130.9977
 		],
 		"sfx_btn_spin": [
 			149000,
-			421.9955
+			341.4966
+		],
+		"sfx_dragon_glide": [
+			151000,
+			900.0,
+			true
+		],
+		"sfx_dragon_land": [
+			153000,
+			752.1995
 		],
 		"sfx_multiplier_landing": [
-			151000,
-			801.9955
+			155000,
+			852.4943
+		],
+		"sfx_near_miss": [
+			157000,
+			701.4739
 		],
 		"sfx_reel_stop_1": [
-			153000,
-			241.4966
+			159000,
+			180.9977
 		],
 		"sfx_scatter_stop_1": [
-			155000,
-			951.9955
+			161000,
+			1152.1769
 		],
 		"sfx_scatter_stop_2": [
-			157000,
-			951.9955
+			164000,
+			1212.1995
 		],
 		"sfx_scatter_stop_3": [
-			159000,
-			951.9955
+			167000,
+			1272.1995
 		],
 		"sfx_scatter_stop_4": [
-			161000,
-			951.9955
+			170000,
+			1332.1769
 		],
 		"sfx_scatter_stop_5": [
-			163000,
-			951.9955
+			173000,
+			1392.1769
 		],
 		"sfx_scatter_win_v2": [
-			165000,
-			1702.9932
+			176000,
+			1802.9932
 		],
 		"sfx_superfreespin": [
-			168000,
+			179000,
 			3002.9932
 		],
+		"sfx_tier_up": [
+			184000,
+			801.9955
+		],
 		"sfx_wild_explode": [
-			173000,
-			952.9932
+			186000,
+			902.9932
 		],
 		"sfx_winlevel_end": [
-			175000,
-			1301.9955
+			188000,
+			1402.4717
 		],
 		"sfx_winlevel_small": [
-			178000,
-			551.9955
+			191000,
+			451.7914
 		],
 		"sfx_youwon_panel": [
-			180000,
-			1902.9932
+			193000,
+			2002.9932
 		]
 	},
 	"src": [
@@ -152,8 +169,17 @@
 		"sfx_btn_spin": {
 			"volume": 0.75
 		},
+		"sfx_dragon_glide": {
+			"volume": 0.5
+		},
+		"sfx_dragon_land": {
+			"volume": 0.62
+		},
 		"sfx_multiplier_landing": {
 			"volume": 0.9
+		},
+		"sfx_near_miss": {
+			"volume": 0.5
 		},
 		"sfx_reel_stop_1": {
 			"volume": 0.7
@@ -178,6 +204,9 @@
 		},
 		"sfx_superfreespin": {
 			"volume": 0.85
+		},
+		"sfx_tier_up": {
+			"volume": 0.75
 		},
 		"sfx_wild_explode": {
 			"volume": 0.8

@@ -21,6 +21,7 @@
 		radius?: number; // legacy name — maps to the chamfer cut size
 		chamfer?: number;
 		accent?: number; // fixed light colour; omit for the cycling prism ramp
+		opaque?: boolean; // win boxes: fully solid plate (nothing may ghost through)
 		children?: Snippet;
 	};
 	const props: Props = $props();
@@ -86,8 +87,15 @@
 		const w = props.width;
 		const h = props.height;
 		const pts = octagon(w, h, cut);
-		// glass base — denser than the board panel (text must read over the dim veil)
-		g.poly(pts).fill({ color: 0x140b24, alpha: 0.93 });
+		// glass base — denser than the board panel (text must read over the dim veil).
+		// opaque mode: a WIN BOX is a solid plate — shards erupting behind it must be
+		// fully occluded, so the base paints twice (alpha stacking leaves no bleed).
+		if (props.opaque) {
+			g.poly(pts).fill({ color: 0x140b24, alpha: 1 });
+			g.poly(pts).fill({ color: 0x140b24, alpha: 1 });
+		} else {
+			g.poly(pts).fill({ color: 0x140b24, alpha: 0.93 });
+		}
 		// top-light sheen: stepped strips fading out by ~1/3 down (imperceptible deltas)
 		const STEPS = 6;
 		const sheenH = h * 0.34;

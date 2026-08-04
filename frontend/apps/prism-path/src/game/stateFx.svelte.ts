@@ -13,6 +13,16 @@
 // see BoardContainer); drive only through boardFocusTo().
 export const stateFx = $state({ winSpeed: 1, boardScale: 1, boardNudgeX: 0, boardNudgeY: 0, boardFocus: 0 });
 
+// USER-ADVANCE window: when a press drives the win-box roll forward, the promotion
+// must land on the SAME frame as the click — the organic roll's anticipation wind-up
+// reads as input lag under a finger. Consumers (WinBox) skip the wind-up while inside
+// this window.
+let promoInstantUntil = 0;
+export const markUserAdvance = () => {
+	promoInstantUntil = performance.now() + 450;
+};
+export const isUserAdvance = () => performance.now() < promoInstantUntil;
+
 let focusRaf = 0;
 export const boardFocusTo = (target: number, ms = 320) => {
 	cancelAnimationFrame(focusRaf);

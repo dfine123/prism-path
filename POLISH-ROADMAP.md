@@ -33,6 +33,62 @@ Status: `[ ]` proposed · `[~]` in progress · `[x]` shipped · `[-]` dropped by
       it's built once against the real cap.
 - [~] **1.4 Retrigger banner.** "+N FREE SPINS" crystal plaque beat inside the retrigger
       presentation — pop-in impact, short hold, out. Tasteful, no screen takeover.
+- [x] **1.6 Feature intro/outro ART PLAQUE ceremony** (operator: two code-drawn versions
+      both "way too sloppy" → the studio answer is painted art, not vector borders).
+      SHIPPED 2026-08-03: ornate plaque plates generated via Higgsfield nano_banana_pro
+      with board1.png as the style reference (cyan/prism + gold royal variants; crown
+      crest + seated gems baked into the art, blank interior for text), deterministic
+      flood-fill white-backdrop cutout (no ML fringe — lesson from the clouds), assets
+      `platePrism`/`plateGold` (static/assets/ui/panels/). FreeSpinIntro + FreeSpinOutro
+      rebuilt on the plates: impact entrance + twin silhouette shockwaves, staggered
+      text beats (wordmark drop → count/amount impact with radial glint burst →
+      sub-line), slow staggered light-catch glints seated on the art's gem positions,
+      gem rain + breathing backdrop bloom behind. SUPER intro = gold plate. ALSO:
+      mote.png rebuilt as a true zero-edge gaussian (256px) — the old texture leaked
+      alpha 12 at its quad edge, which read as a visible SQUARE around every scaled-up
+      glow (the intro's "8" pool). Fixes all soft light game-wide.
+      FOLLOW-UP 2 (operator): (a) outro amount was sized against a LONG test string —
+      the responsive fit only shrinks, so short amounts ("$47.75") rendered huge and
+      crowded the bottom inlay → base size now set for the short case (0.82S), rows
+      re-centered (title -0.15H / label +0.015H / amount +0.175H); intro count nudged
+      up (+0.09H → +0.065H). (b) FREE-SPIN COUNTER redesigned as a MINIATURE of the
+      intro plaque (same platePrism/plateGold assets — the feature's sigil): count is
+      the hero with an impact pop + crown-gem glint per spent spin, idle catch-light,
+      accent pool under the numerals, gold plate under SUPER. NOTE: menu pod observed
+      OPEN at boot twice during verification with zero clicks — folded into the
+      flagged overlay-discipline gap.
+      FOLLOW-UP 3 (operator: "something more actually designed"): tried a Flux 1.1
+      Pro ornate crystal plaque (Replicate; Higgsfield plan-gated even with credits,
+      Gemini quota 0, OpenAI imagegen server bug) + in-repo gold hue-derivation —
+      operator: "way too over done, align with the limestone of the board outer."
+      FINAL (v6 after "too realistic, not the cartoon vibe of the board"):
+      counter_stone.png is DETERMINISTICALLY RENDERED (scratch gen_counter_stone.py,
+      seeded) in the frame's HAND-DRAWN language — palette and outline color SAMPLED
+      from board1.png itself (creams ~74%, teal/mauve/blue-gray/rose accents ~26%,
+      outline near-black plum 52,14,44), bold wobbly outlines (midpoint-jitter
+      edges), soft elliptical per-facet light washes, accents spread by ring angle
+      (never clumped), chamfered silhouette, dark violet glass window with
+      center-darkening — reads as a piece cut from the board frame. v7: ink made
+      DISPLAY-CALIBRATED — the counter shows at ~0.14x art scale, so the board's
+      bold black contour must be ~18px in art pixels (silhouette, near-black
+      24,8,22) / 15px (window rim) / 10px (facet lines) to land at the frame's
+      on-screen line weight; the earlier "correct-looking" 4px contour rendered
+      sub-pixel and vanished. Single asset `counterStone` for
+      both modes; SUPER identity carried by the accent light pool (gold vs cyan),
+      which also FLARES briefly on each spent spin alongside the count's impact pop.
+      Ornate counter assets deleted. Flux gens kept on Desktop/breakroom-assets if
+      ever wanted. AI-gen lesson logged: Flux ignores in-prompt aspect directives
+      and drifts ornament ("NO gold filigree" → gold filigree) — for precise UI
+      chrome, deterministic rendering beats prompting.
+      FOLLOW-UP (operator, same day): (a) "PRESS ANYWHERE TO CONTINUE" now seats WITH
+      the box on all three ceremony surfaces (intro/outro: under the plaque; big-win
+      box: under the box, and only once the roll completes and the box holds — mid-roll
+      a press means "advance a tier") via PressToContinue `showLabel={false}` + a local
+      invite line; the screen-bottom label read as disconnected. (b) Text rows re-seated
+      against MEASURED art safe zones (crown/wing blades intrude to -0.246H cyan /
+      -0.259H gold; interior bottom +0.366/+0.358): intro word -0.14H / count +0.09H /
+      sub +0.305H, outro title -0.15H / label +0.03H / amount +0.20H — the wordmark had
+      been colliding with the crown's wing blades.
 - [~] **1.5 Near-miss decompression (subtle).** When scatter anticipation ran and the
       trigger whiffed at 2 scatters: a quiet two-note descending exhale + slightly
       softer anticipation release. No dim, no banner. Skipped when a win presentation

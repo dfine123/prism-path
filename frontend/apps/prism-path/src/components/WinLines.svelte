@@ -9,10 +9,10 @@
 	// while streaming, then fades. The winInfo handler awaits one full lifecycle per line,
 	// so lines play strictly sequentially.
 	//
-	// winLinesFlash — the TURBO statement: every winning line sweeps on in one composed
-	// cascade (tight stagger, real easing — NOT sped-up footage), the TOTAL value lands
-	// with one impact pop as the last line completes, everything holds a readable beat and
-	// releases together. Same ribbon, same light language, condensed choreography.
+	// winLinesFlash — the TURBO tour: lines play strictly ONE AT A TIME (two lines on
+	// stage at once reads as a glitch) with tight designed beats — quick glide draw,
+	// readable blink, clean fade — then the COMBINED total pops once. Same ribbon, same
+	// light language, condensed pacing.
 	export type EmitterEventWinLines =
 		| {
 				type: 'winLinePlay';
@@ -57,15 +57,6 @@
 	const PUNCH_MS = 110; // impact punch when the full value lands
 	const HOLD_MULT_MS = 530; // longer hold for multiplied lines (pop+beat+merge+punch)
 
-	// ---- turbo flash tunables ---- a composed cascade, not a blink: each strand still
-	// glides on with the full easing curve; only the BETWEEN-lines time is compressed
-	const F_STAG_MS = 45; // per-strand launch stagger
-	const F_DRAW_MS = 130; // each strand's sweep-on
-	const F_HOLD_MS = 340; // all-lines readable hold (symbol breath = 380ms sits inside)
-	const F_FADE_MS = 100; // joint release
-
-	type Strand = { pts: { x: number; y: number }[]; prog: number; alpha: number };
-
 	let line = $state({
 		show: false,
 		pts: [] as { x: number; y: number }[],
@@ -73,7 +64,6 @@
 		alpha: 0,
 		phase: 0,
 	});
-	let flash = $state({ show: false, strands: [] as Strand[], phase: 0 });
 	// the per-line WIN VALUE lives in stateWinPop (rendered by WinValuePop, mounted ABOVE
 	// the multiplier-badge layer) — this component only drives it frame-by-frame
 
@@ -200,26 +190,49 @@
 			requestAnimationFrame(frame);
 		});
 
-	const playFlash = (lineSets: { positions: Position[] }[], amount: number) =>
+	// TURBO tour: strictly ONE line on stage at a time (operator: two lines at once
+	// reads as a glitch). Each line gets tight designed beats — full glide draw, a
+	// readable blink of hold, clean fade — then the COMBINED total pops once at the
+	// collective centroid. Fast, composed, never simultaneous.
+	const strandOnce = (pts: { x: number; y: number }[], drawMs: number, holdMs: number, fadeMs: number) =>
 		new Promise<void>((resolve) => {
-			const built = lineSets.map((l) => buildPts(l.positions)).filter((b) => b.cells.length > 0);
-			if (built.length === 0) return resolve();
-			const allCells = built.flatMap((b) => b.cells);
-			const cx = allCells.reduce((s, p) => s + p.x, 0) / allCells.length;
-			const cy = allCells.reduce((s, p) => s + p.y, 0) / allCells.length;
-
-			const n = built.length;
-			const popStart = F_STAG_MS * (n - 1) + F_DRAW_MS; // total lands as the LAST strand completes
-			const fadeStart = popStart + F_HOLD_MS;
-			const total = fadeStart + F_FADE_MS;
 			let lastT = now();
 			let el = 0;
-
-			flash = {
-				show: true,
-				strands: built.map((b) => ({ pts: b.pts, prog: 0, alpha: 0 })),
-				phase: 0,
+			line = { show: true, pts, prog: 0, alpha: 1, phase: 0 };
+			const total = drawMs + holdMs + fadeMs;
+			const frame = () => {
+				const tN = now();
+				el += (tN - lastT) * stateFx.winSpeed;
+				lastT = tN;
+				line.phase = (el / 1000) * FLOW_HZ;
+				if (el < drawMs) {
+					line.prog = EASE.glide(clamp01(el / drawMs));
+					line.alpha = 1;
+				} else if (el < drawMs + holdMs) {
+					line.prog = 1;
+					line.alpha = 1;
+				} else {
+					line.prog = 1;
+					line.alpha = 1 - EASE.collapse(clamp01((el - drawMs - holdMs) / fadeMs));
+				}
+				if (el < total) requestAnimationFrame(frame);
+				else {
+					line.show = false;
+					line.alpha = 0;
+					resolve();
+				}
 			};
+			requestAnimationFrame(frame);
+		});
+
+	const playFlash = async (lineSets: { positions: Position[] }[], amount: number) => {
+		const built = lineSets.map((l) => buildPts(l.positions)).filter((b) => b.cells.length > 0);
+		if (built.length === 0) return;
+		for (const b of built) await strandOnce(b.pts, 120, 150, 70);
+		const allCells = built.flatMap((b) => b.cells);
+		const cx = allCells.reduce((sum, p) => sum + p.x, 0) / allCells.length;
+		const cy = allCells.reduce((sum, p) => sum + p.y, 0) / allCells.length;
+		await new Promise<void>((resolve) => {
 			Object.assign(stateWinPop, {
 				x: cx,
 				y: cy,
@@ -228,38 +241,22 @@
 				multY: MULT_Y,
 				multScale: 0,
 				multAlpha: 0,
-				// turbo is results-first: the combined total, no xN theater (the chips on the
-				// board already carry the multiplier truth)
 				label: bookEventAmountToCurrencyString(amount),
 				multLabel: '',
 			});
-
+			let lastT = now();
+			let el = 0;
+			const TOTAL = 540;
 			const frame = () => {
-				const t = now();
-				el += (t - lastT) * stateFx.winSpeed;
-				lastT = t;
-				flash.phase = (el / 1000) * FLOW_HZ;
-				const fadeMul = el < fadeStart ? 1 : 1 - EASE.collapse(clamp01((el - fadeStart) / F_FADE_MS));
-
-				for (let i = 0; i < flash.strands.length; i++) {
-					const local = el - i * F_STAG_MS;
-					const s = flash.strands[i];
-					s.prog = EASE.glide(clamp01(local / F_DRAW_MS));
-					s.alpha = clamp01(local / (F_DRAW_MS * 0.45)) * fadeMul;
-				}
-
-				if (el >= popStart) {
-					const pu = clamp01((el - popStart) / POP_MS);
-					stateWinPop.scale =
-						pu < 1 ? EASE.impact(pu) : 1 + 0.025 * Math.sin(flash.phase * Math.PI * 2.4);
-					stateWinPop.alpha = clamp01(pu * 2.5) * fadeMul;
-				}
-
-				if (el < total) {
-					requestAnimationFrame(frame);
-				} else {
-					flash.show = false;
-					flash.strands = [];
+				const tN = now();
+				el += (tN - lastT) * stateFx.winSpeed;
+				lastT = tN;
+				const pu = clamp01(el / POP_MS);
+				stateWinPop.scale = pu < 1 ? EASE.impact(pu) : 1 + 0.025 * Math.sin((el / 1000) * Math.PI * 2.4);
+				stateWinPop.alpha =
+					el < TOTAL - 120 ? clamp01(pu * 2.5) : 1 - EASE.collapse(clamp01((el - (TOTAL - 120)) / 120));
+				if (el < TOTAL) requestAnimationFrame(frame);
+				else {
 					stateWinPop.alpha = 0;
 					stateWinPop.scale = 0;
 					resolve();
@@ -267,6 +264,7 @@
 			};
 			requestAnimationFrame(frame);
 		});
+	};
 
 	context.eventEmitter.subscribeOnMount({
 		winLinePlay: async ({ positions, amount, baseAmount, multiplier }) => {
@@ -277,22 +275,8 @@
 		},
 	});
 
-	// ---- shared renderers (both modes draw through these) ----
+	// ---- renderers ----
 	type DrawnStrand = { pts: { x: number; y: number }[]; prog: number; alpha: number; phase: number };
-	const activeStrands = (): DrawnStrand[] => {
-		const out: DrawnStrand[] = [];
-		if (line.show && line.alpha > 0.01 && line.pts.length > 0) {
-			out.push({ pts: line.pts, prog: line.prog, alpha: line.alpha, phase: line.phase });
-		}
-		if (flash.show) {
-			for (const s of flash.strands) {
-				if (s.alpha > 0.01 && s.prog > 0.001 && s.pts.length > 0) {
-					out.push({ pts: s.pts, prog: s.prog, alpha: s.alpha, phase: flash.phase });
-				}
-			}
-		}
-		return out;
-	};
 
 	const cumLengths = (pts: { x: number; y: number }[]) => {
 		const cum = [0];
@@ -437,18 +421,18 @@
 	};
 </script>
 
-{#if line.show || flash.show}
+{#if line.show}
 	<!-- contrast plate: near-black outline UNDER the light (normal blend — additive black is
 	     invisible), so the gradient line pops against the grey board and bright symbols -->
 	<Graphics
 		draw={(g) => {
-			for (const s of activeStrands()) drawPlate(g, s);
+			if (line.alpha > 0.01 && line.pts.length > 0) drawPlate(g, line);
 		}}
 	/>
 	<Graphics
 		blendMode="add"
 		draw={(g) => {
-			for (const s of activeStrands()) drawRibbon(g, s);
+			if (line.alpha > 0.01 && line.pts.length > 0) drawRibbon(g, line);
 		}}
 	/>
 {/if}

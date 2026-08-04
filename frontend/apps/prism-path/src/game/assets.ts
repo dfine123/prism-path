@@ -56,6 +56,14 @@ export default {
 	// UI art
 	// board frame: crystal v2 — LOCKED (candidate picker + losing frames removed post sign-off)
 	board1: { type: 'sprite', src: new URL('../../assets/ui/frames/board1.png', import.meta.url).href },
+	// ornate plaque plates for the feature intro/outro ceremonies (generated in the board
+	// frame's crystal language; crown crest baked into the art, interior blank for text)
+	platePrism: { type: 'sprite', src: new URL('../../assets/ui/panels/plate_cyan.png', import.meta.url).href, preload: true },
+	plateGold: { type: 'sprite', src: new URL('../../assets/ui/panels/plate_gold.png', import.meta.url).href, preload: true },
+	// free-spin counter plaque: limestone facets matching the board's outer frame
+	// (deterministically rendered — see scratch gen_counter_stone.py; mode accent
+	// carried by the light pool/glints, not the stone)
+	counterStone: { type: 'sprite', src: new URL('../../assets/ui/panels/counter_stone.png', import.meta.url).href, preload: true },
 	logo: { type: 'sprite', src: new URL('../../assets/ui/logo.png', import.meta.url).href, preload: true },
 
 	// --- symbols (keys match the math reveal board names: L2-L5/H1-H4/WILD/SCAT) ---

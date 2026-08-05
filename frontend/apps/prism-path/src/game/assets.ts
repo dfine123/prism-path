@@ -27,8 +27,8 @@ export default {
 	},
 
 	// backgrounds (cover-cropped at render; 1376x768 source)
-	bgBase: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_base.png', import.meta.url).href, preload: true },
-	bgFeature: { type: 'sprite', src: new URL('../../assets/backgrounds/bg_feature.png', import.meta.url).href, preload: true },
+	// (bg_base/bg_feature monolith paintings retired — BackgroundScene composes the
+	// living scene from the layers/ plates; the 9.4MB pair was dead preload weight)
 
 	// LAYERED LIVING BACKGROUND (BackgroundScene): the paintings decomposed into real
 	// plates via Higgsfield — empty-sky bases + complete island/cloud cutouts that
@@ -56,10 +56,10 @@ export default {
 	// UI art
 	// board frame: crystal v2 — LOCKED (candidate picker + losing frames removed post sign-off)
 	board1: { type: 'sprite', src: new URL('../../assets/ui/frames/board1.png', import.meta.url).href },
-	// ornate plaque plates for the feature intro/outro ceremonies (generated in the board
-	// frame's crystal language; crown crest baked into the art, interior blank for text)
-	platePrism: { type: 'sprite', src: new URL('../../assets/ui/panels/plate_cyan.png', import.meta.url).href, preload: true },
-	plateGold: { type: 'sprite', src: new URL('../../assets/ui/panels/plate_gold.png', import.meta.url).href, preload: true },
+	// feature intro/outro ceremony plate: limestone facets in the board frame's
+	// hand-drawn ink (deterministic — scratch gen_plate_stone.py; mode identity is
+	// carried by the accent light, the stone never changes)
+	plateStone: { type: 'sprite', src: new URL('../../assets/ui/panels/plate_stone.png', import.meta.url).href, preload: true },
 	// free-spin counter plaque: limestone facets matching the board's outer frame
 	// (deterministically rendered — see scratch gen_counter_stone.py; mode accent
 	// carried by the light pool/glints, not the stone)
@@ -84,9 +84,9 @@ export default {
 	stickyRight: { type: 'sprite', src: new URL('../../assets/symbols/stickyRight.png', import.meta.url).href },
 	SCAT: { type: 'sprite', src: new URL('../../assets/symbols/SCAT.png', import.meta.url).href },
 	// Prism Beast travel overlay — directional busts (picked by facing direction).
-	prismBeast: { type: 'sprite', src: new URL('../../assets/symbols/prismBeast.png', import.meta.url).href },
 	beastUp: { type: 'sprite', src: new URL('../../assets/symbols/beastUp.png', import.meta.url).href },
-	beastDown: { type: 'sprite', src: new URL('../../assets/symbols/beastDown.png', import.meta.url).href },
+	// beastDown was byte-identical to WILD.png — one texture, two keys, zero duplicate download
+	beastDown: { type: 'sprite', src: new URL('../../assets/symbols/WILD.png', import.meta.url).href },
 	beastLeft: { type: 'sprite', src: new URL('../../assets/symbols/beastLeft.png', import.meta.url).href },
 	beastRight: { type: 'sprite', src: new URL('../../assets/symbols/beastRight.png', import.meta.url).href },
 

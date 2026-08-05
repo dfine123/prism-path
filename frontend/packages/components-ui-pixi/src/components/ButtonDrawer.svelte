@@ -1,24 +1,27 @@
 <script lang="ts">
+	// Portrait drawer toggle — Crystal Console control (was the template's last raw
+	// placeholder: black UiSprite stub + a fallback-font '↓'). Glass face, drawn
+	// chevron that rotates with the fold, standard press/disabled states, press sound.
 	import { cubicInOut } from 'svelte/easing';
+	import { Tween } from 'svelte/motion';
 
 	import { stateUi } from 'state-shared';
-	import { Text } from 'pixi-svelte';
+	import { Container, Graphics } from 'pixi-svelte';
 	import { Button, type ButtonProps } from 'components-pixi';
 
-	import UiSprite from './UiSprite.svelte';
-	import { UI_BASE_FONT_SIZE, UI_BASE_SIZE } from '../constants';
+	import UiGlass from './UiGlass.svelte';
+	import { drawGlyph } from '../glyphs';
+	import { SUPER_UI } from '../theme';
 	import { getContext } from '../context';
-	import { Tween } from 'svelte/motion';
 
 	const props: Partial<Omit<ButtonProps, 'children'>> = $props();
 	const context = getContext();
-	const sizes = { width: UI_BASE_SIZE, height: UI_BASE_SIZE };
-
-	const degreesToRads = (degrees: number) => (degrees * Math.PI) / 180.0;
+	const T = SUPER_UI;
+	const sizes = { width: T.btnSm, height: T.btnSm };
 
 	const DRAWER_ROTATION = {
-		up: degreesToRads(-180),
-		down: degreesToRads(0),
+		up: -Math.PI,
+		down: 0,
 	};
 
 	const rotationTween = new Tween(stateUi.drawerFold ? DRAWER_ROTATION.up : DRAWER_ROTATION.down, {
@@ -29,6 +32,7 @@
 	const disabled = $derived(props.disabled || moving);
 
 	const onpress = async () => {
+		context.eventEmitter.broadcast({ type: 'soundPressGeneral' });
 		if (stateUi.drawerFold) {
 			await context.eventEmitter.broadcastAsync({ type: 'drawerUnfold' });
 		} else {
@@ -56,29 +60,23 @@
 	});
 </script>
 
-<Button {...props} {sizes} {onpress} {disabled} alpha={disabled ? 0.5 : 1}>
-	{#snippet children({ center })}
-		<UiSprite
-			key="base_mobile_drawer"
-			{...center}
-			anchor={0.5}
-			width={sizes.width}
-			height={sizes.height}
-		/>
-		<Text
-			{...center}
-			anchor={0.5}
-			text="↓"
-			style={{
-				align: 'center',
-				wordWrap: true,
-				wordWrapWidth: 200,
-				fontFamily: 'Superui',
-				fontWeight: '600',
-				fontSize: UI_BASE_FONT_SIZE * 0.9,
-				fill: 0xffffff,
-			}}
-			rotation={rotationTween.current}
-		/>
+<Button {...props} {sizes} {onpress} {disabled}>
+	{#snippet children({ center, hovered, pressed })}
+		<Container {...center} scale={pressed ? T.press : 1} alpha={disabled ? T.dim : 1}>
+			<UiGlass
+				width={T.btnSm}
+				height={T.btnSm}
+				radius={T.btnSm / 2}
+				lit={!disabled && hovered}
+			/>
+			<Container rotation={rotationTween.current}>
+				<Graphics
+					draw={(g) => {
+						g.clear();
+						drawGlyph(g, { icon: 'chevronDown', size: T.btnSm * 0.52, color: T.color.text });
+					}}
+				/>
+			</Container>
+		</Container>
 	{/snippet}
 </Button>

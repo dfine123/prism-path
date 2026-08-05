@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 
 	import { waitForResolve } from 'utils-shared/wait';
+	import { stateUi } from 'state-shared';
 	import { FadeContainer } from 'components-pixi';
 
 	import { getContext } from '../context';
@@ -24,6 +25,9 @@
 			}
 		},
 		uiHide: async () => {
+			// the stage is being taken (feature entry, max-win ceremony): a stale open
+			// menu pod must never survive into — or resurface after — a presentation
+			stateUi.menuOpen = false;
 			if (show === true) {
 				show = false;
 				await waitForResolve((resolve) => (oncomplete = resolve));

@@ -29,8 +29,10 @@
 	};
 </script>
 
+<!-- children already render in the button-centred frame — the old extra half-size
+     offset stamped the counter on the corner, colliding with neighbours (audit HIGH) -->
 <UiButton {...props} {sizes} {active} {onpress} {disabled} icon="autoSpin">
-	<Container x={sizes.width * 0.5} y={sizes.height * 0.5} scale={sizes.width / 150}>
+	<Container scale={sizes.width / SUPER_UI.btn}>
 		<ButtonBetAutoSpinsCounter />
 	</Container>
 </UiButton>

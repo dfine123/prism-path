@@ -24,11 +24,8 @@
 	onchange={(value) => (stateUi.autoSpinsText = value)}
 >
 	{#snippet option({ option })}
-		<BaseIcon
-			width="100%"
-			height="2rem"
-			border={option === stateUi.autoSpinsText ? '2px white solid' : '2px black solid'}
-		/>
+		<!-- 2.9rem keeps the tap row >= 40px even at the 14px phone root -->
+		<BaseIcon width="100%" height="2.9rem" selected={option === stateUi.autoSpinsText} />
 		<BaseButtonContent>
 			<span style="font-size: 1rem;" class:infinity={option === '∞'} data-test="round-options">
 				{option}

@@ -15,7 +15,9 @@
 	};
 
 	const props: Props = $props();
-	const winBookEventAmountTween = new Tween(stateBet.winBookEventAmount);
+	// money glides with a decelerating roll (expo-out), not the default linear crawl
+	const expoOut = (t: number) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t));
+	const winBookEventAmountTween = new Tween(stateBet.winBookEventAmount, { duration: 350, easing: expoOut });
 	const label = $derived(i18nDerived.win());
 	const value = $derived(bookEventAmountToCurrencyString(winBookEventAmountTween.current));
 	// the win readout goes gold while a win is on the meter — the console's one live

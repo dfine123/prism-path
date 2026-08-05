@@ -5,14 +5,36 @@
 </script>
 
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { Container, Graphics, Sprite } from 'pixi-svelte';
 
 	import { getContext } from '../game/context';
 	import { BOARD_SIZES, SYMBOL_SIZE, CELL_W } from '../game/constants';
-	import { paletteAt } from '../game/motion';
+	import { paletteAt, lerpColor, clamp01 } from '../game/motion';
 	import { stateFx } from '../game/stateFx.svelte';
 
 	const context = getContext();
+
+	// FEATURE GLOW: the frame itself signals the free-spins realm with a soft violet
+	// breathing rim (the glow events were broadcast by the handlers but had no
+	// subscriber — the frame gave zero feature-state signal). Eased in/out.
+	let glowTarget = $state(0);
+	let glow = $state(0);
+	let glowT = $state(0);
+	onMount(() => {
+		let raf = 0;
+		const frame = () => {
+			glowT = performance.now() / 1000;
+			glow += (glowTarget - glow) * 0.06;
+			raf = requestAnimationFrame(frame);
+		};
+		raf = requestAnimationFrame(frame);
+		return () => cancelAnimationFrame(raf);
+	});
+	context.eventEmitter.subscribeOnMount({
+		boardFrameGlowShow: () => (glowTarget = 1),
+		boardFrameGlowHide: () => (glowTarget = 0),
+	});
 	// LOCKED frame: crystal v2 (board1, LANDSCAPE — the board conforms to its opening aspect
 	// 1.2155 via rectangular cells). Fit from the measured opening (79.8% x 76.7% of the art)
 	// so the opening = board minus a 4px lip per side; offsets align the art's slightly
@@ -158,4 +180,29 @@
 		width={context.stateGameDerived.boardLayout().width * SPRITE_SCALE.width}
 		height={context.stateGameDerived.boardLayout().height * SPRITE_SCALE.height}
 	/>
+
+	<!-- FEATURE GLOW rim: a whisper violet aura breathing at the frame edge during
+	     free spins — two soft additive strokes hugging the frame silhouette (never a
+	     filled wash over the board face) -->
+	{#if glow > 0.01}
+		{@const FW = context.stateGameDerived.boardLayout().width * SPRITE_SCALE.width}
+		{@const FH = context.stateGameDerived.boardLayout().height * SPRITE_SCALE.height}
+		{@const breathe = 0.75 + 0.25 * Math.sin(glowT * Math.PI * 0.7)}
+		<Graphics
+			blendMode="add"
+			draw={(g) => {
+				g.clear();
+				g.roundRect(frameOff.x - FW / 2 - 6, frameOff.y - FH / 2 - 6, FW + 12, FH + 12, 34).stroke({
+					width: 10,
+					color: 0x9b3ce8,
+					alpha: 0.14 * glow * breathe,
+				});
+				g.roundRect(frameOff.x - FW / 2 - 14, frameOff.y - FH / 2 - 14, FW + 28, FH + 28, 40).stroke({
+					width: 22,
+					color: 0x9b3ce8,
+					alpha: 0.06 * glow * breathe,
+				});
+			}}
+		/>
+	{/if}
 </Container>

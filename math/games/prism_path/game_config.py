@@ -16,19 +16,21 @@ from src.config.distributions import Distribution
 from src.config.betmode import BetMode
 
 
-# Paytable in payoutMultiplier-int units (800 = 8.0x). L2-L5 [3,4,5] -> [25,50,100];
-# H1-H4 -> [50,150,500]. WILD pays at GEM TIER for pure-wild runs — a full dragon path
-# across a payline IS a line (the evaluator takes the better of wild-run vs substituted win).
+# Paytable in payoutMultiplier-int units (800 = 8.0x), RANK-TIERED (operator direction
+# 2026-08-04): royals low-but-fair with a slight A>K>Q>J spread; gems ladder by value —
+# purple H4 is the DECENT entry gem, rising through green H3 and blue H2 to the red H1
+# premium. WILD pays at the TOP-GEM tier for pure-wild runs — a full dragon path across
+# a payline IS a line (the evaluator takes the better of wild-run vs substituted win).
 PAYTABLE_PM = {
-    "WILD": [50, 150, 500],
-    "L2": [25, 50, 100],
-    "L3": [25, 50, 100],
-    "L4": [25, 50, 100],
-    "L5": [25, 50, 100],
-    "H1": [50, 150, 500],
-    "H2": [50, 150, 500],
-    "H3": [50, 150, 500],
-    "H4": [50, 150, 500],
+    "WILD": [125, 400, 1000],
+    "L2": [25, 60, 125],   # A
+    "L3": [20, 50, 100],   # K
+    "L4": [15, 40, 90],    # Q
+    "L5": [15, 40, 80],    # J
+    "H1": [125, 400, 1000],  # red — premium
+    "H2": [80, 250, 650],    # blue
+    "H3": [60, 180, 450],    # green
+    "H4": [40, 120, 300],    # purple — the decent entry gem
 }
 
 # 17 paylines over a 5x5 grid (row indices 0..4 per reel), left-to-right — per the reference
@@ -130,7 +132,13 @@ class GameConfig(Config):
             self.reels[r] = self.read_reels_csv(os.path.join(self.reels_path, f))
         self.padding_reels[self.basegame_type] = self.reels["BR0"]
         self.padding_reels[self.freegame_type] = self.reels["FR0"]
-        self.padding_symbol_values = {"WILD": {"multiplier": {2: 100, 3: 50, 5: 50, 10: 30}}}
+        # padding dragons must SHOW plausible badges: mirror the real per-gametype
+        # multiplier distributions (one shared table let a base-game padding dragon
+        # flash a x10 that base play can never award)
+        self.padding_symbol_values = {
+            self.basegame_type: {"WILD": {"multiplier": dict(self.beast_mult_weights[self.basegame_type])}},
+            self.freegame_type: {"WILD": {"multiplier": dict(self.beast_mult_weights[self.freegame_type])}},
+        }
 
         # ---- Distribution conditions (criteria setup for create_books / optimizer) ----
         reels_both = {self.basegame_type: {"BR0": 1}, self.freegame_type: {"FR0": 1}}

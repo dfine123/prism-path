@@ -34,11 +34,8 @@
 	onchange={(value) => stateBetDerived.setBetAmount(value)}
 >
 	{#snippet option({ option })}
-		<BaseIcon
-			width="100%"
-			height="2rem"
-			border={option === stateBet.betAmount ? '2px white solid' : '2px black solid'}
-		/>
+		<!-- 2.9rem keeps the tap row >= 40px even at the 14px phone root -->
+		<BaseIcon width="100%" height="2.9rem" selected={option === stateBet.betAmount} />
 		<BaseButtonContent>
 			<span style="font-size: 1rem;"
 				>{isMaxValue(option) ? i18nDerived.max() : formatValue(option)}</span

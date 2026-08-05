@@ -16,7 +16,7 @@ export const winLevelMap = {
 		type: 'small',
 		text: null,
 		presentDuration: 0.6 * SECOND,
-		sound: { sfx: undefined, bgm: undefined },
+		sound: { sfx: 'sfx_win_sting_1', bgm: undefined },
 		animation: undefined,
 	},
 	3: {
@@ -25,7 +25,7 @@ export const winLevelMap = {
 		type: 'small',
 		text: null,
 		presentDuration: 1 * SECOND,
-		sound: { sfx: undefined, bgm: undefined },
+		sound: { sfx: 'sfx_win_sting_2', bgm: undefined },
 		animation: undefined,
 	},
 	4: {
@@ -34,7 +34,7 @@ export const winLevelMap = {
 		type: 'medium',
 		text: null,
 		presentDuration: 1.5 * SECOND,
-		sound: { sfx: undefined, bgm: undefined },
+		sound: { sfx: 'sfx_win_sting_3', bgm: undefined },
 		animation: undefined,
 	},
 	5: {
@@ -43,7 +43,7 @@ export const winLevelMap = {
 		type: 'medium',
 		text: null,
 		presentDuration: 2.0 * SECOND,
-		sound: { sfx: undefined, bgm: undefined },
+		sound: { sfx: 'sfx_win_sting_4', bgm: undefined },
 		animation: undefined,
 	},
 	// Big tiers: presentDuration = the count-up roll time (reward scales with reward, but a

@@ -94,6 +94,38 @@ Status: `[ ]` proposed · `[~]` in progress · `[x]` shipped · `[-]` dropped by
       softer anticipation release. No dim, no banner. Skipped when a win presentation
       follows (the win owns the stage).
 
+- [x] **1.7 Ceremony plates unified on LIMESTONE + pulse sync + line layering**
+      (operator 2026-08-04: gold plate "way too overdone, we need a more clean
+      design"; amount/box pulses "alternating looks weird"; line behind symbols;
+      more symbol react). (a) Intro/outro rebuilt on plate_stone.png (scratch
+      gen_plate_stone.py — the counter's limestone generator at ceremony scale, ink
+      recalibrated for ~0.37x display: contour 7px/rim 6px/facets 4.5px art-px);
+      ornate plate_cyan/plate_gold DELETED; single stone plate both modes, SUPER =
+      gold accent light only; rows re-seated symmetric (intro word -0.19H / count
+      +0.055H / sub +0.28H; outro title -0.20H / label +0.005H / amount +0.19H).
+      (b) PULSE SYNC: count/amount idle scales removed — they settle to exactly 1
+      and inherit the plate container's breath (two sines at different frequencies
+      read as ALTERNATING). (c) WIN LINES render BEHIND the symbols: first attempt
+      put the ribbon under the ANIMATE-layer BoardBase — wrong, because every board
+      symbol is a SPRITE (winners live in the STATIC layer; the animate layer only
+      ever shows spine symbols), so the ribbon still drew over them. Fixed: WinLines
+      sits inside the STATIC BoardContext, masked, between BoardMask (cell backdrop)
+      and BoardBase — ribbon under ALL symbols, visible only in the cell gaps;
+      badges/value pop still top everything. (e) WIN BOX v4 = STONE (operator: "this
+      win box is nothing like the game board"): PrismPanel replaced with the
+      plateStone sprite (6.2S wide, aspect from art); corner gems / crest / crown /
+      drawGem jewellery DELETED — the full tier ladder lives in LIGHT (accent
+      ladder on every bloom/pool/divider/sweep/shockwave/spark, word size per tier,
+      EPIC gem rain, MAX gold storm); shockwave/sweep octagon re-cut to the stone
+      chamfer (0.148H); WORD_MAX_W + amount maxWidth tightened to 4.3S to stay
+      inside the stone window (half-width 2.30S). Verified live: BIG hold, staged
+      roll with pins, promotion impact (word burst + flash + shockwaves) mid-frame,
+      EPIC hold with gem rain. RetriggerBanner is the LAST PrismPanel user — likely
+      wants the stone treatment for consistency (not yet directed).
+      (d) HIT SWELL: ReelSymbol adds a +10% one-swell envelope
+      (550ms, winSpeed-scaled, shared trailClock acquired only while winning) on top
+      of the spine's own win reaction.
+
 ## Phase 2 — GAME FEEL / CHOREOGRAPHY  `ACTIVE`
 
 - [x] **2.1 Designed turbo win presentation** (operator: skipping anticipation IS the
@@ -186,3 +218,97 @@ Status: `[ ]` proposed · `[~]` in progress · `[x]` shipped · `[-]` dropped by
   float micro-unit wire amounts, space-hold arming behind modals nesting into
   autoplay, bet-machine error path skipping settlement, prismPath event docstring
   contradicting emission.
+
+## STUDIO-QUALITY PHASE — A+ AUDIT MAP (2026-08-04, 9-agent sweep: 133 findings, 27H/59M/47L)
+Full machine-readable findings: session task output w7laozv78. Prioritized execution:
+
+### WS1 — Mobile/portrait UI lock (operator ref: Campfire hierarchy)
+- [x] Portrait console v2: ROW1 buy | [-]bet[+] | hero | auto+turbo, ROW2 menu | balance | win;
+      drawer folds rows, WIN holds ground, FS counter takes balance slot; board 0.44H portrait.
+- [x] Menu-open-at-boot MYSTERY SOLVED: test-rig cursor-position focus-click, NOT a game bug.
+- [ ] H: ButtonDrawer = raw template black blob + '↓' fallback glyph (rebuild UiGlass+chevron)
+- [ ] H: AutoSpin counter double-offset black rect collides with hero (fix offset + crystal restyle)
+- [ ] H: Buy-bonus modal portrait 0.41x scale-to-fit = illegible (vertical stack rework)
+- [ ] H: Modals 50% root-font hack = 6-8px text on phones (delete + deliberate portrait scale)
+- [ ] H: BaseIcon template black rects across bet/autoplay/settings/buy-confirm (crystal keys)
+- [ ] M: portrait tap targets <44pt (steppers/menu); portrait type tokens ~1.8x small;
+      folded drawer button half off-screen; FS balance+bet both hidden (cert risk);
+      LabelBet secret button w/o affordance+press guard; no grounding shadows/prism seam;
+      Popup children rendered twice; UIReplay raw template; logo REM-sized (29% of phone width)
+### WS2 — Audio overhaul (operator: chime-heavy, replace nearly all)
+- [ ] H: music transitions all hard cuts (add crossfade in createPlayMusic + route all swaps)
+- [ ] H: spin itself silent (launch whoosh + spin bed + 5 pitched reel stops)
+- [ ] H: win levels 1-5 fully mute, no count-up tick anywhere (level stings + roll tick)
+- [ ] M: winlevel bed starts at FINAL tier during roll (step per promotion); no ducking
+      (jingle vs bed); dragon_land triple-duty; retrigger reuses trigger sting + banner silent;
+      6 bet modes share one identity; FS curtain silent; buy-confirm = generic click;
+      sfx_wild_explode + sfx_winlevel_end dead cues
+- [ ] Full replacement set scoped by inventory finding (28 cues + gaps); tools/sound_design.py
+### WS3 — Logo (operator: current looks awful)
+- [ ] Regenerate PRISM PATH wordmark in game language; also fix logo sizing (REM*7 canvas px)
+      + 1.16MB PNG at 112px display
+### WS4 — Small stuff / surfaces
+- [ ] H: paytable/rules symbol images ALL BROKEN (symImg dynamic URL -> undefined)
+- [ ] H: rules omit HUNT/DRAGON3/DRAGON5 modes; no payline diagram (17 lines); mobile
+      legibility of info pages
+- [ ] H: template loader chain ('Add Your Loader' 2s every boot) still ships (+layout.svelte)
+- [ ] H: RGS error = permanent dead screen w/ raw JSON (reload action + human copy)
+- [ ] H: boot->game reveal hard pop (crossfade handoff)
+- [ ] H: 9.4MB dead bgBase/bgFeature preloads (delete); 40MB _generated_src in static/ (move out)
+- [ ] H: MenuPod hard-cut open/close (tween); small-win presentation has no impact beat
+- [ ] M: menu pod z-under ceremonies + never auto-closes (reset menuOpen on bet/feature start —
+      ButtonMenu pressCatcher gate DONE); settings sliders native; sound toggle destroys volume
+      setting; EXIT label lies; Popup chrome unstyled x; modal body text in display font;
+      console press/hover snaps (tween); hero SPIN<->STOP one-frame swap; dead console idle
+      (no shimmer); BoardFrame feature glow event dead; ceremony exits limp vs entrances;
+      sticky marker birth pop-in; retrigger total bump no motion; FS counter/balance overlap beat;
+      autoplay fires behind modals; asset-load failures silent; prismBeast.png placeholder ships;
+      buy cards style-mismatch (cavern serpents) + 4.3MB PNGs; bg layers soft on hi-DPI (2x recut);
+      night bank plate missing; version '0.0.0' player-visible
+- [ ] L: 47 craft-debt items (dead code, duplication, i18n stubs, a11y) — see task output
+### WS5 — Math shaping + 100K books
+- Baseline: paytable FLAT (L* 0.25/0.5/1.0; H*+WILD 0.5/1.5/5.0), strips identical per reel
+  (BR0 L2:7 L3:8 L4:9 L5:10 H1:4 H2:4 H3:3 H4:2 W:2 S:1 of 50), dragons 64% of spins,
+  scatter 1/116 vs 1/200 pricing anchor, flat-LUT base mean 100x. Wincap 5000x (10,000x
+  deferred to RTP pass per standing directive).
+- [ ] Rank-tiered paytable + royals spread; H4 premium; per-reel strip shaping; WILD rarity cut;
+      scatter to ~1/200; padding mult table per gametype; mirror frontend config.ts + paytable UI;
+      probe 10K -> iterate feel -> 100K books + validator + invariants
+
+### Studio-phase execution log (2026-08-04, session 2)
+- [x] WS5 MATH: rank-tiered paytable landed (J/Q/K/A 0.15-0.25 -> 0.80-1.25 at 5-kind;
+      gems purple 0.40/1.20/3.00 -> green -> blue -> red 1.25/4.00/10.00 = WILD-run tier);
+      strips rebuilt per-reel on 100-row columns (dragons E0.40/board base, E0.65 free;
+      scatter thinned reels 4-5 to ~1/220 natural; premium H1 thinner reels 1-2; purple
+      most common gem); padding mult table split per gametype. 100K corpus generated
+      (60K base/10K bonus/10K super/10K hunt/5K d3/5K d5), validator 100,000/0,
+      invariants 0. Corpus feel: base mean 45.7x hit 60% med 1.20x p90 65x —
+      dust+dragon-tails volatility; story books re-extracted + scenarios copied.
+      REMAINING: frontend config.ts + paytable UI mirror (agented), then the deferred
+      RTP/LUT optimizer pass (separate standing item, incl. 10,000x).
+- [x] WS1 batch: portrait console v2 verified; ButtonDrawer rebuilt (UiGlass+chevron,
+      UiSprite/UiDoublePress deleted); autospin counter fixed+crystal; menu 118std +
+      folded drawer on-screen + FS compact balance (drawerFold-gated) + labelScale
+      portrait type boost; MenuPod rise/fade motion; menuOpen reset on uiHide +
+      pressCatcher gate; board 0.44H portrait. Boot-open pod = test-rig cursor artifact
+      (verified by parking cursor; NOT a game bug).
+- [x] WS3 LOGO: new bubble-crystal wordmark (Flux, cutout, TM scrubbed, 640px, 4.6/7 REM
+      portrait/desktop + top inset). Old 1.16MB logo replaced.
+- [x] WS4 batch 1: paytable symImg import.meta.glob fix; 'Add Your Loader' chain deleted;
+      9.4MB dead bg preloads deleted; _generated_src (40MB) moved to art_src/; 50% root
+      font hack -> 87.5%; ac3/DS_Store/prismBeast placeholder/beastDown dup/FRWCAP purged
+      (static 77MB -> 23MB); hit-swell scaled-time fixed; SmallWinPop impact beat.
+- [~] WS2 AUDIO agented (warm palette rewrite + coverage cues + crossfade + wiring).
+- [~] WS4 batch 2 agented (BaseIcon crystal, buy-modal portrait stack, error modal,
+      Popup chrome+dup, sliders+volume memory, rules/paylines/paytable-derive, app.html).
+
+### 2026-08-05 — WIN BOX DIRECTION SETTLED (operator)
+The stone win box (v4) is OUT: "I liked the progressive ones we had before with the
+gems." WinBox v3.2 RESTORED verbatim from commit 32f757e (opaque violet PrismPanel,
+tier accent ladder, corner gems SUPER+, crest + side stones + EPIC crown, all
+promotion ceremonies) with the v3.2 amount sizing (4.6S width / 1.3S font) back in
+Win.svelte — the amount-overlapping-the-box report was the stone window's shorter
+interior (+0.72S row vs 1.15S half-window) and clears in v3.2 geometry (verified at
+$31.95 SUPER WIN live). SCOPE NOTE: stone stays where approved — FreeSpinIntro/Outro
+plates + free-spin counter + board frame family. The WIN BOX is the progressive
+gem plaque, canon.

@@ -28,10 +28,17 @@
 	} as const;
 
 	const BonusContentWrap = $derived(COMPONENT_MAP[stateLayoutDerived.layoutType()]);
+
+	// portrait flows normally so the close key can perch on the content; the large and
+	// landscape wraps position their content absolutely (no flow size), so the close
+	// key falls back to the viewport corner there
+	const closeAnchor = $derived(
+		stateLayoutDerived.layoutType() === 'portrait' ? ('content' as const) : ('viewport' as const),
+	);
 </script>
 
 {#if stateModal.modal?.name === 'buyBonus'}
-	<Popup zIndex={zIndex.modal} onclose={() => (stateModal.modal = null)}>
+	<Popup zIndex={zIndex.modal} {closeAnchor} onclose={() => (stateModal.modal = null)}>
 		<BonusContentWrap maxListLength={Math.max(activateList.length, buyList.length)}>
 			{#snippet betAmount()}
 				<BetMenuAmountToggle />

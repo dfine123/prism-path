@@ -79,16 +79,22 @@ export default {
 		'16': [2, 1, 2, 1, 2],
 		'17': [2, 3, 2, 3, 2],
 	},
+	// Rank-tiered pays — MUST mirror math/games/prism_path/game_config.py PAYTABLE_PM
+	// (payoutMultiplier ints / 100 -> x). Royals spread A>K>Q>J; gems ladder H4->H1;
+	// WILD pays at the top-gem tier for pure-wild runs.
 	symbols: {
-		L2: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },
-		L3: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },
-		L4: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },
-		L5: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.25 }] },
-		H1: { paytable: [{ '5': 5.0 }, { '4': 1.5 }, { '3': 0.5 }] },
-		H2: { paytable: [{ '5': 5.0 }, { '4': 1.5 }, { '3': 0.5 }] },
-		H3: { paytable: [{ '5': 5.0 }, { '4': 1.5 }, { '3': 0.5 }] },
-		H4: { paytable: [{ '5': 5.0 }, { '4': 1.5 }, { '3': 0.5 }] },
-		WILD: { special_properties: ['wild', 'multiplier'] },
+		L2: { paytable: [{ '5': 1.25 }, { '4': 0.6 }, { '3': 0.25 }] }, // A
+		L3: { paytable: [{ '5': 1.0 }, { '4': 0.5 }, { '3': 0.2 }] }, // K
+		L4: { paytable: [{ '5': 0.9 }, { '4': 0.4 }, { '3': 0.15 }] }, // Q
+		L5: { paytable: [{ '5': 0.8 }, { '4': 0.4 }, { '3': 0.15 }] }, // J
+		H1: { paytable: [{ '5': 10.0 }, { '4': 4.0 }, { '3': 1.25 }] }, // red — premium
+		H2: { paytable: [{ '5': 6.5 }, { '4': 2.5 }, { '3': 0.8 }] }, // blue
+		H3: { paytable: [{ '5': 4.5 }, { '4': 1.8 }, { '3': 0.6 }] }, // green
+		H4: { paytable: [{ '5': 3.0 }, { '4': 1.2 }, { '3': 0.4 }] }, // purple — entry gem
+		WILD: {
+			paytable: [{ '5': 10.0 }, { '4': 4.0 }, { '3': 1.25 }],
+			special_properties: ['wild', 'multiplier'],
+		},
 		SCAT: { special_properties: ['scatter'] },
 	},
 	paddingReels: {

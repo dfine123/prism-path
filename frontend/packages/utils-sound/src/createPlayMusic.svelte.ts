@@ -2,6 +2,12 @@ import type { Howl } from 'howler';
 
 import type { PlayOptions, GetSound, GetSoundMap } from './types';
 
+// Music beds hand over with a short crossfade instead of a hard cut: the outgoing
+// bed fades to silence while the incoming bed fades up over the same window
+// (equal-power in spirit; Howler's per-voice fades are linear, and overlapping the
+// two 300ms ramps reads as one continuous handover).
+const CROSSFADE_MS = 300;
+
 export function createPlayMusic<TSoundName extends string>(options: {
 	howl: Howl;
 	newSound: (value: TSoundName) => GetSound<TSoundName>;
@@ -12,12 +18,30 @@ export function createPlayMusic<TSoundName extends string>(options: {
 
 	const pauseAllMusic = () => {
 		(Object.values(options.getSoundMap()) as Sound[]).forEach((existingSound) => {
-			options.howl.pause(existingSound.soundId);
-			options.getSoundMap()[existingSound.soundName] = {
+			const { soundId, soundName, soundState } = existingSound;
+			options.getSoundMap()[soundName] = {
 				...existingSound,
 				soundState: 'paused',
 			};
+			if (soundState !== 'playing') return;
+			// fade the outgoing bed down, then park it — unless something resumed it
+			// (or restarted it under a new id) while the fade was still running
+			const from = options.howl.volume(soundId) as number;
+			options.howl.fade(from, 0, CROSSFADE_MS, soundId);
+			setTimeout(() => {
+				const current = options.getSoundMap()[soundName];
+				if (current?.soundId === soundId && current.soundState === 'paused') {
+					options.howl.pause(soundId);
+					options.initSoundVolume(soundName); // restore volume for the next resume
+				}
+			}, CROSSFADE_MS + 20);
 		});
+	};
+
+	const fadeInMusic = (soundName: TSoundName, soundId: number) => {
+		options.initSoundVolume(soundName); // seat the bed at its target volume
+		const target = options.howl.volume(soundId) as number;
+		options.howl.fade(0, target, CROSSFADE_MS, soundId);
 	};
 
 	const newMusic = (sound: Sound) => {
@@ -28,7 +52,7 @@ export function createPlayMusic<TSoundName extends string>(options: {
 			soundId,
 			soundState: 'playing',
 		};
-		options.initSoundVolume(sound.soundName);
+		fadeInMusic(sound.soundName, soundId);
 	};
 
 	const resumeMusic = (sound: Sound) => {
@@ -38,6 +62,7 @@ export function createPlayMusic<TSoundName extends string>(options: {
 			...sound,
 			soundState: 'playing',
 		};
+		fadeInMusic(sound.soundName, sound.soundId);
 	};
 
 	const soundPlayMap = {

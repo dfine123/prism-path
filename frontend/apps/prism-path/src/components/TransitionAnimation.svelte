@@ -24,6 +24,8 @@
 	onMount(() => {
 		const start = performance.now();
 		let raf = 0;
+		// curtain IN: one committed pass of air as the wipe launches
+		context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_transition_whoosh' });
 		const frame = () => {
 			const el = performance.now() - start;
 			t01 = clamp01(el / DURATION_MS);
@@ -31,6 +33,13 @@
 			if (!coveredFired && easeInOut(t01) >= 0.5) {
 				coveredFired = true;
 				props.oncovered?.();
+				// curtain OUT: the release gets its own breath (forcePlay — the in-whoosh
+				// may still be sounding, and the once-player skips a live cue otherwise)
+				context.eventEmitter.broadcast({
+					type: 'soundOnce',
+					name: 'sfx_transition_whoosh',
+					forcePlay: true,
+				});
 			}
 			if (el < DURATION_MS) {
 				raf = requestAnimationFrame(frame);

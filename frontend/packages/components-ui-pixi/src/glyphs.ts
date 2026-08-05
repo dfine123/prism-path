@@ -31,7 +31,8 @@ export type GlyphName =
 	| 'info'
 	| 'settings'
 	| 'soundOn'
-	| 'soundOff';
+	| 'soundOff'
+	| 'chevronDown';
 
 const STROKE_RATIO = 0.115;
 
@@ -93,6 +94,13 @@ export const drawGlyph = (
 			const a = s * 0.28;
 			g.moveTo(-a, -a).lineTo(a, a).stroke(stroke);
 			g.moveTo(-a, a).lineTo(a, -a).stroke(stroke);
+			break;
+		}
+		case 'chevronDown': {
+			// single chevron (drawer fold toggle) — rotates 180 for the unfold state
+			const w = s * 0.3;
+			const h = s * 0.16;
+			g.moveTo(-w, -h).lineTo(0, h).lineTo(w, -h).stroke(stroke);
 			break;
 		}
 		case 'turbo': {

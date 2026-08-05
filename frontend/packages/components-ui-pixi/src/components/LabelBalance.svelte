@@ -14,7 +14,9 @@
 	};
 
 	const props: Props = $props();
-	const balanceTween = new Tween(stateBet.balanceAmount);
+	// money glides with a decelerating roll (expo-out), not the default linear crawl
+	const expoOut = (t: number) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t));
+	const balanceTween = new Tween(stateBet.balanceAmount, { duration: 350, easing: expoOut });
 	const label = $derived(i18nDerived.balance());
 	const value = $derived(numberToCurrencyString(balanceTween.current));
 

@@ -18,6 +18,7 @@
 		sizes: { width: number; height: number };
 		active?: boolean;
 		showLabel?: boolean; // steppers go icon-only
+		labelScale?: number; // portrait boosts label type (1080-wide standard renders ~1.8x smaller)
 		variant?: 'dark' | 'light'; // legacy prop, accepted for API compat
 		children?: Snippet;
 	};
@@ -26,6 +27,7 @@
 		icon,
 		active,
 		showLabel = true,
+		labelScale = 1,
 		variant = 'dark',
 		children: childrenFromParent,
 		...buttonProps
@@ -61,7 +63,7 @@
 						align: 'center',
 						fontFamily: T.font,
 						fontWeight: '600',
-						fontSize: T.fs.btnLabel,
+						fontSize: T.fs.btnLabel * labelScale,
 						fill: active ? T.color.gold : T.color.textDim,
 					}}
 				/>

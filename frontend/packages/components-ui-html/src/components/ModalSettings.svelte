@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { zIndex } from 'constants-shared/zIndex';
 	import { Popup } from 'components-shared';
-	import { stateModal, stateSound } from 'state-shared';
+	import { stateModal } from 'state-shared';
 
 	import BaseTitle from './BaseTitle.svelte';
 	import BaseContent from './BaseContent.svelte';
@@ -16,15 +16,15 @@
 			<BaseTitle>{i18nDerived.settings()}</BaseTitle>
 			<BaseScrollable type="column">
 				<wrap class="wrap">
-					<ModalSettingsSound bind:value={stateSound.volumeValueMaster}>
+					<ModalSettingsSound volumeKey="volumeValueMaster">
 						{i18nDerived.masterVolume()}
 					</ModalSettingsSound>
 
-					<ModalSettingsSound bind:value={stateSound.volumeValueMusic}>
+					<ModalSettingsSound volumeKey="volumeValueMusic">
 						{i18nDerived.musicVolume()}
 					</ModalSettingsSound>
 
-					<ModalSettingsSound bind:value={stateSound.volumeValueSoundEffect}>
+					<ModalSettingsSound volumeKey="volumeValueSoundEffect">
 						{i18nDerived.soundEffectVolume()}
 					</ModalSettingsSound>
 				</wrap>

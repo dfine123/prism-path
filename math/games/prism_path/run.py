@@ -33,18 +33,20 @@ def _clear_stale_publish_artifacts():
 
 if __name__ == "__main__":
     _clear_stale_publish_artifacts()
-    num_threads = 1            # single-thread: avoids Windows multiprocessing quirks
-    batching_size = 50000      # large -> small sim counts bypass the divisibility assert
+    num_threads = 1            # single-thread: deterministic + the engine's safe path
+    batching_size = 100000     # large -> sim counts bypass the divisibility assert
     compression = True         # produce the real books_base.jsonl.zst the RGS expects
     profiling = False
 
+    # 100K-round sample corpus (operator direction 2026-08-04): base-dominant with
+    # full feature coverage; the optimizer pass later weights these into the live LUTs.
     num_sim_args = {
-        "base": int(2000),     # validation sims; final RTP tuned by the optimizer later
-        "bonus": int(800),     # Buy Bonus (free spins)
-        "super": int(800),     # Super buy (premium entry)
-        "hunt": int(1000),     # Bonus Hunt (activate: 4x trigger chance @ 2.5x)
-        "dragon3": int(600),   # Feature spin: 3 guaranteed dragons
-        "dragon5": int(600),   # Feature spin: 5 guaranteed dragons
+        "base": int(60000),
+        "bonus": int(10000),
+        "super": int(10000),
+        "hunt": int(10000),
+        "dragon3": int(5000),
+        "dragon5": int(5000),
     }
 
     config = GameConfig()

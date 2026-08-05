@@ -6,11 +6,11 @@
 </script>
 
 <script lang="ts">
-	// FREE SPINS intro — ORNATE ART PLAQUE ceremony. The plate itself is generated in the
-	// board frame's crystal language (crown crest, seated gems, faceted border baked into
-	// the art) — code only stages it: impact entrance with a silhouette shockwave, staggered
-	// text reveals, a glint burst as the count lands, and slow staggered light-catches on
-	// the frame's gems for idle life. No code-drawn borders — the art carries the quality.
+	// FREE SPINS intro — LIMESTONE PLAQUE ceremony (operator: ornate art read as
+	// overdone; the ceremony plate is the board frame's own hand-drawn material, like
+	// the counter). Code stages it: impact entrance with a silhouette shockwave,
+	// staggered text reveals, a glint burst as the count lands. Mode identity (SUPER)
+	// is carried entirely by the accent light — the stone never changes.
 	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { FadeContainer, ResponsiveBitmapText } from 'components-pixi';
 	import { waitForResolve, waitForTimeout } from 'utils-shared/wait';
@@ -26,32 +26,19 @@
 
 	const context = getContext();
 
-	// plate geometry: art is 1320x737 (cyan) — crown occupies the top ~8%, the body below.
-	// Text seats inside the interior glass: roughly y in [-1.05, +1.3] symbol units at this W.
+	// plate geometry: art is 1320x742, glass window inset 0.129H per side — text rows
+	// seat symmetrically inside ±0.33H usable interior
 	const PLATE_W = SYMBOL_SIZE * 7.15;
-	const PLATE_H = PLATE_W * (737 / 1320);
+	const PLATE_H = PLATE_W * (742 / 1320);
 	const GOLD = 0xffd25e;
 	const CYAN = 0x2bb8e8;
 
-	// SUPER buys get their own identity: the gold plate, named, 'a dragon every spin'
+	// SUPER buys get their own identity in LIGHT: gold accent, named, 'a dragon every spin'
 	const isSuper = $derived(stateBet.activeBetModeKey === 'SUPER');
 	const accent = $derived(isSuper ? GOLD : CYAN);
-	const plateKey = $derived(isSuper ? 'plateGold' : 'platePrism');
 
-	// gem seats on the plate art (fractions of plate W/H from its center): the four corner
-	// gems, the two edge-mid gems, the bottom-mid gem, and the crown gem. A moteStar glint
-	// breathes on each with a staggered phase — the frame catching light, never flashing.
-	const GLINTS: Array<[number, number]> = [
-		[-0.43, -0.3], [0.43, -0.3],
-		[-0.447, 0.025], [0.447, 0.025],
-		[-0.43, 0.38], [0.43, 0.38],
-		[0, 0.395], [0, -0.435],
-	];
-
-	// silhouette for the landing shockwave: the plate body's chamfered rectangle (the crown
-	// sits above the body, so the burst centers on the body, not the image midpoint)
-	const BODY_DY = PLATE_H * 0.04;
-	const CUT = PLATE_H * 0.14;
+	// silhouette for the landing shockwave: the plate's chamfered rectangle
+	const CUT = PLATE_H * 0.148;
 	const octagon = (w: number, h: number): number[] => {
 		const w2 = w / 2;
 		const h2 = h / 2;
@@ -118,12 +105,13 @@
 	// sub-line eases in last
 	const sAge = $derived(clamp01((age - 0.52) / 0.4));
 
-	// count: impact pop keyed to popStart (re-pops on a retrigger update)
+	// count: impact pop keyed to popStart (re-pops on a retrigger update). After the
+	// impact it settles to EXACTLY 1 and inherits the plate container's breath — its
+	// own idle sine at a different frequency read as the count and box ALTERNATING
 	const nAge = $derived((t - popStart) / 1000);
 	const numScale = $derived.by(() => {
 		const u = clamp01(nAge / 0.46);
-		if (u < 1) return 2.1 - 1.1 * EASE.impact(u);
-		return 1 + 0.02 * Math.sin(secs * Math.PI * 1.5);
+		return u < 1 ? 2.1 - 1.1 * EASE.impact(u) : 1;
 	});
 	// glint burst as the count lands: 6 star sparks thrown radially from the number
 	const burstU = $derived(clamp01((nAge - 0.08) / 0.55));
@@ -166,8 +154,8 @@
 			{/each}
 
 			<Container scale={plateScale} alpha={plateAlpha}>
-				<!-- THE PLATE: ornate crystal plaque art (crown crest + seated gems baked in) -->
-				<Sprite key={plateKey} anchor={0.5} width={PLATE_W} height={PLATE_H} />
+				<!-- THE PLATE: limestone plaque in the board frame's hand-drawn ink -->
+				<Sprite key="plateStone" anchor={0.5} width={PLATE_W} height={PLATE_H} />
 
 				<!-- pool of light under the count -->
 				<Sprite
@@ -175,18 +163,17 @@
 					anchor={0.5}
 					blendMode="add"
 					tint={lerpColor(accent, 0xffffff, 0.3)}
-					y={PLATE_H * 0.065}
+					y={PLATE_H * 0.055}
 					width={SYMBOL_SIZE * 3.2}
 					height={SYMBOL_SIZE * 2.3}
 					alpha={0.3 + 0.25 * (1 - burstU) + 0.05 * Math.sin(secs * Math.PI * 1.1)}
 				/>
 
-				<!-- wordmark: drops from above with the impact settle. ROW RHYTHM (measured
-				     off the art, fractions of PLATE_H): crown/wing blades intrude to -0.246,
-				     interior bottom +0.366 — word -0.14 / count +0.09 / sub +0.305 keeps
-				     every row inside the glass with even breathing room -->
+				<!-- wordmark: drops from above with the impact settle. ROW RHYTHM: the stone
+				     window is symmetric (usable ±0.33H) — word -0.19 / count +0.055 /
+				     sub +0.28 -->
 				<Container
-					y={-PLATE_H * 0.14 - SYMBOL_SIZE * 0.3 * (1 - EASE.settle(wAge))}
+					y={-PLATE_H * 0.19 - SYMBOL_SIZE * 0.3 * (1 - EASE.settle(wAge))}
 					alpha={clamp01(wAge * 2.2)}
 					scale={1.25 - 0.25 * EASE.impact(wAge)}
 				>
@@ -199,7 +186,7 @@
 				</Container>
 
 				<!-- the count: the big beat -->
-				<Container y={PLATE_H * 0.065} scale={numScale}>
+				<Container y={PLATE_H * 0.055} scale={numScale}>
 					<BitmapText anchor={0.5} text={`${freeSpinsFromEvent}`} style={prismStyle(SYMBOL_SIZE * 1.2)} />
 				</Container>
 
@@ -214,7 +201,7 @@
 							blendMode="add"
 							tint={lerpColor(accent, 0xffffff, 0.6)}
 							x={Math.cos(a) * r * 1.25}
-							y={PLATE_H * 0.065 + Math.sin(a) * r * 0.85}
+							y={PLATE_H * 0.055 + Math.sin(a) * r * 0.85}
 							width={SYMBOL_SIZE * 0.34 * (1 - burstU * 0.6)}
 							height={SYMBOL_SIZE * 0.34 * (1 - burstU * 0.6)}
 							rotation={a + burstU * 1.2}
@@ -224,7 +211,7 @@
 				{/if}
 
 				<!-- sub-line in the LABEL voice -->
-				<Container y={PLATE_H * 0.305 + SYMBOL_SIZE * 0.12 * (1 - EASE.settle(sAge))} alpha={sAge}>
+				<Container y={PLATE_H * 0.28 + SYMBOL_SIZE * 0.12 * (1 - EASE.settle(sAge))} alpha={sAge}>
 					<BitmapText
 						anchor={0.5}
 						text={isSuper ? 'A DRAGON EVERY SPIN' : 'THE DRAGONS AWAKEN'}
@@ -242,30 +229,14 @@
 					style={superLabelStyle(SYMBOL_SIZE * 0.185, { align: 'center' })}
 				/>
 
-				<!-- the frame's gems catch light: slow, staggered, never synchronized flashing -->
-				{#each GLINTS as [gx, gy], i (i)}
-					{@const tw = Math.max(0, Math.sin(secs * Math.PI * 0.5 + i * 1.9))}
-					<Sprite
-						key="moteStar"
-						anchor={0.5}
-						blendMode="add"
-						tint={0xffffff}
-						x={gx * PLATE_W}
-						y={gy * PLATE_H}
-						width={SYMBOL_SIZE * 0.42 * (0.7 + 0.3 * tw)}
-						height={SYMBOL_SIZE * 0.42 * (0.7 + 0.3 * tw)}
-						rotation={i * 0.7}
-						alpha={0.5 * Math.pow(tw, 3)}
-					/>
-				{/each}
 			</Container>
 
-			<!-- landing shockwave: the plate body's silhouette bursting outward, twin rings -->
+			<!-- landing shockwave: the plate's silhouette bursting outward, twin rings -->
 			{#if age > 0 && age < 0.62}
 				<Graphics
 					blendMode="add"
 					draw={(g) => {
-						const base = octagon(PLATE_W, PLATE_H * 0.92);
+						const base = octagon(PLATE_W, PLATE_H);
 						const s1 = clamp01(age / 0.5);
 						g.poly(scaleOct(base, 1 + 0.85 * EASE.settle(s1))).stroke({
 							width: 3 + 10 * (1 - s1),
@@ -283,7 +254,6 @@
 							});
 						}
 					}}
-					y={BODY_DY}
 				/>
 			{/if}
 		</Container>

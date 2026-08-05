@@ -63,6 +63,20 @@
 	<BoardContext animate={false}>
 		<BoardContainer>
 			<BoardMask />
+			<!-- win-line ribbons render UNDER the symbols (operator: the line goes
+			     BEHIND them). Every board symbol is a SPRITE, so winners live in THIS
+			     static layer — the ribbon must sit inside it, above the cell backdrop
+			     and below BoardBase (spine symbols in the animate context above clear
+			     it for free). Masked to the board rect so lines still slide out from
+			     under the frame border. -->
+			<Container>
+				<Rectangle
+					isMask
+					width={context.stateGameDerived.boardLayout().width}
+					height={context.stateGameDerived.boardLayout().height}
+				/>
+				<WinLines />
+			</Container>
 			<BoardBase />
 		</BoardContainer>
 	</BoardContext>
@@ -71,18 +85,16 @@
 		<BoardContainer>
 			<BoardBase />
 			<StickyDragonMarkers />
-			<!-- win lines AND the dragon flight clip EXACTLY at the board rect: lines slide out
-			     from UNDER the frame border, and the dragon exits THROUGH the board edge,
-			     disappearing under the border (never flying over the frame art).
-			     Layer order inside the mask: ribbon < flight < MULTIPLIER BADGES < value pop —
-			     a badge is never buried under a path, and the headline value tops everything. -->
+			<!-- the dragon flight clips EXACTLY at the board rect: it exits THROUGH the
+			     board edge, disappearing under the border (never flying over the frame
+			     art). Layer order: flight < MULTIPLIER BADGES < value pop — a badge is
+			     never buried under a path, and the headline value tops everything. -->
 			<Container>
 				<Rectangle
 					isMask
 					width={context.stateGameDerived.boardLayout().width}
 					height={context.stateGameDerived.boardLayout().height}
 				/>
-				<WinLines />
 				<PrismBeastTravel />
 				<MultiplierBadges />
 				<WinValuePop />

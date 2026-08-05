@@ -33,6 +33,12 @@
 
 	// gentle invite breathe (the screen is never dead)
 	const alpha = $derived(0.62 + 0.38 * (Math.sin(trailClock.t * Math.PI * 1.3) + 1) * 0.5);
+
+	// every dismissal press answers with a soft felt tick — confirmation, not fanfare
+	const press = () => {
+		context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_dismiss' });
+		props.onpress();
+	};
 </script>
 
 {#if props.showLabel ?? true}
@@ -48,5 +54,5 @@
 		/>
 	</MainContainer>
 {/if}
-<OnHotkey hotkey="Space" onpress={() => props.onpress()} />
-<OnPressFullScreen onpress={() => props.onpress()} />
+<OnHotkey hotkey="Space" onpress={() => press()} />
+<OnPressFullScreen onpress={() => press()} />

@@ -16,12 +16,11 @@
 	onchange={(value) => (stateUi.autoSpinsSingleWinLimitText = value)}
 >
 	{#snippet option({ option })}
+		<!-- 2.9rem keeps the tap row >= 40px even at the 14px phone root -->
 		<BaseIcon
 			width="100%"
-			height="2rem"
-			border={option === stateUi.autoSpinsSingleWinLimitText
-				? '2px white solid'
-				: '2px black solid'}
+			height="2.9rem"
+			selected={option === stateUi.autoSpinsSingleWinLimitText}
 		/>
 		<BaseButtonContent>
 			<span

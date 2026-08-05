@@ -41,10 +41,14 @@
 <ModalSettings />
 
 <style lang="scss">
+	// Deliberate responsive type scale. The template's 50%-root hack halved every rem
+	// on phones (6-8px body text, 16px tap rows — audit HIGH). Phones get a modestly
+	// smaller root so modal chrome fits, never below legibility (14px root => body
+	// text ~12-13px, tap rows >= 40px).
 	:global(html) {
-		font-size: 16px; /* you can chose any size here 16 is default */
+		font-size: 16px;
 		@media screen and (max-width: 500px) {
-			font-size: 50%;
+			font-size: 87.5%; // 14px
 		}
 	}
 </style>

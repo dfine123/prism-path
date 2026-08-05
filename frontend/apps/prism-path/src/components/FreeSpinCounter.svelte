@@ -76,7 +76,12 @@
 				current = emitterEvent.current;
 				tickAtMs = performance.now();
 			}
-			if (emitterEvent.total !== undefined) total = emitterEvent.total;
+			if (emitterEvent.total !== undefined && emitterEvent.total !== total) {
+				// a retrigger's award landing on the counter deserves the same beat as a
+				// spent spin — the '+N' bump used to swap in with zero motion
+				total = emitterEvent.total;
+				tickAtMs = performance.now();
+			}
 		},
 	});
 

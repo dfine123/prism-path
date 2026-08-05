@@ -22,7 +22,7 @@
 
 	const context = getContext();
 
-	let markers = $state<Position[]>([]);
+	let markers = $state<(Position & { bornAt: number })[]>([]);
 
 	$effect(() => {
 		if (markers.length > 0) {
@@ -34,7 +34,7 @@
 	context.eventEmitter.subscribeOnMount({
 		stickyMarkerAdd: ({ position }) => {
 			if (!markers.some((m) => m.reel === position.reel && m.row === position.row)) {
-				markers = [...markers, position];
+				markers = [...markers, { ...position, bornAt: performance.now() / 1000 }];
 			}
 		},
 		stickyMarkerClear: () => {
@@ -59,8 +59,13 @@
 				// m.row is the padded index -> visible centre y = (row - 0.5) * SYMBOL_SIZE
 				const x = getSymbolX(m.reel);
 				const y = (m.row - 0.5) * SYMBOL_SIZE;
-				const breathe = 0.8 + 0.2 * Math.sin(t * Math.PI * 1.8 + i * 1.3);
-				const pulse = 0.94 + 0.02 * Math.sin(t * Math.PI * 1.8 + i * 1.3);
+				// BIRTH BLOOM: the claim moment ignites — the ring blooms in from a hot
+				// oversized flash and settles into the idle breathe (was a hard pop-in)
+				const age = clamp01((t - m.bornAt) / 0.34);
+				const birthScale = 1 + 0.16 * (1 - age) * (1 - age);
+				const birthHot = 1 + 2.2 * (1 - age);
+				const breathe = (0.8 + 0.2 * Math.sin(t * Math.PI * 1.8 + i * 1.3)) * Math.min(birthHot, 1.9);
+				const pulse = (0.94 + 0.02 * Math.sin(t * Math.PI * 1.8 + i * 1.3)) * birthScale;
 				const w = CELL_W * pulse; // rectangular cells
 				const h2 = SYMBOL_SIZE * pulse;
 				const col = paletteAt(t * 0.35 + i * 0.21);

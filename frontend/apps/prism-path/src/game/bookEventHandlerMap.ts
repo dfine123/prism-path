@@ -15,6 +15,11 @@ import type { BookEvent, BookEventOfType, BookEventContext } from './typesBookEv
 import type { Position } from './types';
 import config from './config';
 
+// big-win presentation sound state: winlevel_end + the coinloop fade only belong to a
+// presentation that actually started the coin loop (small wins resolve on their own)
+let bigWinSoundsActive = false;
+let coinloopStopToken = 0;
+
 const winLevelSoundsPlay = ({ winLevelData }: { winLevelData: WinLevelData }) => {
 	if (winLevelData?.alias === 'max') eventEmitter.broadcastAsync({ type: 'uiHide' });
 	if (winLevelData?.sound?.sfx) {
@@ -24,12 +29,33 @@ const winLevelSoundsPlay = ({ winLevelData }: { winLevelData: WinLevelData }) =>
 		eventEmitter.broadcast({ type: 'soundMusic', name: winLevelData.sound.bgm });
 	}
 	if (winLevelData?.type === 'big') {
+		bigWinSoundsActive = true;
+		coinloopStopToken += 1; // cancel any pending delayed stop from the previous win
+		// clear a still-fading instance so the loop restarts at full volume
+		eventEmitter.broadcast({ type: 'soundStop', name: 'sfx_bigwin_coinloop' });
 		eventEmitter.broadcast({ type: 'soundLoop', name: 'sfx_bigwin_coinloop' });
 	}
 };
 
 const winLevelSoundsStop = () => {
-	eventEmitter.broadcast({ type: 'soundStop', name: 'sfx_bigwin_coinloop' });
+	if (bigWinSoundsActive) {
+		bigWinSoundsActive = false;
+		// resolve the presentation, and let the coin loop breathe out instead of cutting cold
+		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_end' });
+		eventEmitter.broadcast({
+			type: 'soundFade',
+			name: 'sfx_bigwin_coinloop',
+			from: 1,
+			to: 0,
+			duration: 400,
+		});
+		const token = ++coinloopStopToken;
+		setTimeout(() => {
+			if (token === coinloopStopToken) {
+				eventEmitter.broadcast({ type: 'soundStop', name: 'sfx_bigwin_coinloop' });
+			}
+		}, 450);
+	}
 	// resume whichever bed the current game type owns (no SUPERSPIN mode in this game)
 	if (stateGame.gameType === 'freegame') {
 		eventEmitter.broadcast({ type: 'soundMusic', name: 'bgm_freespin' });
@@ -69,12 +95,17 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		};
 		window.addEventListener('pointerdown', quickStop);
 		boardBreathe(); // the board takes a breath as the reels launch
+		// spin voice: a quick warm push-off, then a soft airy motion bed that runs until
+		// the last reel has landed (spin() resolves on the final reel stop)
+		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_spin_launch' });
+		eventEmitter.broadcast({ type: 'soundLoop', name: 'sfx_spin_loop' });
 		try {
 			await stateGameDerived.enhancedBoard.spin({
 				revealEvent: bookEvent,
 				paddingBoard: config.paddingReels[bookEvent.gameType],
 			});
 		} finally {
+			eventEmitter.broadcast({ type: 'soundStop', name: 'sfx_spin_loop' });
 			window.removeEventListener('pointerdown', quickStop);
 		}
 		// NEAR-MISS (subtle, POLISH-ROADMAP 1.5): anticipation ran and the trigger whiffed
@@ -102,6 +133,9 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// feature (the dragon re-lands there every spin).
 		if (bookEvent.sticky) {
 			eventEmitter.broadcast({ type: 'stickyMarkerAdd', position: bookEvent.position });
+			// the claim gets its own ignite beat — the marker box lighting up is a
+			// distinct moment from the plain landing chime below
+			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_sticky_claim' });
 			// CLAIM UPGRADE: on the spin a dragon BECOMES sticky, the reveal seeded its cell
 			// as a plain beast (the math flags stickiness only in this event) — without this,
 			// a normal dragon sat inside the igniting marker box. Upgrade the seat in the
@@ -289,7 +323,9 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// was skipped and the counter total just silently jumped on the next updateFreeSpin.
 		// Scatters animate, then the counter total bumps to the new total (the following
 		// updateFreeSpin repeats the same total, so this stays consistent either way).
-		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_scatter_win_v2' });
+		// Its own celebratory sting — reusing the trigger fanfare made "+N spins" and
+		// "feature triggered" indistinguishable by ear.
+		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_retrigger' });
 		await animateSymbols({ positions: bookEvent.positions });
 		// "+N FREE SPINS" banner beat (awaited) — the delta vs the counter's CURRENT total
 		// is what was just awarded; the bump to the new total lands as the banner leaves

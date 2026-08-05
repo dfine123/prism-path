@@ -45,6 +45,16 @@ const onSymbolLand = ({ rawSymbol, symbolIndex }: { rawSymbol: RawSymbol; symbol
 	}
 };
 
+// the five stops climb a gentle pitch ladder left-to-right — one warm timbre
+// family, so a full spin resolves as a soft rising phrase instead of one repeated tick
+const REEL_STOP_SOUNDS = [
+	'sfx_reel_stop_1',
+	'sfx_reel_stop_2',
+	'sfx_reel_stop_3',
+	'sfx_reel_stop_4',
+	'sfx_reel_stop_5',
+] as const;
+
 const board = _.range(BOARD_DIMENSIONS.x).map((reelIndex) => {
 	const reel = createReelForSpinning({
 		reelIndex,
@@ -54,7 +64,7 @@ const board = _.range(BOARD_DIMENSIONS.x).map((reelIndex) => {
 		onReelStopping: () => {
 			eventEmitter.broadcast({
 				type: 'soundOnce',
-				name: 'sfx_reel_stop_1',
+				name: REEL_STOP_SOUNDS[Math.min(reelIndex, REEL_STOP_SOUNDS.length - 1)],
 				forcePlay: !stateBet.isTurbo,
 			});
 		},
@@ -91,7 +101,11 @@ const boardLayout = () => ({
 	x: stateLayoutDerived.mainLayout().width * 0.5,
 	// Centre the board in the space ABOVE the bottom UI bar (UI lives at the bottom of the
 	// standard layout), not the full height — otherwise the lower rows sit under the UI.
-	y: stateLayoutDerived.mainLayout().height * 0.39,
+	// Portrait sits LOWER (0.44): a 5x5 board on a tall screen leaves dead sky between
+	// board and console at 0.39 — splitting the air above/below reads composed.
+	y:
+		stateLayoutDerived.mainLayout().height *
+		(stateLayoutDerived.layoutType() === 'portrait' ? 0.44 : 0.39),
 	anchor: { x: 0.5, y: 0.5 },
 	pivot: { x: BOARD_SIZES.width / 2, y: BOARD_SIZES.height / 2 },
 	...BOARD_SIZES,

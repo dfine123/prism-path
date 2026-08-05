@@ -21,6 +21,7 @@
 
 	import PrismShards from './PrismShards.svelte';
 	import WinBox from './WinBox.svelte';
+	import SmallWinPop from './SmallWinPop.svelte';
 	import PressToContinue from './PressToContinue.svelte';
 	import { SYMBOL_SIZE } from '../game/constants';
 	import { getContext } from '../game/context';
@@ -114,7 +115,14 @@
 		const rollsUp = bookEventAmountToBetAmountMultiplier(amount) > 10;
 		const isBigWin = winLevelData?.type === 'big';
 		if (rollsUp && winLevelData) {
-			await runStagedRoll(amount, winLevelData.presentDuration, token);
+			// soft warm ticking under the rolling amount (same loop pattern as
+			// sfx_anticipation in Anticipations.svelte) — stopped the moment the roll ends
+			context.eventEmitter.broadcast({ type: 'soundLoop', name: 'sfx_countup_loop' });
+			try {
+				await runStagedRoll(amount, winLevelData.presentDuration, token);
+			} finally {
+				context.eventEmitter.broadcast({ type: 'soundStop', name: 'sfx_countup_loop' });
+			}
 		} else {
 			countUpAmount = amount;
 		}
@@ -198,12 +206,12 @@
 						/>
 					{/if}
 				{:else}
-					<ResponsiveBitmapText
-						anchor={0.5}
+					<!-- the MOST COMMON presentation (small wins): same impact vocabulary as
+					     every other value in the game, never a flat static paint -->
+					<SmallWinPop
+						amount={countUpAmount}
 						maxWidth={context.stateLayoutDerived.canvasSizes().width /
 							context.stateLayoutDerived.mainLayout().scale}
-						text={bookEventAmountToCurrencyString(countUpAmount)}
-						style={prismStyle(SYMBOL_SIZE, { align: 'center', letterSpacing: 0 })}
 					/>
 				{/if}
 			</Container>

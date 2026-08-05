@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ButtonProps } from 'components-pixi';
-	import { stateSound } from 'state-shared';
+	import { stateSound, stateSoundHandler } from 'state-shared';
 
 	import UiButton from './UiButton.svelte';
 	import { SUPER_UI } from '../theme';
@@ -13,11 +13,9 @@
 	const onpress = () => {
 		context.eventEmitter.broadcast({ type: 'soundPressGeneral' });
 
-		if (stateSound.volumeValueMaster === 0) {
-			stateSound.volumeValueMaster = 50;
-		} else {
-			stateSound.volumeValueMaster = 0;
-		}
+		// mute remembers the user's level; unmute restores it (shared with the DOM
+		// settings sliders, so both controls agree on the restore point)
+		stateSoundHandler.toggleVolumeValue('volumeValueMaster');
 	};
 
 	const icon = $derived(

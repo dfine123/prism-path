@@ -44,7 +44,7 @@
 					data-test="confirm-button"
 					onclick={() => {
 						confirm();
-						eventEmitter.broadcast({ type: 'soundPressGeneral' });
+						eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_buy_commit' } as unknown as EmitterEventModal);
 						stateModal.modal = null;
 					}}
 				>

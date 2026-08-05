@@ -1,13 +1,18 @@
 """Prism Path — ORIGINAL sound design, procedurally synthesized (no template audio).
 
-Every cue is composed in code (deterministic, seeded) in one coherent aesthetic:
-crystal glass bells (inharmonic FM), airy noise sweeps, soft felt thocks, dreamy
-pads — day-realm major for the base game, aurora minor for free spins.
+Every cue is composed in code (deterministic, seeded) in one coherent WARM aesthetic:
+felt-mallet / marimba-like tuned hits (lowpassed, woody, fast decay), soft
+sub-supported thumps (sine pitch-drop + noise puff), breathy airy sweeps, plucked
+warm tones and detuned-saw pads with slow filter motion. Musical but never glassy
+or tinkly — the previous crystal-bell palette read as chimey and fatiguing.
+Tunings stay diatonic (day = warm C major, free spins = darker A aeolian) so every
+cue harmonizes with the beds.
 
 Renders every cue -> assembles the Howler audio sprite the app already loads:
     static/assets/audio/sounds.json  (+ sounds.ogg / sounds.m4a / sounds.mp3)
-Cue names are IDENTICAL to the existing (used) template names, so no call-site
-changes are needed. Unused template cues are dropped from the sprite.
+Cue names are IDENTICAL to the existing (used) names, plus a set of NEW cues
+(spin voice, count-up ticker, win stings, retrigger, buy commit, transition,
+sticky claim, dismiss) that the frontend now triggers.
 
 This script IS the provenance for the audio (no raw files to keep).
 
@@ -178,22 +183,20 @@ def fold_loop(x, loop_len):
 
 # ---------------------------------------------------------------- Instruments
 #
-# VOICE DESIGN NOTES (why these sound the way they do)
-#   The first pass leaned on two crutches that made everything harsh: a broadband
-#   noise transient on top of each hit (reads as a CLANK / metallic pan) and a boxy
-#   70-120Hz thump under cues that should be delicate. Both are gone from the small
-#   cues here. Attacks are soft (5-20ms) instead of instantaneous, partials are
-#   inharmonic but gently rolled off, and low end is reserved for the few moments
-#   that genuinely want weight.
+# VOICE DESIGN NOTES (the warm palette)
+#   Operator verdict on the previous pass: "too chime based and almost sound
+#   annoying". The crystal-bell family (bright inharmonic partials ringing above
+#   2kHz) is GONE. Every tuned hit is now a felt-mallet / marimba voice: energy
+#   concentrated in the fundamental, one woody upper partial, a soft contact puff,
+#   heavy lowpass — rounded and quick to decay. Weight comes from a sine pitch-drop
+#   thump (120->50Hz), motion from band-crossfaded breath, sustain from detuned-saw
+#   pads under a gently moving lowpass. Attacks are eased (3-8ms); nothing tinkles.
 
-# Struck-bar partial ratios (bell/glass family). Higher partials decay faster, which
-# is what makes a strike read as "crystal" rather than "ring modulator".
-GLASS_PARTIALS = [(1.0, 1.0), (2.0, 0.5), (3.01, 0.26), (4.16, 0.13), (5.43, 0.06)]
+MARIMBA_PARTIALS = [(1.0, 1.0), (3.99, 0.22), (9.2, 0.055)]  # tuned-bar ratios
 
 
 def soft_attack(x, ms=8.0):
-    """Ease the leading edge. An instantaneous start is a click, and a pile of clicks
-    is exactly the 'inner workings of a computer' texture."""
+    """Ease the leading edge — an instantaneous start is a click."""
     k = max(1, int(ms / 1000 * SR))
     if len(x) <= k:
         return x
@@ -203,66 +206,69 @@ def soft_attack(x, ms=8.0):
     return y
 
 
-def bell(freq, dur=1.2, bright=1.0, warmth=1.0):
-    """Crystal bell: inharmonic partials, per-partial decay, NO noise transient."""
+def marimba(freq, dur=0.42, tone=0.6, contact=0.5):
+    """The kit's hero voice: a felt-struck wooden bar. Fundamental-heavy tuned
+    partials, a tiny lowpassed contact puff (wood, not clank), fast decay."""
     n = int(dur * SR)
     out = np.zeros(n)
-    for i, (ratio, amp) in enumerate(GLASS_PARTIALS):
+    for i, (ratio, amp) in enumerate(MARIMBA_PARTIALS):
         f = freq * ratio
         if f > SR * 0.45:
             continue
-        dec = dur * (0.85 / (1 + i * 1.15))
-        detune = 1 + RNG.uniform(-0.0006, 0.0006)
-        out += sine(f * detune, dur) * exp_env(dur, dec) * amp * (bright ** (i * 0.9))
-    # a whisper of second-harmonic air instead of an FM chiff
-    out += sine(freq * 2.0, dur) * exp_env(dur, dur * 0.12) * 0.08 * bright
-    out = lowpass(out, 1200 + 5200 * warmth)
-    return soft_attack(out, 6)
+        dec = dur * (0.55 / (1 + i * 1.7))
+        detune = 1 + RNG.uniform(-0.0004, 0.0004)
+        out += sine(f * detune, dur) * exp_env(dur, dec) * amp * (tone ** i)
+    pn = max(8, int(0.010 * SR))
+    puff = lowpass(RNG.standard_normal(pn), 640) * np.linspace(1, 0, pn) ** 2
+    mix_into(out, 0, puff, 0.16 * contact)
+    out = lowpass(out, 850 + 2400 * tone)
+    return soft_attack(out, 4)
 
 
-# kept as an alias so existing music code reads the same
-def glass_bell(freq, dur=1.2, bright=1.0, strike=1.0):
-    return bell(freq, dur, bright=bright, warmth=0.9)
-
-
-def mallet(freq, dur=0.32, tone=0.6):
-    """Soft wooden/crystal mallet — the count-up voice. Fundamental plus a quiet
-    octave and twelfth, quick but EASED attack, no click, no noise."""
-    n = int(dur * SR)
+def felt(freq, dur=0.16, tone=0.4):
+    """Even softer than the marimba: a muted felt tap for UI ticks and the
+    count-up ticker. Fundamental plus a whisper of octave, heavy lowpass."""
     body = (
-        sine(freq, dur) * exp_env(dur, dur * 0.45)
-        + sine(freq * 2.0, dur) * exp_env(dur, dur * 0.22) * 0.35 * tone
-        + sine(freq * 3.01, dur) * exp_env(dur, dur * 0.12) * 0.12 * tone
+        sine(freq, dur) * exp_env(dur, dur * 0.4)
+        + sine(freq * 2.0, dur) * exp_env(dur, dur * 0.18) * 0.22 * tone
     )
-    return soft_attack(lowpass(body, 2200 + 3000 * tone), 5)[:n]
+    return soft_attack(lowpass(body, 900 + 1400 * tone), 4)
+
+
+def thump_drop(f_hi=120.0, f_lo=50.0, dur=0.4, puff=0.5):
+    """WEIGHT: a sub-supported thump — sine pitch-drop f_hi -> f_lo with a soft
+    lowpassed noise puff on the front. The palette's floor, never its melody."""
+    tt = t_axis(dur)
+    f = f_lo + (f_hi - f_lo) * np.exp(-tt * 18)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = np.sin(ph) * exp_env(dur, dur * 0.55)
+    pn = max(8, int(0.05 * SR))
+    if len(x) >= pn:
+        x[:pn] += lowpass(RNG.standard_normal(pn), 380) * np.linspace(1, 0, pn) ** 2 * 0.5 * puff
+    return soft_attack(lowpass(x, 320), 3)
 
 
 def whoosh(dur=0.55, f_lo=140.0, f_hi=900.0, curve=1.0, back=0.55):
-    """AIR MOVING PAST — deep, smooth motion. Built by CROSSFADING a bank of fixed
-    band-passed noise layers rather than re-filtering in chunks: the chunked approach
-    re-computed a filter every 256 samples and butt-joined the results, and those
-    discontinuities are what read as 'scratchy'. Bands sit low (140Hz-1kHz) so the
-    result is body and movement, not hiss."""
+    """AIR MOVING PAST — a bank of fixed band-passed noise layers crossfaded as
+    the centre moves (no chunk-joint scratchiness). Bands sit low: body, not hiss."""
     n = int(dur * SR)
     tt = np.linspace(0, 1, n)
     shape = np.sin(np.pi * tt ** curve)
     centre = f_lo + (f_hi - f_lo) * (shape * (1 - back) + tt * back)
     src = RNG.standard_normal(n)
-    # fixed layers spanning the range, crossfaded by proximity to the moving centre
     edges = np.geomspace(f_lo * 0.7, f_hi * 1.5, 6)
     out = np.zeros(n)
     for c in edges:
         layer = bandpass(src, c * 0.55, c * 1.8, order=2)
         w = np.exp(-((np.log(centre / c)) ** 2) / (2 * 0.55 ** 2))  # gaussian in log-f
         out += layer * w
-    # a low bed underneath gives the pass real weight
     out += lowpass(src, 220) * 0.5
     swell = np.sin(np.pi * tt) ** 1.4
     return lowpass(out, 2200) * swell
 
 
-def pluck(freq, dur=0.5, tone=2600.0):
-    """Karplus-ish soft pluck (kept: used by the light win chime)."""
+def warm_pluck(freq, dur=0.5, tone=1300.0):
+    """Karplus pluck with a DARK excitation — a warm plucked string, no zing."""
     n = int(dur * SR)
     exc = lowpass(RNG.standard_normal(int(0.012 * SR)), tone)
     buf = np.zeros(n)
@@ -273,55 +279,33 @@ def pluck(freq, dur=0.5, tone=2600.0):
     return soft_attack(buf * exp_env(dur, dur * 0.4), 4)
 
 
-def pad_note(freq, dur, tone=1400.0):
-    x = (sine(freq * 0.999, dur) + sine(freq * 1.001, dur) + sine(freq * 2, dur) * 0.3)
-    return soft_attack(lowpass(x, tone) * adsr(dur, a=0.12, d=0.3, s=0.75, r=0.35), 40)
+def saw_pad(freq, dur, cutoff=850.0, lfo=0.08, lfo_depth=0.5, a=0.35, r=0.7):
+    """Warm pad: four detuned saws through a gentle lowpass whose brightness
+    breathes slowly (two filtered renders crossfaded by a slow LFO)."""
+    tt = t_axis(dur)
+    x = np.zeros(len(tt))
+    for det in (-0.004, -0.0013, 0.0013, 0.004):
+        ph = 2 * np.pi * freq * (1 + det) * tt + RNG.uniform(0, 2 * np.pi)
+        x += signal.sawtooth(ph)
+    x *= 0.25
+    lo = lowpass(x, cutoff * 0.6)
+    hi = lowpass(x, cutoff * 1.8)
+    m = 0.5 + 0.5 * np.sin(2 * np.pi * lfo * tt + RNG.uniform(0, 2 * np.pi))
+    m = 0.5 + (m - 0.5) * lfo_depth
+    x = lo * (1 - m) + hi * m
+    return soft_attack(x * adsr(dur, a=a, d=0.3, s=0.8, r=r), 40)
 
 
 def sub_note(freq, dur):
     return sine(freq, dur) * adsr(dur, a=0.02, d=0.2, s=0.7, r=0.3)
 
 
-def body_hit(freq=110.0, dur=0.3, drop=0.5, warm=1.0):
-    """WEIGHT, not a pan strike. A pitched drop with the click rolled off — used only
-    where impact is genuinely wanted, and always well under the musical layer."""
-    tt = t_axis(dur)
-    f = freq * (1 + drop * np.exp(-tt * 22))
-    ph = 2 * np.pi * np.cumsum(f) / SR
-    x = np.sin(ph) * exp_env(dur, dur * 0.3)
-    return soft_attack(lowpass(x, 220 * warm), 6)
-
-
-# legacy name used by the music section
-def thump(freq=95.0, dur=0.35, drop=0.5):
-    return body_hit(freq, dur, drop)
-
-
-def shimmer(dur, density=18.0, f_lo=2400.0, f_hi=7000.0, decay_each=0.22):
-    """A sparse cloud of tuned micro-bells. Tuned (not random) frequencies and a
-    LOW density: the old version fired ~30 random impulses a second across four
-    octaves, which is precisely why it read as static/machine noise."""
+def air_layer(dur, lo=1200.0, hi=4200.0, rate=0.12):
+    """A light airy texture bed — soft banded noise, amplitude slowly breathing."""
     n = int(dur * SR)
-    out = np.zeros(n + int(0.4 * SR))
-    scale = np.array([0, 2, 4, 7, 9])  # major pentatonic — no dissonant collisions
-    count = max(1, int(dur * density))
-    for _ in range(count):
-        tm = RNG.uniform(0, dur)
-        octv = RNG.integers(0, 3)
-        semi = scale[RNG.integers(0, len(scale))] + 12 * octv
-        f = f_lo * 2 ** (semi / 12)
-        if f > f_hi:
-            f /= 2
-        d = RNG.uniform(0.08, decay_each)
-        seg = mallet(f, d, tone=0.35) * RNG.uniform(0.25, 0.7)
-        i0 = int(tm * SR)
-        out[i0:i0 + len(seg)] += seg
-    return out[:n + int(0.4 * SR)]
-
-
-# legacy alias (music cues call glitter)
-def glitter(dur, density=28.0, f_lo=1800.0, f_hi=7500.0, decay_each=0.18):
-    return shimmer(dur, density=density * 0.5, f_lo=f_lo, f_hi=f_hi, decay_each=decay_each)
+    x = bandpass(RNG.standard_normal(n), lo, hi, order=2)
+    m = 0.55 + 0.45 * np.sin(2 * np.pi * rate * t_axis(dur) + RNG.uniform(0, 2 * np.pi))
+    return lowpass(x, hi) * m
 
 
 # ---------------------------------------------------------------- Sequencer
@@ -346,9 +330,16 @@ def render_track(events, total_dur, pan_spread=0.0):
     return out
 
 
+def warm_chord(x, i0, notes, dur, gain=1.0, spread=0.016, tone=0.6):
+    """Stack marimba notes as a rolled chord — a few ms of spread reads as one
+    rich warm event instead of a block hit."""
+    for k, nn in enumerate(notes):
+        mix_into(x, i0 + int(k * spread * SR), marimba(note(nn), dur, tone=tone), gain)
+
+
 # ---------------------------------------------------------------- Music cues
 
-DAY_CHORDS = [  # Cmaj9 . Am9 . Fmaj9 . G6(add9) — dreamy day realm
+DAY_CHORDS = [  # Cmaj9 . Am9 . Fmaj9 . G6(add9) — warm day realm
     ["C3", "G3", "E4", "B4", "D5"],
     ["A2", "E3", "C4", "G4", "B4"],
     ["F2", "C3", "A3", "E4", "G4"],
@@ -356,387 +347,546 @@ DAY_CHORDS = [  # Cmaj9 . Am9 . Fmaj9 . G6(add9) — dreamy day realm
 ]
 DAY_SCALE = ["C4", "D4", "E4", "G4", "A4", "C5", "D5", "E5", "G5", "A5", "C6"]
 
-NIGHT_CHORDS = [  # Am9 . Fmaj7 . Cmaj7 . Em7 — aurora
+NIGHT_CHORDS = [  # Am9 . Fmaj9 . Dm9 . Em7 — darker aeolian
     ["A2", "E3", "C4", "G4", "B4"],
     ["F2", "C3", "A3", "E4", "G4"],
-    ["C3", "G3", "E4", "B4", "D5"],
+    ["D3", "A3", "F4", "C5", "E5"],
     ["E3", "B3", "G4", "D5", "E5"],
 ]
 NIGHT_SCALE = ["A3", "C4", "D4", "E4", "G4", "A4", "C5", "D5", "E5", "G5", "A5"]
 
+WIN_CHORDS = [  # C . Am . F . G — the one escalating win-bed family
+    ["C3", "G3", "E4", "C5"],
+    ["A2", "E3", "C4", "A4"],
+    ["F2", "C3", "A3", "F4"],
+    ["G2", "D3", "B3", "G4"],
+]
+
 
 def bgm_main():
+    """Warm day bed, 48s with an A/B half so the loop doesn't fatigue: detuned-saw
+    pads under a slow filter LFO, a soft bass pulse, light air, and a sparse warm
+    plucked motif (marimba-doubled). The B half answers the motif a step up and
+    adds a gentle marimba arp — related, but the ear notices the scenery change."""
     bpm, bars = 80.0, 16
     beat = 60.0 / bpm
     total = bars * 4 * beat  # 48s
     ev = []
-    # pads: one chord per 2 bars, cycling
     for b in range(0, bars, 2):
-        chord = DAY_CHORDS[(b // 2) % 4]
+        chord_notes = DAY_CHORDS[(b // 2) % 4]
         tm = b * 4 * beat
-        for i, nn in enumerate(chord):
-            ev.append((tm, pad_note(note(nn), 2 * 4 * beat + 0.5), 0.055, (i - 2) * 0.25))
-        ev.append((tm, sub_note(note(chord[0]) / 2, 2 * 4 * beat), 0.14, 0))
-    # arp: gentle 8ths over chord tones, skips for air
-    for b in range(bars):
-        chord = DAY_CHORDS[(b // 2) % 4]
-        tones = [note(nn) * 2 for nn in chord[1:]] + [note(chord[2]) * 4]
+        b_section = b >= 8
+        cut = 980 if b_section else 800
+        for i, nn in enumerate(chord_notes):
+            ev.append((tm, saw_pad(note(nn), 2 * 4 * beat + 0.6, cutoff=cut, lfo=0.07), 0.045, (i - 2) * 0.25))
+        # soft bass pulse: round sub on beats 1 and 3 of each bar
+        for bar in range(2):
+            for beat_i in (0, 2):
+                t2 = tm + (bar * 4 + beat_i) * beat
+                ev.append((t2, sub_note(note(chord_notes[0]) / 2, beat * 1.6), 0.115 if beat_i == 0 else 0.08, 0))
+        ev.append((tm, air_layer(2 * 4 * beat, 1400, 4200, rate=0.1), 0.011, 0))
+    # sparse warm plucked motif, one phrase per 4 bars; B half answers two scale steps up
+    motif_deg = [(0.0, 2), (1.5, 3), (3.0, 4), (6.0, 3), (8.0, 2), (11.0, 1), (12.5, 0)]
+    for cyc in (0, 4, 8, 12):
+        lift = 2 if cyc >= 8 else 0
+        for beat_pos, deg in motif_deg:
+            if RNG.uniform() < 0.15:
+                continue
+            f = note(DAY_SCALE[min(deg + lift, len(DAY_SCALE) - 1)])
+            tm = (cyc * 4 + beat_pos) * beat
+            ev.append((tm, warm_pluck(f, beat * 2.2, tone=1500), 0.10, RNG.uniform(-0.4, 0.4)))
+            ev.append((tm, marimba(f / 2, beat * 1.2, tone=0.5, contact=0.25), 0.055, 0))
+    # B half: a gentle, gap-toothed marimba arp in 8ths
+    for b in range(8, bars):
+        chord_notes = DAY_CHORDS[(b // 2) % 4]
+        tones = [note(nn) * 2 for nn in chord_notes[1:4]]
         for e in range(8):
-            if RNG.uniform() < 0.22:
+            if RNG.uniform() < 0.45:
                 continue
             tm = (b * 4 + e * 0.5) * beat
-            f = tones[(e * 3 + b) % len(tones)]
-            ev.append((tm, pluck(f, beat * 1.6, tone=2200), 0.10 * RNG.uniform(0.7, 1.0), np.sin(e) * 0.4))
-    # sparse bell motif: one phrase each 4 bars
-    motif_deg = [(0.0, 4), (1.0, 6), (2.0, 5), (3.5, 7), (6.0, 8), (10.0, 5), (12.0, 6), (14.0, 4)]
-    for cyc in (0, 8):
-        for beat_pos, deg in motif_deg:
-            tm = (cyc * 4 + beat_pos) * beat
-            if cyc == 8:
-                deg = min(deg + 1, len(DAY_SCALE) - 1)
-            ev.append((tm, glass_bell(note(DAY_SCALE[deg]), 2.2, bright=0.8, strike=0.4), 0.075, RNG.uniform(-0.5, 0.5)))
+            f = tones[(e * 2 + b) % len(tones)]
+            ev.append((tm, marimba(f, beat * 0.9, tone=0.5, contact=0.25), 0.05, np.sin(e) * 0.4))
     x = render_track(ev, total)
-    x = echo(x, time=beat * 0.75, fb=0.3, mix=0.22)
-    x = reverb(x, mix=0.34, size=1.25, damp=5200)
+    x = echo(x, time=beat * 0.75, fb=0.28, mix=0.18)
+    x = reverb(x, mix=0.28, size=1.2, damp=3800)
     return norm(fold_loop(x, total), 0.70)
 
 
 def bgm_freespin():
+    """Free-spins bed, 40s, darker aeolian with MORE PULSE: low saw pads breathing
+    slowly, driving sub 8ths, a dark low pluck arp, marimba downbeat accents and an
+    occasional low airy sweep. Same warm family as the day bed, night colours."""
     bpm, bars = 96.0, 16
     beat = 60.0 / bpm
     total = bars * 4 * beat  # 40s
     ev = []
     for b in range(0, bars, 2):
-        chord = NIGHT_CHORDS[(b // 2) % 4]
+        chord_notes = NIGHT_CHORDS[(b // 2) % 4]
         tm = b * 4 * beat
-        for i, nn in enumerate(chord):
-            ev.append((tm, pad_note(note(nn), 2 * 4 * beat + 0.5, tone=1100), 0.06, (i - 2) * 0.25))
-        # pulsing sub 8ths
+        for i, nn in enumerate(chord_notes):
+            ev.append((tm, saw_pad(note(nn), 2 * 4 * beat + 0.6, cutoff=580, lfo=0.09, lfo_depth=0.6), 0.05, (i - 2) * 0.25))
+        # the drive: pulsing sub 8ths
         for e in range(16):
-            ev.append((tm + e * beat * 0.5, sub_note(note(chord[0]) / 2, beat * 0.42), 0.11 * (1.0 if e % 2 == 0 else 0.7), 0))
-    # driving 16th arp
+            ev.append((tm + e * beat * 0.5, sub_note(note(chord_notes[0]) / 2, beat * 0.42), 0.12 * (1.0 if e % 2 == 0 else 0.72), 0))
+        ev.append((tm, air_layer(2 * 4 * beat, 900, 3200, rate=0.16), 0.013, 0))
+    # dark 16th pluck arp, low register
     for b in range(bars):
-        chord = NIGHT_CHORDS[(b // 2) % 4]
-        tones = [note(nn) * 2 for nn in chord[1:]]
+        chord_notes = NIGHT_CHORDS[(b // 2) % 4]
+        tones = [note(nn) for nn in chord_notes[1:]]
         pat = [0, 2, 1, 3, 0, 2, 3, 1, 0, 2, 1, 3, 2, 0, 3, 1]
         for e in range(16):
-            if e % 4 == 3 and RNG.uniform() < 0.3:
+            if e % 4 == 3 and RNG.uniform() < 0.35:
                 continue
             tm = (b * 4 + e * 0.25) * beat
             f = tones[pat[e] % len(tones)]
-            ev.append((tm, pluck(f, beat * 0.9, tone=2600), 0.085 * (1.0 if e % 4 == 0 else 0.75), np.sin(e * 1.7) * 0.5))
-    # aurora shimmer sweep each 4 bars + night bell answers
+            ev.append((tm, warm_pluck(f, beat * 0.8, tone=1100), 0.075 * (1.0 if e % 4 == 0 else 0.7), np.sin(e * 1.7) * 0.5))
+        ev.append((b * 4 * beat, marimba(note(chord_notes[0]) * 2, beat * 0.8, tone=0.5), 0.055, 0))
+    # slow dark airy sweep each 4 bars
     for b in range(0, bars, 4):
-        tm = b * 4 * beat
-        ev.append((tm, sweep_noise(4 * beat, 900, 5200, bw=0.4), 0.028, 0))
-        for beat_pos, deg in ((8.0, 7), (10.0, 9), (11.0, 8), (14.0, 10)):
-            ev.append(((b * 4 + beat_pos) * beat, glass_bell(note(NIGHT_SCALE[deg % len(NIGHT_SCALE)]), 1.8, bright=0.9, strike=0.3), 0.07, RNG.uniform(-0.5, 0.5)))
+        ev.append((b * 4 * beat, whoosh(4 * beat, 200, 1400, curve=1.3, back=0.7), 0.05, 0))
     x = render_track(ev, total)
-    x = echo(x, time=beat * 0.5, fb=0.34, mix=0.24)
-    x = reverb(x, mix=0.3, size=1.4, damp=4600)
+    x = echo(x, time=beat * 0.5, fb=0.3, mix=0.2)
+    x = reverb(x, mix=0.26, size=1.35, damp=3200)
     return norm(fold_loop(x, total), 0.72)
 
 
 def bgm_winlevel(tier):
-    """8s celebration loops, escalating: 0=big..4=max. 120bpm, 4 bars."""
-    bpm, bars = 120.0, 4
+    """16s celebration beds — ONE escalating family (0=BIG .. 4=MAX) over the same
+    C-Am-F-G progression, same voices, so tier promotions feel like the same music
+    growing: pads thicken and brighten, the pluck arp densifies, marimba on-beats
+    join, a motif line arrives, and MAX goes gold — deep pulse drops, octave-doubled
+    melody. 120bpm, 8 bars."""
+    bpm, bars = 120.0, 8
     beat = 60.0 / bpm
-    total = bars * 4 * beat  # 8s
-    chords = [["C3", "G3", "E4", "C5"], ["F3", "C4", "A4", "F5"],
-              ["G3", "D4", "B4", "G5"], ["C3", "G3", "E4", "C5"]]
+    total = bars * 4 * beat  # 16s
     ev = []
-    dens = [2, 2, 4, 4, 4][tier]           # arp notes per beat
-    octv = [1, 1, 2, 2, 2][tier]           # arp octave lift
-    layers = tier + 1
-    for b in range(bars):
-        chord = chords[b]
+    cutoff = 700 + 90 * tier
+    for b in range(0, bars, 2):
+        chord_notes = WIN_CHORDS[(b // 2) % 4]
         tm = b * 4 * beat
-        for i, nn in enumerate(chord):
-            ev.append((tm, pad_note(note(nn), 4 * beat + 0.3, tone=1800), 0.06, (i - 1.5) * 0.3))
-        ev.append((tm, sub_note(note(chord[0]) / 2, 4 * beat), 0.13, 0))
+        for i, nn in enumerate(chord_notes):
+            ev.append((tm, saw_pad(note(nn), 2 * 4 * beat + 0.5, cutoff=cutoff, lfo=0.10 + 0.02 * tier, lfo_depth=0.5),
+                       0.05 + 0.004 * tier, (i - 1.5) * 0.3))
+        if tier >= 3:  # thicker: octave doubling of the top pad voice
+            ev.append((tm, saw_pad(note(chord_notes[-1]) * 2, 2 * 4 * beat + 0.5, cutoff=cutoff * 1.2, lfo=0.13), 0.026, 0))
+        # bass pulse in quarters; MAX adds a deep drop on each chord's downbeat
+        for e in range(8):
+            ev.append((tm + e * beat, sub_note(note(chord_notes[0]) / 2, beat * 0.8), 0.11 * (1.0 if e % 4 == 0 else 0.8), 0))
+        if tier == 4:
+            ev.append((tm, thump_drop(95, 42, 0.5, puff=0.35), 0.30, 0))
+        if tier >= 2:
+            ev.append((tm, air_layer(2 * 4 * beat, 1200, 3800, rate=0.2), 0.011 + 0.004 * tier, 0))
+    # warm pluck arp — density rises with tier
+    dens = [2, 2, 4, 4, 4][tier]
+    for b in range(bars):
+        chord_notes = WIN_CHORDS[(b // 2) % 4]
+        tones = [note(nn) * 2 for nn in chord_notes[1:]]
         for e in range(4 * dens):
-            tm2 = tm + e * beat / dens
-            f = note(chord[1 + (e % 3)]) * octv
-            ev.append((tm2, pluck(f, beat, tone=3000), 0.09, np.sin(e * 2.1) * 0.5))
-        if layers >= 2:  # bell hits on beats
+            tm = b * 4 * beat + e * beat / dens
+            f = tones[(e * 2 + b) % len(tones)]
+            ev.append((tm, warm_pluck(f, beat * 0.9, tone=1400 + 80 * tier), 0.068, np.sin(e * 2.1) * 0.5))
+    # marimba on-beats from SUPER up
+    if tier >= 1:
+        for b in range(bars):
+            chord_notes = WIN_CHORDS[(b // 2) % 4]
             for e in range(4):
-                ev.append((tm + e * beat, glass_bell(note(chord[2]) * 2, 0.9, bright=0.9), 0.05 * (1 + 0.15 * tier), RNG.uniform(-0.4, 0.4)))
-        if layers >= 4:  # glitter bed
-            ev.append((tm, glitter(4 * beat, density=10 + 6 * tier), 0.035, 0))
-    if tier == 4:  # max: triumphant high line
-        for e, deg in ((0, 8), (2, 9), (4, 10), (6, 9), (8, 10), (12, 10)):
-            ev.append((e * beat, glass_bell(note(DAY_SCALE[deg]), 1.6, bright=1.05), 0.075, 0))
+                ev.append((b * 4 * beat + e * beat, marimba(note(chord_notes[2]), beat * 0.7, tone=0.55),
+                           0.05 + 0.008 * tier, RNG.uniform(-0.3, 0.3)))
+    # rising family motif from MEGA up; MAX doubles it an octave up (the gold layer)
+    if tier >= 2:
+        motif = [(0, 4), (2, 5), (4, 6), (6, 5), (8, 6), (12, 7), (14, 8)]
+        for beat_pos, deg in motif:
+            tm = beat_pos * beat * 2
+            f = note(DAY_SCALE[min(deg, len(DAY_SCALE) - 1)])
+            ev.append((tm, marimba(f, beat * 1.4, tone=0.6), 0.065, 0))
+            if tier == 4:
+                ev.append((tm, marimba(f * 2, beat * 1.2, tone=0.55), 0.042, 0))
     x = render_track(ev, total)
-    x = reverb(x, mix=0.26, size=1.1, damp=5600)
-    return norm(fold_loop(x, total), 0.72 + 0.02 * tier)
+    x = reverb(x, mix=0.24, size=1.1, damp=3800)
+    return norm(fold_loop(x, total), 0.70 + 0.02 * tier)
 
 
 # ---------------------------------------------------------------- SFX cues
 #
-# Every cue below is built from tuned voices in one key (A minor / C major family) so
-# that overlapping sounds during a busy spin never beat against each other.
-
-def chord(x, i0, notes, dur, gain=1.0, spread=0.012, bright=0.9, warmth=1.0):
-    """Stack notes as a rolled chord — a few ms of spread reads as one rich event."""
-    for k, nn in enumerate(notes):
-        mix_into(x, i0 + int(k * spread * SR), bell(note(nn), dur, bright=bright, warmth=warmth), gain)
-
+# Every cue is built from tuned voices in one key (A minor / C major family) so
+# overlapping sounds during a busy spin never beat against each other.
 
 def sfx_btn_general():
-    """UI tap: a soft muted mallet. No bell ring — menu presses must disappear."""
-    x = mallet(note("A5"), 0.13, tone=0.35) * 0.8
-    mix_into(x, 0, mallet(note("E6"), 0.09, tone=0.2), 0.3)
-    return fade_io(norm(widen(x, 0.001), 0.42))
+    """UI tap: one muted felt tick. Menu presses must disappear."""
+    x = felt(note("A4"), 0.12, tone=0.35) * 0.8
+    mix_into(x, 0, felt(note("E5"), 0.08, tone=0.25), 0.22)
+    return fade_io(norm(widen(x, 0.001), 0.4))
 
 
 def sfx_btn_spin():
-    """Spin press: a short intake of air + a soft confirm tone. The launch itself is
-    carried by the reels, so this stays small and non-percussive."""
-    n = int(0.34 * SR)
+    """Spin press: a small warm push — felt tone + a soft low nudge + a whisper of
+    air. The launch itself is carried by sfx_spin_launch / the reels."""
+    n = int(0.32 * SR)
     x = np.zeros(n)
-    mix_into(x, 0, whoosh(0.28, 700, 2100, back=0.8), 0.30)
-    mix_into(x, int(0.01 * SR), mallet(note("A4"), 0.22, tone=0.55), 0.55)
-    mix_into(x, int(0.01 * SR), mallet(note("E5"), 0.20, tone=0.45), 0.35)
-    mix_into(x, 0, body_hit(120, 0.16, drop=0.4), 0.30)
-    return fade_io(norm(widen(x, 0.0015), 0.6))
+    mix_into(x, 0, whoosh(0.24, 220, 800, back=0.7), 0.22)
+    mix_into(x, int(0.008 * SR), felt(note("A3"), 0.2, tone=0.5), 0.6)
+    mix_into(x, 0, thump_drop(110, 62, 0.14, puff=0.25), 0.3)
+    return fade_io(norm(widen(x, 0.0015), 0.55))
 
 
-def sfx_reel_stop():
-    """Reel settle: a cushioned wooden tick. Was a 120Hz thump — a drawer slamming."""
-    n = int(0.18 * SR)
+def sfx_spin_launch():
+    """The board pushes off: a quick warm whoosh with a low seat under it."""
+    n = int(0.5 * SR)
     x = np.zeros(n)
-    mix_into(x, 0, mallet(note("A3"), 0.16, tone=0.3), 0.75)
-    mix_into(x, 0, body_hit(150, 0.1, drop=0.35), 0.22)
+    mix_into(x, 0, whoosh(0.45, 180, 1100, curve=1.1, back=0.85), 0.5)
+    mix_into(x, 0, thump_drop(120, 58, 0.22, puff=0.3), 0.28)
+    mix_into(x, int(0.02 * SR), warm_pluck(note("A3"), 0.3, tone=1100), 0.18)
+    return fade_io(norm(widen(x, 0.002), 0.55))
+
+
+def sfx_spin_loop():
+    """Reel-motion bed (2s seamless loop): soft moving air, band centre undulating
+    an integer number of cycles per loop. Deliberately subtle — felt, not heard."""
+    total = 2.0
+    n = int(total * SR)
+    tt = np.linspace(0, 1, n, endpoint=False)
+    src = RNG.standard_normal(n)
+    centre = 480 * (1 + 0.4 * np.sin(2 * np.pi * 2 * tt))
+    out = np.zeros(n)
+    for c in np.geomspace(180, 1500, 6):
+        w = np.exp(-((np.log(centre / c)) ** 2) / (2 * 0.6 ** 2))
+        out += bandpass(src, c * 0.55, c * 1.8, order=2) * w
+    out += lowpass(src, 260) * 0.35
+    out = lowpass(out, 1700)
+    out *= 0.9 + 0.1 * np.sin(2 * np.pi * 2 * tt + 1.1)
+    out = reverb(widen(out, 0.004), mix=0.18, size=1.0, damp=3000)
+    return norm(fold_loop(out, total), 0.30)
+
+
+# The five reel stops climb a gentle pentatonic ladder — one timbre family, rising
+# pitch, so a full spin resolves left-to-right as a soft phrase.
+REEL_STOP_NOTES = ["G3", "A3", "C4", "D4", "E4"]
+
+
+def sfx_reel_stop(i):
+    n = int(0.2 * SR)
+    x = np.zeros(n)
+    mix_into(x, 0, marimba(note(REEL_STOP_NOTES[i]), 0.18, tone=0.45, contact=0.4), 0.75)
+    mix_into(x, 0, thump_drop(140, 72, 0.08, puff=0.2), 0.16)
     return fade_io(norm(widen(x, 0.001), 0.46))
 
 
-# Scatters climb the pentatonic scale — the ESCALATION the operator liked, but the
-# voice is now a pure crystal bell. The old version stacked a 110Hz thump under each
-# ping, which is what made it read as a clank.
-SCATTER_NOTES = ["A4", "C5", "E5", "A5", "C6"]
+# Scatters climb the shared pentatonic — the escalation the operator liked, in the
+# warm voice: marimba + a plucked octave, with a little more low support each step.
+SCATTER_NOTES = ["A3", "C4", "E4", "G4", "A4"]
 
 
 def sfx_scatter_stop(i):
     nn = SCATTER_NOTES[i]
-    dur = 1.15 + i * 0.06
-    x = bell(note(nn), dur, bright=0.78 + i * 0.05, warmth=1.0) * 1.0
-    # a quiet perfect-fifth companion thickens each step without adding attack
-    mix_into(x, int(0.006 * SR), bell(note(nn) * 1.5, dur * 0.7, bright=0.6, warmth=0.9), 0.22)
-    mix_into(x, int(0.01 * SR), shimmer(0.45, density=5 + i * 2, f_lo=note(nn) * 2, f_hi=note(nn) * 6), 0.16)
-    out = reverb(widen(x, 0.0022), mix=0.26, size=1.0, damp=5200)
-    return fade_io(norm(out, 0.6 + i * 0.03))
+    dur = 0.75 + i * 0.07
+    n = int((dur + 0.25) * SR)
+    x = np.zeros(n)
+    mix_into(x, 0, marimba(note(nn), dur, tone=0.55 + i * 0.05, contact=0.5), 0.8)
+    mix_into(x, int(0.01 * SR), warm_pluck(note(nn) * 2, dur * 0.7, tone=1500), 0.3)
+    mix_into(x, 0, thump_drop(120, 60, 0.14, puff=0.25), 0.14 + 0.045 * i)
+    out = reverb(widen(x, 0.002), mix=0.22, size=1.0, damp=3600)
+    return fade_io(norm(out, 0.58 + i * 0.03))
 
 
 def sfx_dragon_glide():
     """THE GLIDE — a LOOPING bed of moving air, played for exactly as long as the
-    dragon is travelling (started at launch, stopped the moment it clears the board).
-    A one-shot could not match a flight whose length varies with path length, and the
-    one-shot player skips a retrigger while the same cue is still sounding — which is
-    why it sometimes never fired at all when dragons launched back to back."""
+    dragon is travelling (started at launch, stopped when it clears the board)."""
     total = 0.9
     n = int(total * SR)
     tt = np.linspace(0, 1, n, endpoint=False)
     src = RNG.standard_normal(n)
-    # slow undulation of the band centre so the loop breathes instead of droning
     centre = 300 * (1 + 0.55 * np.sin(2 * np.pi * tt))
     out = np.zeros(n)
     for c in np.geomspace(120, 1100, 6):
         w = np.exp(-((np.log(centre / c)) ** 2) / (2 * 0.6 ** 2))
         out += bandpass(src, c * 0.55, c * 1.8, order=2) * w
-    out += lowpass(src, 200) * 0.6          # deep body
-    out = lowpass(out, 1900)
-    out *= 0.85 + 0.15 * np.sin(2 * np.pi * tt)   # gentle amplitude motion
-    out = reverb(widen(out, 0.005), mix=0.22, size=1.1, damp=3600)
+    out += lowpass(src, 200) * 0.6
+    out = lowpass(out, 1500)
+    out *= 0.85 + 0.15 * np.sin(2 * np.pi * tt)
+    out = reverb(widen(out, 0.005), mix=0.22, size=1.1, damp=3200)
     return norm(fold_loop(out, total), 0.34)
 
 
 def sfx_dragon_land():
-    """DRAGON TOUCHES DOWN — a bright, high CHIME chord. Distinct from the path
-    ignition below: this is the arrival, light and anticipatory, no body weight at
-    all. (Both moments used to share one cue, which is why the land and the glide
-    blurred into each other.)"""
-    n = int(0.75 * SR)
+    """DRAGON TOUCHES DOWN — a rounded warm arrival: rolled low marimba fifth with
+    a felt top and a puff of air. Mid register, no ring, no glass."""
+    n = int(0.6 * SR)
     x = np.zeros(n)
-    # open fifths/octaves high in the register — unambiguously a chime
-    chord(x, 0, ["A5", "E6", "A6"], 0.7, gain=0.46, spread=0.014, bright=1.0, warmth=0.75)
-    mix_into(x, int(0.05 * SR), bell(note("C7"), 0.45, bright=0.9, warmth=0.6), 0.16)
-    mix_into(x, int(0.01 * SR), shimmer(0.4, density=6, f_lo=note("A6"), f_hi=note("A7")), 0.14)
-    out = reverb(widen(x, 0.0022), mix=0.28, size=0.95, damp=6500)
+    warm_chord(x, 0, ["A3", "E4"], 0.5, gain=0.55, spread=0.014, tone=0.55)
+    mix_into(x, int(0.02 * SR), felt(note("A4"), 0.25, tone=0.4), 0.3)
+    mix_into(x, 0, whoosh(0.22, 260, 900, back=0.7), 0.16)
+    out = reverb(widen(x, 0.002), mix=0.22, size=0.95, damp=3800)
     return fade_io(norm(out, 0.5))
 
 
 def sfx_multiplier_landing():
-    """DRAGON LANDS — a small anticipatory LIFT, not an impact. A rolled major-add9
-    chord rising into place with only a touch of body under it. The old cue was a
-    70Hz boom plus lowpassed noise: a struck pan."""
-    n = int(0.85 * SR)
+    """PATH IGNITES (top layer) — a rolled warm chord rising into place over real
+    body: the celebratory half of the ignition; sfx_wild_explode carries the low."""
+    n = int(0.9 * SR)
     x = np.zeros(n)
-    chord(x, 0, ["A4", "E5", "B5"], 0.8, gain=0.5, spread=0.022, bright=0.8, warmth=1.0)
-    # the "and there's more" tail — a fifth above, arriving a beat later, quieter
-    mix_into(x, int(0.1 * SR), bell(note("E6"), 0.6, bright=0.7, warmth=0.9), 0.22)
-    mix_into(x, 0, body_hit(130, 0.2, drop=0.35, warm=1.2), 0.28)
-    mix_into(x, int(0.02 * SR), shimmer(0.5, density=7, f_lo=note("A5"), f_hi=note("A6")), 0.14)
-    out = reverb(widen(x, 0.0025), mix=0.26, size=1.05, damp=5000)
+    warm_chord(x, 0, ["A3", "C4", "E4"], 0.75, gain=0.5, spread=0.022, tone=0.6)
+    mix_into(x, int(0.09 * SR), marimba(note("A4"), 0.55, tone=0.55), 0.26)
+    mix_into(x, 0, thump_drop(130, 55, 0.25, puff=0.4), 0.3)
+    mix_into(x, 0, whoosh(0.35, 240, 1200, back=0.8), 0.14)
+    out = reverb(widen(x, 0.0025), mix=0.24, size=1.05, damp=3800)
     return fade_io(norm(out, 0.62))
 
 
 def sfx_wild_explode():
-    """Path ignition: a bright crystal bloom. Tuned partials instead of a noise burst."""
+    """Warm BURST (the ignition's low layer): a deep pitch-drop thump, a breath
+    bloom and a low marimba seat — weight and air, zero chime."""
     n = int(0.9 * SR)
     x = np.zeros(n)
-    chord(x, 0, ["A5", "C6", "E6", "A6"], 0.75, gain=0.34, spread=0.016, bright=0.95, warmth=0.95)
-    mix_into(x, 0, shimmer(0.7, density=16, f_lo=2600, f_hi=8000), 0.3)
-    mix_into(x, 0, whoosh(0.3, 1800, 5200, back=0.9), 0.16)
-    mix_into(x, 0, body_hit(140, 0.18, drop=0.4), 0.22)
-    out = reverb(widen(x, 0.003), mix=0.28, size=1.1)
+    mix_into(x, 0, thump_drop(150, 45, 0.5, puff=0.7), 0.8)
+    mix_into(x, 0, whoosh(0.5, 120, 800, curve=1.2, back=0.6), 0.4)
+    mix_into(x, int(0.01 * SR), marimba(note("A2"), 0.6, tone=0.45, contact=0.3), 0.5)
+    mix_into(x, int(0.06 * SR), warm_pluck(note("A3"), 0.5, tone=1100), 0.22)
+    out = reverb(widen(x, 0.003), mix=0.24, size=1.1, damp=3000)
     return fade_io(norm(out, 0.66))
 
 
 def sfx_anticipation():
-    """Loopable tension (2.4s): a breathing minor pad with a slow airy rise."""
+    """Loopable tension (2.4s): a dark breathing saw pad over a low sub, with a
+    slow airy rise — warmer and rounder than any tremolo bell could be."""
     total = 2.4
-    tt = t_axis(total)
-    trem = 0.84 + 0.16 * np.sin(2 * np.pi * 5.0 * tt)
-    x = np.zeros(len(tt))
-    for nn, a in (("A3", 1.0), ("E4", 0.7), ("A4", 0.5), ("C5", 0.4)):
-        x += (sine(note(nn) * 0.999, total) + sine(note(nn) * 1.001, total)) * a
-    x = lowpass(x, 2000) * trem * 0.2
-    x += whoosh(total, 700, 2000, curve=1.4, back=0.9) * 0.1
-    x += sine(note("A2"), total) * 0.2
-    out = reverb(widen(x, 0.004), mix=0.32, size=1.3)
+    n = int(total * SR)
+    x = np.zeros(n)
+    for nn, g in (("A2", 0.9), ("E3", 0.6), ("A3", 0.45), ("C4", 0.3)):
+        mix_into(x, 0, saw_pad(note(nn), total, cutoff=520, lfo=1 / total, lfo_depth=0.6, a=0.05, r=0.05), g * 0.28)
+    trem = 0.86 + 0.14 * np.sin(2 * np.pi * 5.0 * t_axis(total))
+    x *= trem
+    mix_into(x, 0, whoosh(total, 300, 1200, curve=1.4, back=0.9), 0.12)
+    x += sine(note("A1"), total) * 0.16
+    out = reverb(widen(x, 0.004), mix=0.28, size=1.3, damp=3000)
     return norm(fold_loop(out, total), 0.42)
 
 
 def sfx_bigwin_coinloop():
-    """THE COUNT-UP (2.8s loop). This is the cue the operator called 'the inner
-    workings of a computer' — it was a dense cloud of RANDOM-frequency impulses,
-    i.e. band-limited static. It is now a MUSICAL figure: soft mallets running a
-    pentatonic pattern in steady sixteenths, so a long count reads as coins piling
-    up in tune rather than a machine chattering."""
+    """THE COUNT-UP BED (2.8s loop): soft marimba sixteenths running a pentatonic
+    figure in the mid register over a quiet warm floor — coins piling up in tune,
+    an octave lower and far rounder than the old music-box run."""
     total = 2.8
     n = int(total * SR)
     x = np.zeros(n)
     step = total / 16
-    # a rising pentatonic run that turns over cleanly at the loop point
-    seq = ["A5", "C6", "E6", "C6", "A5", "E5", "A5", "C6",
-           "E6", "G6", "E6", "C6", "A5", "C6", "E6", "A6"]
+    seq = ["A4", "C5", "E5", "C5", "A4", "E4", "A4", "C5",
+           "E5", "G5", "E5", "C5", "A4", "C5", "E5", "A5"]
     for i, nn in enumerate(seq):
-        g = 0.55 if i % 4 == 0 else 0.34
-        mix_into(x, int(i * step * SR), mallet(note(nn), 0.26, tone=0.5), g)
-    # a soft pad underneath keeps it from feeling like a music box on its own
-    for nn in ("A3", "E4"):
-        x += sine(note(nn), total) * 0.05
-    mix_into(x, 0, shimmer(total, density=4, f_lo=3000, f_hi=7000), 0.12)
-    out = reverb(widen(x, 0.0025), mix=0.24, size=0.95, damp=6000)
+        g = 0.5 if i % 4 == 0 else 0.3
+        mix_into(x, int(i * step * SR), marimba(note(nn), 0.24, tone=0.5, contact=0.3), g)
+    for nn in ("A2", "E3"):
+        x += sine(note(nn), total) * 0.045
+    out = reverb(widen(x, 0.0025), mix=0.2, size=0.95, damp=3600)
     return norm(fold_loop(out, total), 0.4)
 
 
+def sfx_countup_loop():
+    """Rolling-amount ticker (1.2s seamless loop): rapid SOFT felt ticks on two
+    neighbour tones — motion you feel under the number, never coins or chimes."""
+    total = 1.2
+    n = int(total * SR)
+    x = np.zeros(n)
+    step = total / 16
+    for i in range(16):
+        f = note("G4") if i % 2 == 0 else note("A4")
+        g = 0.42 if i % 4 == 0 else 0.28
+        mix_into(x, int(i * step * SR), felt(f, 0.07, tone=0.3), g)
+    x += sine(note("A3"), total) * 0.02  # 220Hz * 1.2s = 264 whole cycles -> seamless
+    out = widen(x, 0.0012)
+    return norm(fold_loop(out, total), 0.26)
+
+
 def sfx_winlevel_small():
-    """Per-line win: a two-note lift. Small, quick, must survive many repeats."""
+    """Per-line win: a two-note warm lift. Small, quick, survives many repeats."""
     n = int(0.45 * SR)
     x = np.zeros(n)
-    mix_into(x, 0, mallet(note("E5"), 0.3, tone=0.5), 0.7)
-    mix_into(x, int(0.055 * SR), mallet(note("A5"), 0.34, tone=0.55), 0.75)
-    out = reverb(widen(x, 0.0018), mix=0.2, size=0.85)
-    return fade_io(norm(out, 0.46))
+    mix_into(x, 0, marimba(note("E4"), 0.26, tone=0.5, contact=0.35), 0.65)
+    mix_into(x, int(0.055 * SR), marimba(note("A4"), 0.3, tone=0.55, contact=0.35), 0.7)
+    out = reverb(widen(x, 0.0018), mix=0.18, size=0.85, damp=3600)
+    return fade_io(norm(out, 0.45))
+
+
+# Win stings scale small -> large across win levels 2..5: the same marimba family
+# picking up notes, weight and air as the win grows.
+def sfx_win_sting(i):
+    dur = [0.55, 0.7, 0.95, 1.15][i]
+    n = int(dur * SR)
+    x = np.zeros(n)
+    if i == 0:
+        mix_into(x, 0, marimba(note("C4"), 0.3, tone=0.5), 0.6)
+        mix_into(x, int(0.06 * SR), marimba(note("E4"), 0.34, tone=0.55), 0.65)
+    elif i == 1:
+        for k, nn in enumerate(("C4", "E4", "G4")):
+            mix_into(x, int(k * 0.055 * SR), marimba(note(nn), 0.38, tone=0.55), 0.6)
+        mix_into(x, 0, thump_drop(110, 60, 0.14, puff=0.2), 0.16)
+    elif i == 2:
+        warm_chord(x, 0, ["C4", "E4", "G4"], 0.5, gain=0.5, spread=0.02, tone=0.55)
+        mix_into(x, int(0.1 * SR), marimba(note("C5"), 0.45, tone=0.55), 0.34)
+        mix_into(x, 0, thump_drop(120, 55, 0.2, puff=0.3), 0.24)
+        mix_into(x, 0, whoosh(0.3, 220, 900, back=0.7), 0.1)
+    else:
+        warm_chord(x, 0, ["C4", "E4", "G4", "C5"], 0.65, gain=0.48, spread=0.02, tone=0.6)
+        mix_into(x, 0, marimba(note("C3"), 0.6, tone=0.45, contact=0.3), 0.4)
+        mix_into(x, 0, thump_drop(130, 50, 0.3, puff=0.4), 0.34)
+        mix_into(x, 0, whoosh(0.45, 200, 1100, back=0.75), 0.14)
+    out = reverb(widen(x, 0.002), mix=0.2 + 0.02 * i, size=0.9 + 0.08 * i, damp=3600)
+    return fade_io(norm(out, 0.5 + 0.05 * i))
 
 
 def sfx_winlevel_end():
-    """Win presentation resolve: a settled perfect cadence."""
-    n = int(1.4 * SR)
+    """Win presentation resolve: a settled warm cadence, low and round."""
+    n = int(1.2 * SR)
     x = np.zeros(n)
-    chord(x, 0, ["E5", "A5", "C6"], 1.2, gain=0.4, spread=0.02, bright=0.8)
-    mix_into(x, int(0.16 * SR), bell(note("A4"), 1.1, bright=0.7), 0.34)
-    mix_into(x, 0, shimmer(0.7, density=8, f_lo=2200, f_hi=6000), 0.16)
-    out = reverb(widen(x, 0.0025), mix=0.28, size=1.05)
-    return fade_io(norm(out, 0.56))
+    warm_chord(x, 0, ["E4", "A4"], 0.8, gain=0.5, spread=0.02, tone=0.55)
+    mix_into(x, int(0.14 * SR), marimba(note("A3"), 0.8, tone=0.5), 0.45)
+    mix_into(x, 0, thump_drop(100, 52, 0.2, puff=0.25), 0.2)
+    out = reverb(widen(x, 0.0025), mix=0.24, size=1.05, damp=3400)
+    return fade_io(norm(out, 0.54))
 
 
 def sfx_tier_up():
-    """WIN TIER RANK-UP — the box promotes itself mid-count (BIG -> SUPER -> ...).
-    A fast two-note upward hand-off landing on the tonic an octave up, with a short
-    shimmer flick. Must read as PROMOTION over the win bgm + coin loop: quick, bright,
-    no body, done in well under a second so back-to-back crossings never smear."""
-    n = int(0.8 * SR)
+    """WIN TIER RANK-UP — a fast warm two-note hand-off landing an octave up, with
+    a flick of air. Quick and rounded; reads as promotion over bed + ticker."""
+    n = int(0.7 * SR)
     x = np.zeros(n)
-    mix_into(x, 0, bell(note("E5"), 0.45, bright=0.9, warmth=0.8), 0.4)
-    mix_into(x, int(0.075 * SR), bell(note("A5"), 0.6, bright=1.0, warmth=0.8), 0.62)
-    mix_into(x, int(0.075 * SR), bell(note("E6"), 0.5, bright=0.9, warmth=0.7), 0.2)
-    mix_into(x, int(0.09 * SR), shimmer(0.4, density=7, f_lo=note("A5"), f_hi=note("A7")), 0.16)
-    out = reverb(widen(x, 0.002), mix=0.24, size=0.95, damp=6000)
+    mix_into(x, 0, marimba(note("E4"), 0.3, tone=0.6), 0.45)
+    mix_into(x, int(0.07 * SR), marimba(note("A4"), 0.42, tone=0.65), 0.65)
+    mix_into(x, int(0.07 * SR), warm_pluck(note("A5"), 0.3, tone=1600), 0.16)
+    mix_into(x, int(0.05 * SR), whoosh(0.2, 500, 1600, back=0.8), 0.1)
+    out = reverb(widen(x, 0.002), mix=0.2, size=0.95, damp=3800)
     return fade_io(norm(out, 0.55))
 
 
 def sfx_near_miss():
-    """SCATTER NEAR-MISS — anticipation ran, the third scatter never came. A quiet
-    two-note descending exhale (down a major third, soft mallets, no shimmer, short
-    tail). Deliberately the DIMMEST cue in the kit: the decompression should register
-    without ever feeling like a punishment sting."""
+    """SCATTER NEAR-MISS — a quiet two-note descending exhale, felt voice, short
+    tail. Deliberately the DIMMEST cue in the kit."""
     n = int(0.7 * SR)
     x = np.zeros(n)
-    mix_into(x, 0, mallet(note("E4"), 0.32, tone=0.4), 0.5)
-    mix_into(x, int(0.17 * SR), mallet(note("C4"), 0.42, tone=0.35), 0.44)
-    out = reverb(widen(x, 0.0015), mix=0.18, size=0.85, damp=3200)
+    mix_into(x, 0, felt(note("E4"), 0.3, tone=0.4), 0.5)
+    mix_into(x, int(0.17 * SR), felt(note("C4"), 0.4, tone=0.35), 0.44)
+    out = reverb(widen(x, 0.0015), mix=0.16, size=0.85, damp=2800)
     return fade_io(norm(out, 0.34))
 
 
 def sfx_scatter_win():
-    """Free spins triggered: an ascending crystal fanfare that lands on the tonic."""
+    """Free spins triggered: an ascending warm fanfare that lands on the tonic —
+    marimba run into a rolled chord with real body under the arrival."""
     n = int(1.8 * SR)
     x = np.zeros(n)
-    for i, nn in enumerate(("A4", "C5", "E5", "A5")):
-        mix_into(x, int(i * 0.1 * SR), bell(note(nn), 1.1, bright=0.85), 0.5 + i * 0.06)
-    chord(x, int(0.4 * SR), ["A5", "C6", "E6"], 1.2, gain=0.4, spread=0.02, bright=0.9)
-    mix_into(x, int(0.4 * SR), shimmer(1.0, density=14, f_lo=2400, f_hi=7000), 0.24)
-    mix_into(x, int(0.4 * SR), body_hit(110, 0.26, drop=0.4), 0.3)
-    out = reverb(widen(x, 0.003), mix=0.3, size=1.15)
-    return fade_io(norm(out, 0.68))
+    for i, nn in enumerate(("A3", "C4", "E4", "A4")):
+        mix_into(x, int(i * 0.1 * SR), marimba(note(nn), 0.6, tone=0.55), 0.5 + i * 0.05)
+    warm_chord(x, int(0.4 * SR), ["A3", "E4", "A4", "C5"], 0.9, gain=0.42, spread=0.02, tone=0.6)
+    mix_into(x, int(0.4 * SR), thump_drop(110, 50, 0.3, puff=0.4), 0.36)
+    mix_into(x, int(0.35 * SR), whoosh(0.5, 200, 1200, back=0.8), 0.16)
+    out = reverb(widen(x, 0.003), mix=0.26, size=1.15, damp=3600)
+    return fade_io(norm(out, 0.66))
+
+
+def sfx_retrigger():
+    """+N FREE SPINS — its own celebratory sting (no longer reusing the trigger
+    fanfare): a quick triplet run and a double accent on the tonic, bright rhythm
+    in the same warm voice."""
+    n = int(1.3 * SR)
+    x = np.zeros(n)
+    for i, nn in enumerate(("E4", "A4", "C5")):
+        mix_into(x, int(i * 0.07 * SR), marimba(note(nn), 0.4, tone=0.6), 0.5)
+    mix_into(x, int(0.3 * SR), marimba(note("A4"), 0.5, tone=0.65), 0.6)
+    mix_into(x, int(0.42 * SR), marimba(note("A4"), 0.6, tone=0.65), 0.7)
+    mix_into(x, int(0.42 * SR), warm_pluck(note("A5"), 0.5, tone=1600), 0.2)
+    mix_into(x, int(0.3 * SR), thump_drop(115, 55, 0.22, puff=0.3), 0.26)
+    out = reverb(widen(x, 0.0025), mix=0.24, size=1.05, damp=3800)
+    return fade_io(norm(out, 0.62))
 
 
 def sfx_superfreespin():
-    """The transition INTO free spins: air rising, then the world opens up."""
+    """The transition INTO free spins: air rising, then the world opens — a deep
+    warm landing chord instead of a crystal bloom."""
     n = int(3.0 * SR)
     x = np.zeros(n)
     rise_d = 1.55
-    mix_into(x, 0, whoosh(rise_d, 260, 4200, curve=1.6, back=1.0), 0.42)
+    mix_into(x, 0, whoosh(rise_d, 200, 2400, curve=1.6, back=1.0), 0.45)
     tt = t_axis(rise_d)
     f = note("A3") * 2 ** (np.linspace(0, 1.6, len(tt)))
     ph = 2 * np.pi * np.cumsum(f) / SR
-    mix_into(x, 0, lowpass(np.sin(ph), 2400) * np.linspace(0.04, 0.3, len(tt)))
+    mix_into(x, 0, lowpass(np.sin(ph), 1600) * np.linspace(0.04, 0.28, len(tt)))
     i0 = int(rise_d * SR)
-    mix_into(x, i0, body_hit(85, 0.5, drop=0.35), 0.75)
-    chord(x, i0, ["A4", "C5", "E5", "A5"], 1.35, gain=0.4, spread=0.018, bright=0.95)
-    mix_into(x, i0, shimmer(1.2, density=16, f_lo=2400, f_hi=8000), 0.26)
-    out = reverb(widen(x, 0.003), mix=0.3, size=1.35)
-    return fade_io(norm(out, 0.76))
+    mix_into(x, i0, thump_drop(90, 40, 0.5, puff=0.5), 0.75)
+    warm_chord(x, i0, ["A2", "A3", "E4", "A4"], 1.1, gain=0.42, spread=0.02, tone=0.55)
+    mix_into(x, i0, saw_pad(note("A3"), 1.3, cutoff=700, a=0.02, r=0.6), 0.16)
+    out = reverb(widen(x, 0.003), mix=0.26, size=1.35, damp=3200)
+    return fade_io(norm(out, 0.74))
 
 
 def jng_intro_fs():
-    """Free-spin intro jingle: a crystal run resolving onto an open chord."""
+    """Free-spin intro jingle: a warm aeolian run resolving onto a low open chord."""
     n = int(2.2 * SR)
     x = np.zeros(n)
-    run = ["A4", "C5", "E5", "A5", "C6"]
+    run = ["A3", "C4", "E4", "A4", "C5"]
     for i, nn in enumerate(run):
-        mix_into(x, int(i * 0.115 * SR), bell(note(nn), 0.95, bright=0.88), 0.5)
+        mix_into(x, int(i * 0.115 * SR), marimba(note(nn), 0.6, tone=0.55), 0.5)
+        mix_into(x, int(i * 0.115 * SR), warm_pluck(note(nn) * 2, 0.4, tone=1400), 0.14)
     i0 = int(len(run) * 0.115 * SR)
-    chord(x, i0, ["A3", "E4", "A4", "C5", "E5"], 1.4, gain=0.34, spread=0.022, bright=0.8)
-    mix_into(x, i0, body_hit(90, 0.4, drop=0.4), 0.42)
-    mix_into(x, i0, shimmer(1.0, density=12, f_lo=2200, f_hi=6500), 0.2)
-    out = reverb(widen(x, 0.0025), mix=0.3, size=1.2)
-    return fade_io(norm(out, 0.7))
+    warm_chord(x, i0, ["A2", "E3", "A3", "C4", "E4"], 1.1, gain=0.38, spread=0.022, tone=0.55)
+    mix_into(x, i0, thump_drop(90, 45, 0.4, puff=0.4), 0.42)
+    mix_into(x, i0, whoosh(0.6, 180, 1000, back=0.7), 0.12)
+    out = reverb(widen(x, 0.0025), mix=0.26, size=1.2, damp=3400)
+    return fade_io(norm(out, 0.68))
 
 
 def sfx_youwon_panel():
-    """Feature total: a three-step cadence that keeps lifting (IV - V - I)."""
+    """Feature total: a three-step warm cadence that keeps lifting (IV - V - I)."""
     n = int(2.0 * SR)
     x = np.zeros(n)
-    steps = [(0.0, ["F4", "A4", "C5"]), (0.3, ["G4", "B4", "D5"]), (0.6, ["C5", "E5", "G5", "C6"])]
+    steps = [(0.0, ["F3", "A3", "C4"]), (0.3, ["G3", "B3", "D4"]), (0.6, ["C4", "E4", "G4", "C5"])]
     for tm, ch in steps:
-        chord(x, int(tm * SR), ch, 1.25, gain=0.36, spread=0.016, bright=0.85)
-    mix_into(x, int(0.6 * SR), shimmer(1.0, density=12, f_lo=2000, f_hi=6500), 0.2)
-    mix_into(x, 0, body_hit(95, 0.32, drop=0.42), 0.34)
-    out = reverb(widen(x, 0.003), mix=0.3, size=1.2)
-    return fade_io(norm(out, 0.72))
+        warm_chord(x, int(tm * SR), ch, 0.9, gain=0.42, spread=0.016, tone=0.58)
+    mix_into(x, int(0.6 * SR), thump_drop(100, 48, 0.32, puff=0.4), 0.36)
+    mix_into(x, int(0.55 * SR), whoosh(0.5, 200, 1100, back=0.75), 0.12)
+    out = reverb(widen(x, 0.003), mix=0.26, size=1.2, damp=3600)
+    return fade_io(norm(out, 0.7))
+
+
+def sfx_buy_commit():
+    """BONUS BUY CONFIRMED — the game's weightiest press: a deep purchase thud with
+    a short warm swell rising out of it. Commitment, not celebration."""
+    n = int(1.2 * SR)
+    x = np.zeros(n)
+    mix_into(x, 0, thump_drop(100, 42, 0.5, puff=0.7), 0.85)
+    mix_into(x, int(0.02 * SR), marimba(note("A2"), 0.7, tone=0.45, contact=0.3), 0.5)
+    mix_into(x, int(0.08 * SR), saw_pad(note("A3"), 0.9, cutoff=520, a=0.12, r=0.5), 0.2)
+    mix_into(x, int(0.12 * SR), marimba(note("E4"), 0.5, tone=0.5), 0.24)
+    out = reverb(widen(x, 0.0025), mix=0.22, size=1.1, damp=3000)
+    return fade_io(norm(out, 0.62))
+
+
+def sfx_transition_whoosh():
+    """Curtain in/out: one committed pass of air with a low seat — fired as the
+    wipe enters and again as it releases."""
+    n = int(0.7 * SR)
+    x = np.zeros(n)
+    mix_into(x, 0, whoosh(0.6, 220, 1500, curve=1.2, back=0.6), 0.55)
+    mix_into(x, 0, lowpass(RNG.standard_normal(int(0.6 * SR)), 240) * np.sin(np.pi * np.linspace(0, 1, int(0.6 * SR))) ** 1.6, 0.22)
+    return fade_io(norm(widen(x, 0.003), 0.5))
+
+
+def sfx_sticky_claim():
+    """A dragon CLAIMS its square — an ignite beat: low thump, a plucked warm tone
+    and a rising fifth catching light, with a short breath bloom."""
+    n = int(0.9 * SR)
+    x = np.zeros(n)
+    mix_into(x, 0, thump_drop(120, 55, 0.25, puff=0.4), 0.5)
+    mix_into(x, int(0.01 * SR), warm_pluck(note("A3"), 0.5, tone=1300), 0.5)
+    mix_into(x, int(0.1 * SR), marimba(note("E4"), 0.4, tone=0.55), 0.4)
+    mix_into(x, int(0.2 * SR), marimba(note("A4"), 0.45, tone=0.6), 0.34)
+    mix_into(x, 0, whoosh(0.35, 200, 1000, back=0.8), 0.14)
+    out = reverb(widen(x, 0.0022), mix=0.22, size=1.0, damp=3600)
+    return fade_io(norm(out, 0.56))
+
+
+def sfx_dismiss():
+    """Press-to-continue dismiss: a single soft felt tick. Nearly invisible."""
+    x = felt(note("E4"), 0.11, tone=0.3) * 0.8
+    return fade_io(norm(widen(x, 0.0008), 0.34))
 
 
 # ---------------------------------------------------------------- Sprite build
@@ -755,20 +905,36 @@ CUES = {
     "sfx_bigwin_coinloop": (sfx_bigwin_coinloop, True, 0.5),
     "sfx_btn_general": (sfx_btn_general, False, 0.55),
     "sfx_btn_spin": (sfx_btn_spin, False, 0.75),
+    "sfx_buy_commit": (sfx_buy_commit, False, 0.75),
+    "sfx_countup_loop": (sfx_countup_loop, True, 0.35),
+    "sfx_dismiss": (sfx_dismiss, False, 0.4),
     "sfx_dragon_glide": (sfx_dragon_glide, True, 0.5),
     "sfx_dragon_land": (sfx_dragon_land, False, 0.62),
     "sfx_multiplier_landing": (sfx_multiplier_landing, False, 0.9),
     "sfx_near_miss": (sfx_near_miss, False, 0.5),
-    "sfx_reel_stop_1": (sfx_reel_stop, False, 0.7),
+    "sfx_reel_stop_1": (lambda: sfx_reel_stop(0), False, 0.7),
+    "sfx_reel_stop_2": (lambda: sfx_reel_stop(1), False, 0.7),
+    "sfx_reel_stop_3": (lambda: sfx_reel_stop(2), False, 0.7),
+    "sfx_reel_stop_4": (lambda: sfx_reel_stop(3), False, 0.7),
+    "sfx_reel_stop_5": (lambda: sfx_reel_stop(4), False, 0.7),
+    "sfx_retrigger": (sfx_retrigger, False, 0.8),
     "sfx_scatter_stop_1": (lambda: sfx_scatter_stop(0), False, 0.75),
     "sfx_scatter_stop_2": (lambda: sfx_scatter_stop(1), False, 0.75),
     "sfx_scatter_stop_3": (lambda: sfx_scatter_stop(2), False, 0.78),
     "sfx_scatter_stop_4": (lambda: sfx_scatter_stop(3), False, 0.8),
     "sfx_scatter_stop_5": (lambda: sfx_scatter_stop(4), False, 0.82),
     "sfx_scatter_win_v2": (sfx_scatter_win, False, 0.8),
+    "sfx_spin_launch": (sfx_spin_launch, False, 0.6),
+    "sfx_spin_loop": (sfx_spin_loop, True, 0.35),
+    "sfx_sticky_claim": (sfx_sticky_claim, False, 0.7),
     "sfx_superfreespin": (sfx_superfreespin, False, 0.85),
     "sfx_tier_up": (sfx_tier_up, False, 0.75),
+    "sfx_transition_whoosh": (sfx_transition_whoosh, False, 0.6),
     "sfx_wild_explode": (sfx_wild_explode, False, 0.8),
+    "sfx_win_sting_1": (lambda: sfx_win_sting(0), False, 0.6),
+    "sfx_win_sting_2": (lambda: sfx_win_sting(1), False, 0.65),
+    "sfx_win_sting_3": (lambda: sfx_win_sting(2), False, 0.7),
+    "sfx_win_sting_4": (lambda: sfx_win_sting(3), False, 0.75),
     "sfx_winlevel_end": (sfx_winlevel_end, False, 0.7),
     "sfx_winlevel_small": (sfx_winlevel_small, False, 0.6),
     "sfx_youwon_panel": (sfx_youwon_panel, False, 0.85),

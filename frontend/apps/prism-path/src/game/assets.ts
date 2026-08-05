@@ -58,15 +58,9 @@ export default {
 
 	// UI art
 	// board frame: crystal v2 — LOCKED (candidate picker + losing frames removed post sign-off)
+	// (the stone/frame-derived ceremony plates are RETIRED — every dialog surface now
+	// rides the win-box family: opaque PrismPanel + accent light + gem jewellery)
 	board1: { type: 'sprite', src: new URL('../../assets/ui/frames/board1.png', import.meta.url).href },
-	// feature intro/outro ceremony plate: limestone facets in the board frame's
-	// hand-drawn ink (deterministic — scratch gen_plate_stone.py; mode identity is
-	// carried by the accent light, the stone never changes)
-	plateStone: { type: 'sprite', src: new URL('../../assets/ui/panels/plate_stone.png', import.meta.url).href, preload: true },
-	// free-spin counter plaque: limestone facets matching the board's outer frame
-	// (deterministically rendered — see scratch gen_counter_stone.py; mode accent
-	// carried by the light pool/glints, not the stone)
-	counterStone: { type: 'sprite', src: new URL('../../assets/ui/panels/counter_stone.png', import.meta.url).href, preload: true },
 	logo: { type: 'sprite', src: new URL('../../assets/ui/logo.png', import.meta.url).href, preload: true },
 
 	// --- symbols (keys match the math reveal board names: L2-L5/H1-H4/WILD/SCAT) ---

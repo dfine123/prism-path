@@ -42,6 +42,7 @@
 		level: number; // FINAL tier from the book, 6..10 (big..max)
 		amount?: number; // current rolling amount (book units) — enables live tier-up
 		fixedText?: string; // outro-style callers: wordmark stays put
+		accentOverride?: number; // feature ceremonies borrow the plaque with their own accent
 		children: Snippet;
 	};
 	const props: Props = $props();
@@ -69,7 +70,7 @@
 	const tier = $derived(shownLevelSafe - 6); // 0..4
 	const WORD_SIZE = $derived(SYMBOL_SIZE * (1.1 + tier * 0.1));
 	const isMax = $derived(shownLevelSafe >= 10);
-	const accentTarget = $derived(ACCENTS[tier]);
+	const accentTarget = $derived(props.accentOverride ?? ACCENTS[tier]);
 
 	const BOX_W = SYMBOL_SIZE * 6.2;
 	const BOX_H = SYMBOL_SIZE * 3.6;
@@ -157,9 +158,12 @@
 	const intro = $derived(clamp01((nowMs - introStartMs) / 420));
 	const rankAge = $derived((nowMs - rankAtMs) / 1000);
 
+	// after the drop-in impact the wordmark settles to EXACTLY 1 and breathes WITH
+	// the plaque (operator: its own idle sine at another frequency read as the word
+	// and the box pulsating independently — same rule as the ceremony amounts)
 	const wordScale = $derived.by(() => {
 		if (intro < 1) return 1.9 - 0.9 * EASE.impact(intro);
-		return 1 + 0.015 * Math.sin(t * Math.PI * 1.6);
+		return 1;
 	});
 	const wordAlpha = $derived(clamp01(intro * 2.2));
 

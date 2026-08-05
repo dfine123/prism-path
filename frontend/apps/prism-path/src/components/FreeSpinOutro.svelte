@@ -8,44 +8,35 @@
 </script>
 
 <script lang="ts">
-	// Feature finale — BONUS-THEMED closing ceremony on the gold ART PLAQUE (same plate
-	// family as the intro; crown crest and seated gems baked into the art). The total is
-	// shown STATIC — "(bonus name) COMPLETE" / "TOTAL WIN:" / amount — with one impact
-	// beat instead of a rolling count-up (the roll ceremony belongs to the wins inside
-	// the feature). Shard burst behind, press (or autoplay) to return to the day realm.
+	// Feature finale ON THE WIN-BOX PLAQUE (operator: every stone/frame-derived
+	// panel failed — the progressive gem plaque is the game's ONE approved dialog
+	// design, so the ceremonies join its family). WinBox at level 9 with a GOLD
+	// accent override: opaque violet plaque, corner gems, crest with side stones
+	// and crown, gold gem rain — "FREE SPINS COMPLETE" fixed wordmark, static
+	// total with one impact beat. Shard burst behind, press to return.
 	import { onMount } from 'svelte';
 	import { waitForResolve, waitForTimeout } from 'utils-shared/wait';
 	import { bookEventAmountToCurrencyString } from 'utils-shared/amount';
 	import { stateBet, stateBetDerived } from 'state-shared';
 	import { CanvasSizeRectangle, MainContainer } from 'components-layout';
 	import { OnMount } from 'components-shared';
-	import { BitmapText, Container, Graphics, Sprite } from 'pixi-svelte';
-	import { ResponsiveBitmapText } from 'components-pixi';
-	import { FadeContainer } from 'components-pixi';
+	import { BitmapText, Container } from 'pixi-svelte';
+	import { ResponsiveBitmapText, FadeContainer } from 'components-pixi';
 
 	import { getContext } from '../game/context';
 	import { SYMBOL_SIZE } from '../game/constants';
 	import { prismStyle, superLabelStyle } from '../game/fonts';
-	import { EASE, clamp01, lerpColor } from '../game/motion';
+	import { EASE, clamp01 } from '../game/motion';
 	import { boardFocusTo } from '../game/stateFx.svelte';
+	import WinBox from './WinBox.svelte';
 	import PrismShards from './PrismShards.svelte';
 	import PressToContinue from './PressToContinue.svelte';
 
 	const context = getContext();
 
 	const GOLD = 0xffd25e;
-	// limestone plate art is 1320x742; glass window inset 0.129H per side
-	const PLATE_W = SYMBOL_SIZE * 7.15;
-	const PLATE_H = PLATE_W * (742 / 1320);
-	const CUT = PLATE_H * 0.148;
-
-	const octagon = (w: number, h: number): number[] => {
-		const w2 = w / 2;
-		const h2 = h / 2;
-		const c = CUT;
-		return [-w2 + c, -h2, w2 - c, -h2, w2, -h2 + c, w2, h2 - c, w2 - c, h2, -w2 + c, h2, -w2, h2 - c, -w2, -h2 + c];
-	};
-	const scaleOct = (pts: number[], sc: number) => pts.map((v) => v * sc);
+	// the WinBox plaque geometry (its BOX_H is 3.6 symbols; invite seats just under)
+	const BOX_H = SYMBOL_SIZE * 3.6;
 
 	// "(bonus name) COMPLETE": bought features carry their card title; a naturally
 	// triggered (or hunt-found) feature is plainly FREE SPINS
@@ -54,8 +45,6 @@
 		return mode?.type === 'buy' && mode.title ? mode.title : 'FREE SPINS';
 	});
 
-	// starts HIDDEN like every other overlay — init true made the first feature's panel
-	// hard-cut in (FadeContainer had already tweened to alpha 1 invisibly at boot)
 	let show = $state(false);
 	let amount = $state(0);
 	let oncomplete = $state(() => {});
@@ -78,7 +67,6 @@
 			show = true;
 		},
 		freeSpinOutroHide: async () => (show = false),
-		// same awaited contract; the amount is shown STATIC (no roll), the level unused
 		freeSpinOutroCountUp: async (emitterEvent) => {
 			amount = emitterEvent.amount;
 			await waitForResolve((resolve) => (oncomplete = resolve));
@@ -92,31 +80,19 @@
 
 	const secs = $derived(nowMs / 1000);
 	const age = $derived(show ? (nowMs - shownAtMs) / 1000 : 0);
-	const plateIn = $derived(clamp01(age / 0.42));
-	const plateScale = $derived.by(() => {
-		if (plateIn < 1) return 1.22 - 0.22 * EASE.impact(plateIn);
-		return 1 + 0.005 * Math.sin(secs * Math.PI * 0.9);
-	});
-	const plateAlpha = $derived(clamp01(age / 0.15));
-	const wAge = $derived(clamp01((age - 0.14) / 0.34));
-	const labelAge = $derived(clamp01((age - 0.3) / 0.3));
-	// the amount lands STATIC with one impact beat just after the wordmark (no roll).
-	// After the impact it settles to EXACTLY 1 and inherits the plate's breath — its
-	// own idle sine at another frequency read as the amount and box ALTERNATING
-	const amountIn = $derived(clamp01((age - 0.4) / 0.32));
-	const amountScale = $derived.by(() => {
-		return amountIn < 1 ? 2.0 - 1.0 * EASE.impact(amountIn) : 1;
-	});
-	const burstU = $derived(clamp01((age - 0.48) / 0.55));
+	const labelIn = $derived(clamp01((age - 0.24) / 0.3));
+	// the amount lands STATIC with one impact beat, then settles to 1 and breathes
+	// WITH the plaque (its own idle sine read as the amount and box alternating)
+	const amountIn = $derived(clamp01((age - 0.38) / 0.32));
+	const amountScale = $derived.by(() => (amountIn < 1 ? 2.0 - 1.0 * EASE.impact(amountIn) : 1));
 	// the shard burst is the celebration garnish: a short eruption as the panel lands
 	const bursting = $derived(show && age < 1.4);
 </script>
 
 <FadeContainer {show}>
 	{#if show}
-		<!-- manual play holds on PRESS TO CONTINUE; under AUTOPLAY or an active SPACE-HOLD
-		     the panel auto-advances after a readable hold (a held key can never produce
-		     the fresh keydown PressToContinue needs). Generation-guarded. -->
+		<!-- manual play holds on PRESS TO CONTINUE; AUTOPLAY / SPACE-HOLD auto-advance
+		     after a readable hold. Generation-guarded. -->
 		<OnMount
 			onmount={async () => {
 				const myResolve = oncomplete;
@@ -129,7 +105,7 @@
 
 		<CanvasSizeRectangle backgroundColor={0x05030a} backgroundAlpha={0.6} />
 
-		<!-- shards UNDER the panel: gems erupt from behind the plaque, never over text -->
+		<!-- shards UNDER the plaque: gems erupt from behind, never over text -->
 		<PrismShards emit={bursting} levelAlias="big" />
 
 		<MainContainer>
@@ -137,130 +113,38 @@
 				x={context.stateGameDerived.boardLayout().x}
 				y={context.stateGameDerived.boardLayout().y}
 			>
-				<!-- soft gold backdrop bloom (textured gaussian falloff, never a flat disc) -->
-				<Sprite
-					key="mote"
-					anchor={0.5}
-					blendMode="add"
-					tint={lerpColor(GOLD, 0xffffff, 0.25)}
-					width={SYMBOL_SIZE * 9.6 * (0.92 + 0.08 * Math.sin(secs * Math.PI * 0.8))}
-					height={SYMBOL_SIZE * 7 * (0.92 + 0.08 * Math.sin(secs * Math.PI * 0.8))}
-					alpha={0.26 * plateAlpha}
-				/>
-
-				<Container scale={plateScale} alpha={plateAlpha}>
-					<!-- THE PLATE: limestone plaque in the board frame's hand-drawn ink -->
-					<Sprite key="plateStone" anchor={0.5} width={PLATE_W} height={PLATE_H} />
-
-					<!-- "(bonus name) COMPLETE" drops in with the impact settle. ROW RHYTHM:
-					     the stone window is symmetric (usable ±0.33H) — title -0.20 /
-					     label +0.005 / amount +0.19 -->
-					<Container
-						y={-PLATE_H * 0.2 - SYMBOL_SIZE * 0.3 * (1 - EASE.settle(wAge))}
-						alpha={clamp01(wAge * 2.2)}
-						scale={1.25 - 0.25 * EASE.impact(wAge)}
-					>
-						<ResponsiveBitmapText
-							anchor={0.5}
-							maxWidth={PLATE_W * 0.62}
-							text={`${bonusName} COMPLETE`}
-							style={prismStyle(SYMBOL_SIZE * 0.55, { align: 'center' })}
-						/>
-					</Container>
-
-					<Container y={PLATE_H * 0.005} alpha={labelAge}>
+				<!-- THE plaque: the approved win-box family, gold ceremony trim
+				     (corner gems, crest + side stones + crown, gold gem rain) -->
+				<WinBox level={9} accentOverride={GOLD} fixedText={`${bonusName} COMPLETE`}>
+					<Container y={-SYMBOL_SIZE * 0.52} alpha={labelIn}>
 						<BitmapText
 							anchor={0.5}
 							text="TOTAL WIN:"
-							style={superLabelStyle(SYMBOL_SIZE * 0.26, { align: 'center' })}
+							style={superLabelStyle(SYMBOL_SIZE * 0.28, { align: 'center' })}
 						/>
 					</Container>
-
-					<!-- pool of light under the amount -->
-					<Sprite
-						key="mote"
-						anchor={0.5}
-						blendMode="add"
-						tint={lerpColor(GOLD, 0xffffff, 0.3)}
-						y={PLATE_H * 0.19}
-						width={SYMBOL_SIZE * 3.4}
-						height={SYMBOL_SIZE * 2.0}
-						alpha={0.28 + 0.25 * (1 - burstU) + 0.05 * Math.sin(secs * Math.PI * 1.1)}
-					/>
-
-					<!-- base size is set for SHORT amounts ("$47.75") — the responsive fit
-					     only ever SHRINKS long strings, so the base size is what a short
-					     amount actually renders at; 1.0S crowded the bottom inlay -->
-					<Container y={PLATE_H * 0.19} scale={amountScale} alpha={clamp01(amountIn * 2.4)}>
+					<Container scale={amountScale} alpha={clamp01(amountIn * 2.4)}>
 						<ResponsiveBitmapText
 							anchor={0.5}
-							maxWidth={PLATE_W * 0.68}
+							maxWidth={SYMBOL_SIZE * 4.4}
 							text={bookEventAmountToCurrencyString(amount)}
-							style={prismStyle(SYMBOL_SIZE * 0.82, { align: 'center', letterSpacing: 0 })}
+							style={prismStyle(SYMBOL_SIZE * 1.0, { align: 'center', letterSpacing: 0 })}
 						/>
 					</Container>
+				</WinBox>
 
-					<!-- glint burst thrown from the amount as it lands -->
-					{#if burstU > 0 && burstU < 1}
-						{#each Array.from({ length: 6 }, (_, i) => i) as i (i)}
-							{@const a = (i / 6) * Math.PI * 2 + 0.4}
-							{@const r = SYMBOL_SIZE * (0.5 + 1.7 * EASE.settle(burstU))}
-							<Sprite
-								key="moteStar"
-								anchor={0.5}
-								blendMode="add"
-								tint={lerpColor(GOLD, 0xffffff, 0.6)}
-								x={Math.cos(a) * r * 1.25}
-								y={PLATE_H * 0.19 + Math.sin(a) * r * 0.7}
-								width={SYMBOL_SIZE * 0.34 * (1 - burstU * 0.6)}
-								height={SYMBOL_SIZE * 0.34 * (1 - burstU * 0.6)}
-								rotation={a + burstU * 1.2}
-								alpha={0.85 * (1 - burstU)}
-							/>
-						{/each}
-					{/if}
-
-					<!-- the invite, seated with the plaque (not lost at the screen edge) -->
-					<BitmapText
-						anchor={0.5}
-						y={PLATE_H / 2 + SYMBOL_SIZE * 0.32}
-						text="PRESS ANYWHERE TO CONTINUE"
-						alpha={(0.62 + 0.38 * (Math.sin(secs * Math.PI * 1.3) + 1) * 0.5) *
-							clamp01((age - 0.7) / 0.35)}
-						style={superLabelStyle(SYMBOL_SIZE * 0.185, { align: 'center' })}
-					/>
-				</Container>
-
-				<!-- landing shockwave: the plate body's silhouette bursting outward, twin rings -->
-				{#if age > 0 && age < 0.62}
-					<Graphics
-						blendMode="add"
-						draw={(g) => {
-							const base = octagon(PLATE_W, PLATE_H);
-							const s1 = clamp01(age / 0.5);
-							g.poly(scaleOct(base, 1 + 0.85 * EASE.settle(s1))).stroke({
-								width: 3 + 10 * (1 - s1),
-								color: lerpColor(0xffffff, GOLD, s1),
-								alpha: 0.5 * (1 - s1),
-								join: 'miter',
-							});
-							const s2 = clamp01((age - 0.09) / 0.5);
-							if (s2 > 0) {
-								g.poly(scaleOct(base, 1 + 0.5 * EASE.settle(s2))).stroke({
-									width: 2 + 6 * (1 - s2),
-									color: GOLD,
-									alpha: 0.35 * (1 - s2),
-									join: 'miter',
-								});
-							}
-						}}
-					/>
-				{/if}
+				<!-- the invite, seated with the plaque -->
+				<BitmapText
+					anchor={0.5}
+					y={BOX_H / 2 + SYMBOL_SIZE * 0.34}
+					text="PRESS ANYWHERE TO CONTINUE"
+					alpha={(0.62 + 0.38 * (Math.sin(secs * Math.PI * 1.3) + 1) * 0.5) *
+						clamp01((age - 0.7) / 0.35)}
+					style={superLabelStyle(SYMBOL_SIZE * 0.185, { align: 'center' })}
+				/>
 			</Container>
 		</MainContainer>
 
-		<!-- unmount the full-screen catcher the instant hiding starts — an invisible
-		     fading rect must not swallow board presses -->
 		<PressToContinue showLabel={false} onpress={() => oncomplete()} />
 	{/if}
 </FadeContainer>

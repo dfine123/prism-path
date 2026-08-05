@@ -334,3 +334,40 @@ gem plaque, canon.
       disabled no longer applies container transparency (which let the bar read
       through the glass); the face stays fully opaque and "dimmed" is a dark veil
       disc drawn OVER it. Label-less enlarged glyph kept.
+- [x] PLATES REBUILT FROM THE REAL FRAME ART (operator: stone renders "super dull and
+      just off"): tools/compose_plates.py recomposes board1.png itself into
+      plate_stone.png + counter_stone.png — corners verbatim, sides as two
+      corner-continuous halves with a feathered mid-seam, top/bottom bars closed with
+      one feathered seam at the least-inked column, ring alpha-composited over the
+      dark-glass window. Ring scaled so border thickness matches the existing
+      component text-inset geometry (zero frontend changes). The plaques now inherit
+      the frame's true washes/iridescence/sparkles by construction. Intro shares the
+      plate asset — all three surfaces upgraded together.
+- [x] PLAQUES v3 — DESIGNED, not copied (operator: "it can't just be a copy, it has
+      to align"). tools/gen_plaques.py (compose_plates.py deleted) implements the
+      frame's DESIGN GRAMMAR at plaque proportions: radial bezel facets inner
+      window -> gem-cut outer edge (leaning spokes, irregular widths, occasional
+      internal detail lines), per-facet painted washes, the frame's color script
+      (creams + rare SATURATED red/teal/purple/rose facets + HOLOGRAPHIC rainbow
+      facets, spread by ring position), plum ink hierarchy with hand wobble at
+      display-calibrated widths, star sparkles at junctions. Ceremony plate K=24
+      medium ink (~0.37x display); counter K=13 chunky facets heavy ink (~0.14x).
+      Window insets unchanged -> zero component edits. Verified in-game: outro +
+      counter + (shared-asset) intro.
+- [x] CEREMONY DESIGN SETTLED — THE WIN-BOX FAMILY IS THE DIALOG LANGUAGE (operator
+      rejected every stone/frame-derived panel: the board frame is the PLAY surface,
+      not the dialog anchor; the approved dialog design is the progressive gem
+      plaque). FreeSpinIntro + FreeSpinOutro now RIDE WinBox ITSELF (new
+      accentOverride prop): intro = level-7 cyan plaque (SUPER = level-9 gold with
+      crown + gem rain), outro = level-9 GOLD ("FREE SPINS COMPLETE" / TOTAL WIN /
+      static amount with one impact beat). FreeSpinCounter = miniature of the family
+      (opaque PrismPanel, accent pool + tick flare, two seated corner stones, gold
+      under SUPER). Stone assets/generators DELETED (plate/counter_stone pngs,
+      gen_plaques/compose tools, registry entries). Verified live on a fresh server:
+      intro/outro/counter render, zero panel asset requests, no compile errors.
+- [x] Counter gems dropped (operator); intro/outro pulse as ONE — WinBox wordmark's
+      idle sine removed (settles to exactly 1, inherits the plaque breath — same
+      rule as the ceremony amounts), which also unifies the big-win box's own
+      word/box breathing. (Dev-only note: intermittent stale-module 404s for the
+      deleted stone assets were the browser pane's HTTP cache — repo verified clean,
+      impossible in hashed production builds.)

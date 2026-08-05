@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Container, Graphics, Text } from 'pixi-svelte';
+	import { Container, Graphics } from 'pixi-svelte';
 	import { Button, type ButtonProps } from 'components-pixi';
 	import { OnHotkey } from 'components-shared';
 	import { stateBetDerived, stateModal, stateUi } from 'state-shared';
@@ -8,7 +8,6 @@
 	import UiGlyph from './UiGlyph.svelte';
 	import ButtonBetProvider from './ButtonBetProvider.svelte';
 	import { getContext } from '../context';
-	import { i18nDerived } from '../i18n/i18nDerived';
 	import { SUPER_UI, prismAt, lerpColor } from '../theme';
 
 	// THE HERO. The one control the player touches a thousand times: biggest silhouette,
@@ -41,7 +40,10 @@
 		<OnHotkey hotkey="Space" {disabled} {onpress} />
 		<Button {...props} {sizes} {onpress} {disabled}>
 			{#snippet children({ center, hovered, pressed })}
-				<Container {...center} scale={pressed ? T.press : 1} alpha={keyDisabled ? T.dim : 1}>
+				<!-- the hero NEVER goes transparent (it overhangs the deck's end cap — at
+				     partial alpha the bar showed through the glass). Disabled = a DARK VEIL
+				     drawn over the opaque face instead: same dimmed read, zero see-through. -->
+				<Container {...center} scale={pressed ? T.press : 1}>
 					<!-- OPAQUE BASE: a solid disc under the whole hero — the deck's end cap,
 					     seam and scene can never show through the button (no see-through gaps) -->
 					<Graphics
@@ -81,19 +83,17 @@
 							});
 						}}
 					/>
-					<UiGlyph icon={isSpin ? 'spin' : 'stop'} shadow y={-D * 0.075} size={D * 0.4} />
-					<Text
-						anchor={0.5}
-						y={D * 0.21}
-						text={isSpin ? i18nDerived.bet() : i18nDerived.stop()}
-						style={{
-							align: 'center',
-							fontFamily: T.font,
-							fontWeight: '700',
-							fontSize: T.fs.heroLabel,
-							fill: T.color.text,
-						}}
-					/>
+					<!-- glyph-only face (operator: label dropped, icon enlarged) — the
+					     silhouette IS the meaning: spin arrow at rest, stop square mid-round -->
+					<UiGlyph icon={isSpin ? 'spin' : 'stop'} shadow size={D * 0.52} />
+					{#if keyDisabled}
+						<Graphics
+							draw={(g) => {
+								g.clear();
+								g.circle(0, 0, ringR + ringW * 0.95).fill({ color: 0x0a0614, alpha: 0.55 });
+							}}
+						/>
+					{/if}
 				</Container>
 			{/snippet}
 		</Button>

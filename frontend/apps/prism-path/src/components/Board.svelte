@@ -13,6 +13,7 @@
 
 <script lang="ts">
 	import { waitForResolve } from 'utils-shared/wait';
+	import { stateBet } from 'state-shared';
 	import { BoardContext } from 'components-shared';
 	import { Container, Rectangle } from 'pixi-svelte';
 
@@ -57,18 +58,33 @@
 	});
 
 	context.stateGameDerived.enhancedBoard.readyToSpinEffect();
+
+	// QUICK-SPIN SLAM (operator): engaging turbo MID-FLIGHT of a paced spin lands
+	// every reel together — without this, a space quick-spin sped up everything
+	// except the reels, which kept their full one-by-one stagger ("weirdly falling
+	// in"). Guarded to paced spin types so a spin STARTED under turbo keeps its
+	// designed fast timing instead of being slammed at launch.
+	$effect(() => {
+		if (!stateBet.isTurbo) return;
+		const midPacedFlight = context.stateGame.board.some(
+			(reel) =>
+				reel.reelState.motion === 'spinning' &&
+				(reel.reelState.spinType === 'normal' || reel.reelState.spinType === 'anticipated'),
+		);
+		if (midPacedFlight) context.stateGameDerived.enhancedBoard.stop();
+	});
 </script>
 
 {#if show}
 	<BoardContext animate={false}>
 		<BoardContainer>
 			<BoardMask />
-			<!-- win-line ribbons render UNDER the symbols (operator: the line goes
-			     BEHIND them). Every board symbol is a SPRITE, so winners live in THIS
-			     static layer — the ribbon must sit inside it, above the cell backdrop
-			     and below BoardBase (spine symbols in the animate context above clear
-			     it for free). Masked to the board rect so lines still slide out from
-			     under the frame border. -->
+			<!-- Z-ORDER SANDWICH (operator): dragon PATH trail cells render FIRST, the
+			     win-line ribbon rides OVER the path, and every other symbol renders
+			     over the ribbon (multiplier badges + value pops top everything in the
+			     animate layer's masked container). Masked so lines still slide out
+			     from under the frame border. -->
+			<BoardBase only="trail" />
 			<Container>
 				<Rectangle
 					isMask
@@ -77,7 +93,7 @@
 				/>
 				<WinLines />
 			</Container>
-			<BoardBase />
+			<BoardBase only="nonTrail" />
 		</BoardContainer>
 	</BoardContext>
 

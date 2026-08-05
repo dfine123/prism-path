@@ -312,3 +312,25 @@ interior (+0.72S row vs 1.15S half-window) and clears in v3.2 geometry (verified
 $31.95 SUPER WIN live). SCOPE NOTE: stone stays where approved — FreeSpinIntro/Outro
 plates + free-spin counter + board frame family. The WIN BOX is the progressive
 gem plaque, canon.
+
+### 2026-08-05 — quick-spin + feel tweaks (operator batch)
+- [x] Dragon glide whoosh RESTORED to the original voice (lowpass 1900 / damp 3600 —
+      the warm pass had darkened it); sprite regenerated.
+- [x] Board-breath launch cue trimmed to its FIRST part (whoosh only — the thump+pluck
+      tail read as a second event).
+- [x] Frosted grid: pre-blurred day/night sky plates (4KB each) masked under the board
+      glass — scene-aware, subtle.
+- [x] QUICK-SPIN: (a) value pops get a LEGIBILITY FLOOR (pop window advances max 2x
+      real time — can't compress to a blip or be jumped over); (b) engaging turbo
+      mid-flight SLAMS all reels together via enhancedBoard.stop() (guarded to paced
+      spin types so pre-toggled turbo keeps designed timing).
+- [x] Z-ORDER: BoardBase split into trail/nonTrail passes around WinLines — the line
+      rides OVER dragon path cells, under all other symbols and multiplier badges.
+- [x] BET UI STRUCTURAL: hero DETACHED from the deck (bar no longer runs under the
+      glass — nothing shows through at spin-time dim); BET/STOP label removed, glyph
+      up to 0.52D.
+- [x] BET UI corrected per operator: CONNECTED structure restored (hero back on the
+      deck's end cap — detaching was a misread). The polish fix is in ButtonBet:
+      disabled no longer applies container transparency (which let the bar read
+      through the glass); the face stays fully opaque and "dimmed" is a dark veil
+      disc drawn OVER it. Label-less enlarged glyph kept.

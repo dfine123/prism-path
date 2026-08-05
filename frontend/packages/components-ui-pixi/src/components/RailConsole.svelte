@@ -44,6 +44,8 @@
 		const stepX = cx + T.bar.stepper / 2;
 		cx += T.bar.stepper + 16;
 		// hero sits ON the end cap: its right edge reaches heroPoke past the bar's edge
+		// (operator: the CONNECTED structure is the design — the see-through fix lives
+		// in ButtonBet, whose disabled state now DARKENS instead of going transparent)
 		const heroX = cx + T.hero / 2;
 		const barW = cx + T.hero - T.bar.heroPoke;
 

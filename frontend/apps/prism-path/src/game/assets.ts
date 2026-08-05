@@ -29,6 +29,9 @@ export default {
 	// backgrounds (cover-cropped at render; 1376x768 source)
 	// (bg_base/bg_feature monolith paintings retired — BackgroundScene composes the
 	// living scene from the layers/ plates; the 9.4MB pair was dead preload weight)
+	// frosted-glass backdrops for the board glass (pre-blurred skies, 4KB each)
+	blurDay: { type: 'sprite', src: new URL('../../assets/backgrounds/blur_day.jpg', import.meta.url).href, preload: true },
+	blurNight: { type: 'sprite', src: new URL('../../assets/backgrounds/blur_night.jpg', import.meta.url).href, preload: true },
 
 	// LAYERED LIVING BACKGROUND (BackgroundScene): the paintings decomposed into real
 	// plates via Higgsfield — empty-sky bases + complete island/cloud cutouts that

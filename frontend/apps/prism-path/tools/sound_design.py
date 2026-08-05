@@ -530,12 +530,11 @@ def sfx_btn_spin():
 
 
 def sfx_spin_launch():
-    """The board pushes off: a quick warm whoosh with a low seat under it."""
+    """The board's launch breath: the whoosh ALONE (operator: the cue had two parts —
+    keep the first, drop the second; the thump + pluck tail read as a second event)."""
     n = int(0.5 * SR)
     x = np.zeros(n)
     mix_into(x, 0, whoosh(0.45, 180, 1100, curve=1.1, back=0.85), 0.5)
-    mix_into(x, 0, thump_drop(120, 58, 0.22, puff=0.3), 0.28)
-    mix_into(x, int(0.02 * SR), warm_pluck(note("A3"), 0.3, tone=1100), 0.18)
     return fade_io(norm(widen(x, 0.002), 0.55))
 
 
@@ -600,10 +599,12 @@ def sfx_dragon_glide():
     for c in np.geomspace(120, 1100, 6):
         w = np.exp(-((np.log(centre / c)) ** 2) / (2 * 0.6 ** 2))
         out += bandpass(src, c * 0.55, c * 1.8, order=2) * w
+    # RESTORED to the original flight voice (operator: the prior whoosh was better) —
+    # brighter air cap + airier reverb than the warm-pass darkening
     out += lowpass(src, 200) * 0.6
-    out = lowpass(out, 1500)
+    out = lowpass(out, 1900)
     out *= 0.85 + 0.15 * np.sin(2 * np.pi * tt)
-    out = reverb(widen(out, 0.005), mix=0.22, size=1.1, damp=3200)
+    out = reverb(widen(out, 0.005), mix=0.22, size=1.1, damp=3600)
     return norm(fold_loop(out, total), 0.34)
 
 

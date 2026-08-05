@@ -12,6 +12,7 @@
 	import { BOARD_SIZES, SYMBOL_SIZE, CELL_W } from '../game/constants';
 	import { paletteAt, lerpColor, clamp01 } from '../game/motion';
 	import { stateFx } from '../game/stateFx.svelte';
+	import { stateGame } from '../game/stateGame.svelte';
 
 	const context = getContext();
 
@@ -83,6 +84,31 @@
 	y={context.stateGameDerived.boardLayout().y * POSITION_ADJUSTMENT + stateFx.boardNudgeY}
 	scale={stateFx.boardScale}
 >
+
+	<!-- FROSTED BACKDROP (operator: subtle blur behind the grid): a pre-blurred sky
+	     plate masked to the panel, under the glass fill — the board reads as frosted
+	     glass over the realm instead of a flat tint. Scene-aware (day / night). -->
+	<Container>
+		<Graphics
+			isMask
+			draw={(g) => {
+				g.roundRect(
+					(-BOARD_SIZES.width * 1.06) / 2,
+					(-BOARD_SIZES.height * 1.06) / 2,
+					BOARD_SIZES.width * 1.06,
+					BOARD_SIZES.height * 1.06,
+					22,
+				).fill({ color: 0xffffff });
+			}}
+		/>
+		<Sprite
+			key={stateGame.gameType === 'basegame' ? 'blurDay' : 'blurNight'}
+			anchor={0.5}
+			width={BOARD_SIZES.width * 1.06}
+			height={BOARD_SIZES.height * 1.06}
+			alpha={0.5}
+		/>
+	</Container>
 
 	<!-- Board backing: deep-violet TRANSLUCENT GLASS (the sky realm glows through) with the
 	     grid drawn as engraved grooves — dark under-cut + lavender light core, inset with

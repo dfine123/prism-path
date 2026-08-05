@@ -119,8 +119,16 @@
 
 			const frame = () => {
 				const t = now();
-				el += (t - lastT) * stateFx.winSpeed;
+				const dt = t - lastT;
 				lastT = t;
+				let adv = dt * stateFx.winSpeed;
+				// LEGIBILITY FLOOR (quick-spin fix): the value pop must survive skip-through.
+				// While el is inside — or would jump across — the pop window, advancement
+				// caps at 2x real time, so the number always gets a readable flash instead
+				// of being compressed to a 1-frame blip (or skipped entirely on a jump).
+				const popEnd = DRAW_MS + POP_MS + 120;
+				if (el < popEnd && el + adv > DRAW_MS) adv = Math.min(adv, dt * 2);
+				el += adv;
 				line.phase = (el / 1000) * FLOW_HZ;
 				if (el < DRAW_MS) {
 					// glide (cubicOut): continuous fluid sweep, no expo snap-then-crawl
@@ -249,8 +257,12 @@
 			const TOTAL = 540;
 			const frame = () => {
 				const tN = now();
-				el += (tN - lastT) * stateFx.winSpeed;
+				const dt = tN - lastT;
 				lastT = tN;
+				let adv = dt * stateFx.winSpeed;
+				// same legibility floor as the line pop: the combined total must read
+				if (el < POP_MS + 120) adv = Math.min(adv, dt * 2);
+				el += adv;
 				const pu = clamp01(el / POP_MS);
 				stateWinPop.scale = pu < 1 ? EASE.impact(pu) : 1 + 0.025 * Math.sin((el / 1000) * Math.PI * 2.4);
 				stateWinPop.alpha =

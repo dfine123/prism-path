@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { recordBookEvent, checkIsMultipleRevealEvents, type BookEventHandlerMap } from 'utils-book';
 import { wasRecentUiPress } from 'components-pixi';
-import { stateBet, stateUi } from 'state-shared';
+import { stateBet, stateBetDerived, stateUi } from 'state-shared';
 import { sequence } from 'utils-shared/sequence';
 import { waitForTimeout } from 'utils-shared/wait';
 
@@ -95,17 +95,20 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		};
 		window.addEventListener('pointerdown', quickStop);
 		boardBreathe(); // the board takes a breath as the reels launch
-		// spin voice: a quick warm push-off, then a soft airy motion bed that runs until
-		// the last reel has landed (spin() resolves on the final reel stop)
-		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_spin_launch' });
-		eventEmitter.broadcast({ type: 'soundLoop', name: 'sfx_spin_loop' });
+		// SPIN VOICE — exactly ONE push-off whoosh, never two (operator: the second
+		// whoosh on every spin). A manual press already sounded it (soundPressBet ->
+		// sfx_btn_spin), so the launch cue only stands in when there was no press:
+		// autoplay rounds and space-hold repeats. The constant airy motion bed is gone
+		// too — it was background noise under every spin with nothing to say.
+		if (stateBetDerived.hasAutoBetCounter() || stateBet.isSpaceHold) {
+			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_btn_spin' });
+		}
 		try {
 			await stateGameDerived.enhancedBoard.spin({
 				revealEvent: bookEvent,
 				paddingBoard: config.paddingReels[bookEvent.gameType],
 			});
 		} finally {
-			eventEmitter.broadcast({ type: 'soundStop', name: 'sfx_spin_loop' });
 			window.removeEventListener('pointerdown', quickStop);
 		}
 		// NEAR-MISS (subtle, POLISH-ROADMAP 1.5): anticipation ran and the trigger whiffed
@@ -158,9 +161,10 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 				};
 			}
 		}
-		// the ARRIVAL is a bright chime; the fuller multiplier chord belongs to the path
-		// ignition later in the flight (sharing one cue made the two beats indistinct)
-		eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_dragon_land' });
+		// NO arrival cue: the same dragon already sounded when its symbol landed on the
+		// reel (stateGame onSymbolLand), so a second identical chime ~1s later was one
+		// dragon announcing itself twice — audible clutter. The flight speaks through
+		// the glide, and the ignition through the multiplier chord.
 		boardSlam(0.7); // the dragon has weight — the board feels it land
 		await waitForTimeout(60);
 	},
@@ -208,37 +212,12 @@ export const bookEventHandlerMap: BookEventHandlerMap<BookEvent, BookEventContex
 		// A CLICK during the sequence = "skip through": every paced clock runs much faster.
 		const wins = [...mergedByCells.values()].sort((a, b) => (a.win ?? 0) - (b.win ?? 0));
 
-		// TURBO (incl. space-hold, which forces turbo): results-first. The line-by-line tour
-		// at raised speed read as "10x footage" — off, not fast. Instead: ONE composed
-		// statement — every line sweeps on in a tight cascade (full easing per strand), all
-		// winning symbols breathe together, the combined total lands with a single impact
-		// pop, one readable hold, joint release. ~0.7s regardless of line count.
-		if (stateBet.isTurbo && wins.length > 0) {
-			eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_winlevel_small' });
-			const seen = new Set<string>();
-			const allPositions: Position[] = [];
-			for (const w of wins) {
-				for (const p of w.positions) {
-					const k = `${p.reel},${p.row}`;
-					if (!seen.has(k)) {
-						seen.add(k);
-						allPositions.push(p);
-					}
-				}
-			}
-			stateFx.winSpeed = 1;
-			await Promise.all([
-				eventEmitter.broadcastAsync({
-					type: 'winLinesFlash',
-					lines: wins.map((w) => ({ positions: w.positions })),
-					amount: wins.reduce((s, w) => s + (w.win ?? 0), 0),
-				}),
-				animateSymbols({ positions: allPositions }),
-			]);
-			return;
-		}
-
-		stateFx.winSpeed = 1;
+		// TURBO (incl. space-hold) is the SAME presentation, just faster — ONE code path.
+		// It used to branch into a composite flash that dropped every per-line value and
+		// showed a single combined total; the player quick-spinning still wants to see
+		// what each line paid (operator). The paced clock carries the speed, and the
+		// value-pop legibility floor in WinLines keeps each number readable at 5x.
+		stateFx.winSpeed = stateBet.isTurbo ? 5 : 1;
 		const speedUp = () => {
 			if (wasRecentUiPress()) return; // console presses are not "skip the lines"
 			stateFx.winSpeed = 5;

@@ -7,7 +7,6 @@
 	import WildTrailSymbol from './WildTrailSymbol.svelte';
 	import { getSymbolInfo } from '../game/utils';
 	import type { SymbolState, RawSymbol } from '../game/types';
-	import { getContext } from '../game/context';
 
 	type Props = {
 		x?: number;
@@ -19,7 +18,6 @@
 	};
 
 	const props: Props = $props();
-	const context = getContext();
 	const symbolInfo = $derived(getSymbolInfo({ rawSymbol: props.rawSymbol, state: props.state }));
 	const isSprite = $derived(symbolInfo.type === 'sprite');
 	// A flight-converted wild (trail flag) renders as the ANIMATED PRISM TRAIL, not a dragon.
@@ -67,13 +65,6 @@
 		x={props.x}
 		y={props.y}
 		showWinFrame={props.state === 'win'}
-		listener={{
-			complete: props.oncomplete,
-			event: (_, event) => {
-				if (event.data?.name === 'wildExplode') {
-					context.eventEmitter?.broadcast({ type: 'soundOnce', name: 'sfx_wild_explode' });
-				}
-			},
-		}}
+		listener={{ complete: props.oncomplete }}
 	/>
 {/if}

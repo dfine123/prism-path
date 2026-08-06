@@ -371,3 +371,49 @@ gem plaque, canon.
       word/box breathing. (Dev-only note: intermittent stale-module 404s for the
       deleted stone assets were the browser pane's HTTP cache — repo verified clean,
       impossible in hashed production builds.)
+- [x] LOOP BLIP FIXED (operator: audible blip every couple seconds in the bonus):
+      fold_loop preserved tail ENERGY across the wrap but never matched the
+      WAVEFORM at the seam — noise-based beds (2.0s spin loop, running constantly
+      through bonus autoplay; 0.9s dragon glide during flights) had uncorrelated
+      end/start samples = a click every cycle. New seamless_loop() applies an
+      equal-power circular crossfade (end blended into start, 35ms) to EVERY
+      loop=True cue at build time, with a printed seam-jump check. Regenerated:
+      all 12 looping cues now measure seam jumps 0.001-0.012 (vs ~0.3+ raw noise
+      mismatch). Sprite rebuilt; boot + spin exercised clean.
+
+### 2026-08-05 — AUDIO DE-CLUTTER (operator: double whoosh / thin glide / too many sounds)
+- [x] DOUBLE WHOOSH root-caused: TWO cues each contained a whoosh and both fired per
+      spin — sfx_btn_spin on press, then sfx_spin_launch on reveal ~a beat later.
+      Fix: the PRESS cue is the spin whoosh; sfx_spin_launch RETIRED, and the reveal
+      only sounds sfx_btn_spin when there was no press (autoplay / space-hold), so
+      every spin has exactly one. Verified by cue-trace: manual reveal = stops only;
+      autoplay reveal = 1x sfx_btn_spin.
+- [x] DRAGON GLIDE rebuilt (was thin/scratchy — it was pure bandpassed NOISE sweeping
+      up to ~2kHz). Now built the other way round: a warm TONAL core carries it (78Hz
+      + fifth + sub octave, slow pitch drift = mass displacing air), with dark filtered
+      air at 30% riding on top, capped at 900Hz/1.2kHz so the harsh band is gone;
+      longer 1.6s loop = slower, less swishy motion; more reverb body.
+- [x] CLUTTER CUT (3 cues retired, 45 -> 42): sfx_spin_loop (constant airy bed under
+      EVERY spin — background noise with nothing to say), sfx_spin_launch (above),
+      sfx_wild_explode (was layered UNDER the ignition chord = two hits on one beat).
+      Plus two duplicate ANNOUNCEMENTS removed: the dragon arrival cue (the same
+      dragon already chimed on its reel-land ~1s earlier — one dragon, one sound) and
+      the win stings on levels 2-3 (every winning line already plays sfx_winlevel_small,
+      so the sting doubled the most COMMON wins; stings kept on 4-5 where escalation
+      reads as intentional). Dead spine wildExplode listener + unused import deleted.
+- [x] Coverage re-verified: every broadcast name exists in the 42-cue sprite, no
+      orphans, all 11 loops seamless (seam jumps <= 0.0039). Bonus round cue-traced
+      end to end: dismiss -> 5 reel stops -> 1 land per dragon -> 1 glide + 1 ignition
+      per flight -> line cue -> big-win bed. No background bed, no doubled beats.
+- [x] QUICK-SPIN LINE VALUES RESTORED (operator: quick-spinning before the reels land
+      showed only ONE total pop instead of the individual line values). Root cause: the
+      winInfo handler BRANCHED under turbo into a separate composite path
+      (winLinesFlash) that drew bare strands with no per-line value and ended on a
+      single combined total. Fix: that branch is DELETED — turbo now runs the SAME
+      per-line tour as normal play with the clock pre-raised (winSpeed 5), so every
+      line still pops what it paid, just at quick-spin pace (the value-pop legibility
+      floor keeps each number readable at 5x). Dead flash path removed entirely
+      (winLinesFlash event type, subscription, playFlash, strandOnce). Verified live:
+      a turbo round produced 6 distinct value pops incl. a multiplied line rolling
+      $10.00 -> $20.00, and a 5x freeze-frame shows the value + x3 badge legible
+      mid-merge.

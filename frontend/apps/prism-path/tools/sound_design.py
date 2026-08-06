@@ -168,7 +168,7 @@ def mix_into(x, i0, seg, gain=1.0):
 
 
 def fold_loop(x, loop_len):
-    """Wrap everything past loop_len back onto the start -> seamless loop."""
+    """Wrap everything past loop_len back onto the start (reverb tails survive the wrap)."""
     n = int(loop_len * SR)
     if x.ndim == 1:
         x = stereo(x)
@@ -179,6 +179,29 @@ def fold_loop(x, loop_len):
         seg = tail[r * n:(r + 1) * n]
         out[: len(seg)] += seg
     return out
+
+
+def seamless_loop(x, fade=0.035):
+    """Make ANY loop truly seamless: circular crossfade of the end into the start.
+
+    fold_loop preserves tail ENERGY across the wrap but never matches the WAVEFORM
+    at the seam — for noise-based beds (spin loop, glide, anticipation) the last
+    and first samples are uncorrelated, which clicked audibly on every cycle
+    (the 'blip every couple seconds' in the bonus). Equal-power blend of the final
+    `fade` seconds into the opening ones, then trim, so sample N-1 flows into
+    sample 0 continuously. Applied to EVERY loop=True cue at build time.
+    """
+    if x.ndim == 1:
+        x = stereo(x)
+    F = min(int(fade * SR), len(x) // 4)
+    if F < 8:
+        return x
+    t = np.linspace(0, 1, F)[:, None]
+    fin = np.sin(t * np.pi / 2)
+    fout = np.cos(t * np.pi / 2)
+    x = x.copy()
+    x[:F] = x[:F] * fin + x[-F:] * fout
+    return x[:-F]
 
 
 # ---------------------------------------------------------------- Instruments
@@ -520,7 +543,7 @@ def sfx_btn_general():
 
 def sfx_btn_spin():
     """Spin press: a small warm push — felt tone + a soft low nudge + a whisper of
-    air. The launch itself is carried by sfx_spin_launch / the reels."""
+    air. This press cue IS the spin whoosh — there is no second launch cue."""
     n = int(0.32 * SR)
     x = np.zeros(n)
     mix_into(x, 0, whoosh(0.24, 220, 800, back=0.7), 0.22)
@@ -529,32 +552,8 @@ def sfx_btn_spin():
     return fade_io(norm(widen(x, 0.0015), 0.55))
 
 
-def sfx_spin_launch():
-    """The board's launch breath: the whoosh ALONE (operator: the cue had two parts —
-    keep the first, drop the second; the thump + pluck tail read as a second event)."""
-    n = int(0.5 * SR)
-    x = np.zeros(n)
-    mix_into(x, 0, whoosh(0.45, 180, 1100, curve=1.1, back=0.85), 0.5)
-    return fade_io(norm(widen(x, 0.002), 0.55))
 
 
-def sfx_spin_loop():
-    """Reel-motion bed (2s seamless loop): soft moving air, band centre undulating
-    an integer number of cycles per loop. Deliberately subtle — felt, not heard."""
-    total = 2.0
-    n = int(total * SR)
-    tt = np.linspace(0, 1, n, endpoint=False)
-    src = RNG.standard_normal(n)
-    centre = 480 * (1 + 0.4 * np.sin(2 * np.pi * 2 * tt))
-    out = np.zeros(n)
-    for c in np.geomspace(180, 1500, 6):
-        w = np.exp(-((np.log(centre / c)) ** 2) / (2 * 0.6 ** 2))
-        out += bandpass(src, c * 0.55, c * 1.8, order=2) * w
-    out += lowpass(src, 260) * 0.35
-    out = lowpass(out, 1700)
-    out *= 0.9 + 0.1 * np.sin(2 * np.pi * 2 * tt + 1.1)
-    out = reverb(widen(out, 0.004), mix=0.18, size=1.0, damp=3000)
-    return norm(fold_loop(out, total), 0.30)
 
 
 # The five reel stops climb a gentle pentatonic ladder — one timbre family, rising
@@ -588,24 +587,41 @@ def sfx_scatter_stop(i):
 
 
 def sfx_dragon_glide():
-    """THE GLIDE — a LOOPING bed of moving air, played for exactly as long as the
-    dragon is travelling (started at launch, stopped when it clears the board)."""
-    total = 0.9
+    """THE GLIDE — a LOOPING flight bed, played for exactly as long as the dragon is
+    travelling. Operator: the noise-only versions read THIN and SCRATCHY. The body of
+    a flight is not hiss — it is MOVING AIR WITH MASS, so this is built the other way
+    round: a warm tonal core (low sine + its fifth, slowly drifting = the sense of a
+    big shape displacing air) carries the sound, and filtered air rides ON TOP at a
+    fraction of the level, capped well below the harshness band. Slow undulation over
+    a longer loop so nothing sounds like a repeating swish."""
+    total = 1.6
     n = int(total * SR)
     tt = np.linspace(0, 1, n, endpoint=False)
+    cyc = 2 * np.pi * tt
+
+    # --- tonal core: the mass of the thing ---
+    drift = 1 + 0.05 * np.sin(cyc)            # a slow breath in pitch
+    f0 = 78.0
+    core = np.sin(2 * np.pi * f0 * np.cumsum(drift) / SR) * 0.8
+    core += np.sin(2 * np.pi * f0 * 1.5 * np.cumsum(drift) / SR) * 0.35   # fifth
+    core += np.sin(2 * np.pi * f0 * 0.5 * np.cumsum(drift) / SR) * 0.5    # sub octave
+    core = lowpass(core, 420)
+
+    # --- air layer: soft, dark, and quiet — texture, never the subject ---
     src = RNG.standard_normal(n)
-    centre = 300 * (1 + 0.55 * np.sin(2 * np.pi * tt))
-    out = np.zeros(n)
-    for c in np.geomspace(120, 1100, 6):
-        w = np.exp(-((np.log(centre / c)) ** 2) / (2 * 0.6 ** 2))
-        out += bandpass(src, c * 0.55, c * 1.8, order=2) * w
-    # RESTORED to the original flight voice (operator: the prior whoosh was better) —
-    # brighter air cap + airier reverb than the warm-pass darkening
-    out += lowpass(src, 200) * 0.6
-    out = lowpass(out, 1900)
-    out *= 0.85 + 0.15 * np.sin(2 * np.pi * tt)
-    out = reverb(widen(out, 0.005), mix=0.22, size=1.1, damp=3600)
-    return norm(fold_loop(out, total), 0.34)
+    centre = 260 * (1 + 0.35 * np.sin(cyc))   # gentler, slower sweep
+    air = np.zeros(n)
+    for c in np.geomspace(110, 620, 5):       # capped low: no 2kHz scratch band
+        wgt = np.exp(-((np.log(centre / c)) ** 2) / (2 * 0.7 ** 2))
+        air += bandpass(src, c * 0.6, c * 1.6, order=2) * wgt
+    air = lowpass(air, 900)
+    air *= 0.30                                # sits UNDER the core
+
+    out = core + air
+    out *= 0.88 + 0.12 * np.sin(cyc)          # slow amplitude motion
+    out = lowpass(out, 1200)
+    out = reverb(widen(out, 0.006), mix=0.26, size=1.2, damp=2600)
+    return norm(fold_loop(out, total), 0.40)
 
 
 def sfx_dragon_land():
@@ -622,7 +638,7 @@ def sfx_dragon_land():
 
 def sfx_multiplier_landing():
     """PATH IGNITES (top layer) — a rolled warm chord rising into place over real
-    body: the celebratory half of the ignition; sfx_wild_explode carries the low."""
+    body: the ONE cue for a path igniting (no second layer under it)."""
     n = int(0.9 * SR)
     x = np.zeros(n)
     warm_chord(x, 0, ["A3", "C4", "E4"], 0.75, gain=0.5, spread=0.022, tone=0.6)
@@ -633,17 +649,6 @@ def sfx_multiplier_landing():
     return fade_io(norm(out, 0.62))
 
 
-def sfx_wild_explode():
-    """Warm BURST (the ignition's low layer): a deep pitch-drop thump, a breath
-    bloom and a low marimba seat — weight and air, zero chime."""
-    n = int(0.9 * SR)
-    x = np.zeros(n)
-    mix_into(x, 0, thump_drop(150, 45, 0.5, puff=0.7), 0.8)
-    mix_into(x, 0, whoosh(0.5, 120, 800, curve=1.2, back=0.6), 0.4)
-    mix_into(x, int(0.01 * SR), marimba(note("A2"), 0.6, tone=0.45, contact=0.3), 0.5)
-    mix_into(x, int(0.06 * SR), warm_pluck(note("A3"), 0.5, tone=1100), 0.22)
-    out = reverb(widen(x, 0.003), mix=0.24, size=1.1, damp=3000)
-    return fade_io(norm(out, 0.66))
 
 
 def sfx_anticipation():
@@ -925,13 +930,10 @@ CUES = {
     "sfx_scatter_stop_4": (lambda: sfx_scatter_stop(3), False, 0.8),
     "sfx_scatter_stop_5": (lambda: sfx_scatter_stop(4), False, 0.82),
     "sfx_scatter_win_v2": (sfx_scatter_win, False, 0.8),
-    "sfx_spin_launch": (sfx_spin_launch, False, 0.6),
-    "sfx_spin_loop": (sfx_spin_loop, True, 0.35),
     "sfx_sticky_claim": (sfx_sticky_claim, False, 0.7),
     "sfx_superfreespin": (sfx_superfreespin, False, 0.85),
     "sfx_tier_up": (sfx_tier_up, False, 0.75),
     "sfx_transition_whoosh": (sfx_transition_whoosh, False, 0.6),
-    "sfx_wild_explode": (sfx_wild_explode, False, 0.8),
     "sfx_win_sting_1": (lambda: sfx_win_sting(0), False, 0.6),
     "sfx_win_sting_2": (lambda: sfx_win_sting(1), False, 0.65),
     "sfx_win_sting_3": (lambda: sfx_win_sting(2), False, 0.7),
@@ -954,6 +956,11 @@ def build():
         x = builder()
         if x.ndim == 1:
             x = stereo(x)
+        if loop:
+            # universal seam guard: every looping cue gets the circular crossfade
+            x = seamless_loop(x)
+            jump = float(np.max(np.abs(x[0] - x[-1])))
+            print(f"    loop seam jump: {jump:.4f}")
         dur_ms = len(x) / SR * 1000
         sprite[name] = [cursor_ms, round(dur_ms, 4)] + ([True] if loop else [])
         segments.append(x)

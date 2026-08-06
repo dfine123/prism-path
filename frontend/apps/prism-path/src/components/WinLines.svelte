@@ -1,31 +1,23 @@
 <script lang="ts" module>
 	import type { Position } from '../game/types';
 
-	// Awaitable win-line presentation, two modes sharing one renderer:
+	// Awaitable win-line presentation — ONE mode, one renderer.
 	//
-	// winLinePlay — the NORMAL tour: sweeps a prism-light line through the winning cells,
-	// pops the line's WIN VALUE at the centroid on the impact frame (with its beast
-	// multiplier, which collapses into the number as it rolls up to the full value), holds
-	// while streaming, then fades. The winInfo handler awaits one full lifecycle per line,
-	// so lines play strictly sequentially.
-	//
-	// winLinesFlash — the TURBO tour: lines play strictly ONE AT A TIME (two lines on
-	// stage at once reads as a glitch) with tight designed beats — quick glide draw,
-	// readable blink, clean fade — then the COMBINED total pops once. Same ribbon, same
-	// light language, condensed pacing.
-	export type EmitterEventWinLines =
-		| {
-				type: 'winLinePlay';
-				positions: Position[];
-				amount: number; // final line win (multiplier applied)
-				baseAmount: number; // line win before the beast multiplier
-				multiplier: number; // product of distinct beasts on the line (1 = none)
-		  }
-		| {
-				type: 'winLinesFlash';
-				lines: { positions: Position[] }[];
-				amount: number; // combined total of all lines (multipliers applied)
-		  };
+	// winLinePlay — sweeps a prism-light line through the winning cells, pops the line's
+	// WIN VALUE at the centroid on the impact frame (with its beast multiplier, which
+	// collapses into the number as it rolls up to the full value), holds while streaming,
+	// then fades. The winInfo handler awaits one full lifecycle per line, so lines play
+	// strictly sequentially. TURBO uses this SAME path with the clock raised — every line
+	// still shows what it paid (the value-pop legibility floor keeps it readable at speed);
+	// the old composite "flash" tour that replaced per-line values with one combined total
+	// is gone.
+	export type EmitterEventWinLines = {
+		type: 'winLinePlay';
+		positions: Position[];
+		amount: number; // final line win (multiplier applied)
+		baseAmount: number; // line win before the beast multiplier
+		multiplier: number; // product of distinct beasts on the line (1 = none)
+	};
 </script>
 
 <script lang="ts">
@@ -198,92 +190,9 @@
 			requestAnimationFrame(frame);
 		});
 
-	// TURBO tour: strictly ONE line on stage at a time (operator: two lines at once
-	// reads as a glitch). Each line gets tight designed beats — full glide draw, a
-	// readable blink of hold, clean fade — then the COMBINED total pops once at the
-	// collective centroid. Fast, composed, never simultaneous.
-	const strandOnce = (pts: { x: number; y: number }[], drawMs: number, holdMs: number, fadeMs: number) =>
-		new Promise<void>((resolve) => {
-			let lastT = now();
-			let el = 0;
-			line = { show: true, pts, prog: 0, alpha: 1, phase: 0 };
-			const total = drawMs + holdMs + fadeMs;
-			const frame = () => {
-				const tN = now();
-				el += (tN - lastT) * stateFx.winSpeed;
-				lastT = tN;
-				line.phase = (el / 1000) * FLOW_HZ;
-				if (el < drawMs) {
-					line.prog = EASE.glide(clamp01(el / drawMs));
-					line.alpha = 1;
-				} else if (el < drawMs + holdMs) {
-					line.prog = 1;
-					line.alpha = 1;
-				} else {
-					line.prog = 1;
-					line.alpha = 1 - EASE.collapse(clamp01((el - drawMs - holdMs) / fadeMs));
-				}
-				if (el < total) requestAnimationFrame(frame);
-				else {
-					line.show = false;
-					line.alpha = 0;
-					resolve();
-				}
-			};
-			requestAnimationFrame(frame);
-		});
-
-	const playFlash = async (lineSets: { positions: Position[] }[], amount: number) => {
-		const built = lineSets.map((l) => buildPts(l.positions)).filter((b) => b.cells.length > 0);
-		if (built.length === 0) return;
-		for (const b of built) await strandOnce(b.pts, 120, 150, 70);
-		const allCells = built.flatMap((b) => b.cells);
-		const cx = allCells.reduce((sum, p) => sum + p.x, 0) / allCells.length;
-		const cy = allCells.reduce((sum, p) => sum + p.y, 0) / allCells.length;
-		await new Promise<void>((resolve) => {
-			Object.assign(stateWinPop, {
-				x: cx,
-				y: cy,
-				scale: 0,
-				alpha: 0,
-				multY: MULT_Y,
-				multScale: 0,
-				multAlpha: 0,
-				label: bookEventAmountToCurrencyString(amount),
-				multLabel: '',
-			});
-			let lastT = now();
-			let el = 0;
-			const TOTAL = 540;
-			const frame = () => {
-				const tN = now();
-				const dt = tN - lastT;
-				lastT = tN;
-				let adv = dt * stateFx.winSpeed;
-				// same legibility floor as the line pop: the combined total must read
-				if (el < POP_MS + 120) adv = Math.min(adv, dt * 2);
-				el += adv;
-				const pu = clamp01(el / POP_MS);
-				stateWinPop.scale = pu < 1 ? EASE.impact(pu) : 1 + 0.025 * Math.sin((el / 1000) * Math.PI * 2.4);
-				stateWinPop.alpha =
-					el < TOTAL - 120 ? clamp01(pu * 2.5) : 1 - EASE.collapse(clamp01((el - (TOTAL - 120)) / 120));
-				if (el < TOTAL) requestAnimationFrame(frame);
-				else {
-					stateWinPop.alpha = 0;
-					stateWinPop.scale = 0;
-					resolve();
-				}
-			};
-			requestAnimationFrame(frame);
-		});
-	};
-
 	context.eventEmitter.subscribeOnMount({
 		winLinePlay: async ({ positions, amount, baseAmount, multiplier }) => {
 			await play(positions, amount, baseAmount, multiplier);
-		},
-		winLinesFlash: async ({ lines, amount }) => {
-			await playFlash(lines, amount);
 		},
 	});
 

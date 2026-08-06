@@ -198,10 +198,9 @@
 				revealedAll = true;
 				// the persistent cells take over the EXACT pixels the ribbon was drawing
 				ribbon.show = false;
-				// the ignition speaks in two layers: the warm chord on top, and the deep
-				// burst underneath (sfx_wild_explode's old spine-event trigger was dead —
-				// this moment is the impact it was always meant to carry)
-				context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_wild_explode' });
+				// ONE cue for the ignition — the warm chord says it. (A second "explode"
+				// layer under it just muddied the moment; two hits on one beat read as
+				// clutter, not weight.)
 				context.eventEmitter.broadcast({ type: 'soundOnce', name: 'sfx_multiplier_landing' });
 				boardSlam(1); // full path ignites — the heaviest beat of the flight
 				for (const c of beast.cells) {

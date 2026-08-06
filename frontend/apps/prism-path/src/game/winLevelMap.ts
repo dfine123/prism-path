@@ -16,7 +16,7 @@ export const winLevelMap = {
 		type: 'small',
 		text: null,
 		presentDuration: 0.6 * SECOND,
-		sound: { sfx: 'sfx_win_sting_1', bgm: undefined },
+		sound: { sfx: undefined, bgm: undefined }, // per-line cue carries it
 		animation: undefined,
 	},
 	3: {
@@ -25,7 +25,7 @@ export const winLevelMap = {
 		type: 'small',
 		text: null,
 		presentDuration: 1 * SECOND,
-		sound: { sfx: 'sfx_win_sting_2', bgm: undefined },
+		sound: { sfx: undefined, bgm: undefined }, // per-line cue carries it
 		animation: undefined,
 	},
 	4: {
